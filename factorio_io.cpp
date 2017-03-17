@@ -5,9 +5,13 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#include "worldmap.h"
+#include "worldmap.hpp"
+#include "pos.hpp"
 
 #define READ_BUFSIZE 1024
+
+using std::string;
+using std::unordered_map;
 
 enum dir4_t
 {
@@ -19,15 +23,40 @@ enum dir4_t
 
 struct Area
 {
-	int x1,y1;
-	int x2,y2;
+	Pos left_top;
+	Pos right_bottom;
 
 	Area() {}
-	Area(int x1, int y1, int x2, int y2) : x1(x1), y1(y1), x2(x2), y2(y2) {}
+	Area(int x1, int y1, int x2, int y2) : left_top(x1,y1), right_bottom(x2,y2)  {}
+	Area(const Pos& lt, const Pos& rb) : left_top(lt), right_bottom(rb) {}
 	Area(std::string str);
 
-	std::string prettyprint();
+	std::string str();
 };
+
+constexpr int NOT_YET_ASSIGNED = -1; // TODO FIXME
+
+struct Resource
+{
+	enum type_t
+	{
+		NONE,
+		COAL,
+		IRON,
+		COPPER,
+		STONE,
+		OIL
+	};
+	static const unordered_map<string, Resource::type_t> types;
+	
+	type_t type;
+	int parent_patch;
+
+	Resource(type_t t, int parent) : type(t), parent_patch(parent) {}
+	Resource() : type(NONE), parent_patch(NOT_YET_ASSIGNED) {}
+
+};
+const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"oil", OIL} };
 
 class FactorioGame
 {
@@ -44,11 +73,15 @@ class FactorioGame
 		void change_file_id(int new_id);
 		std::string factorio_file_name();
 		std::string remove_line_from_buffer();
+
+		void parse_tiles(const Area& area, const string& data);
+		void parse_resources(const Area& area, const string& data);
 	
 	public:
 		FactorioGame(std::string prefix, std::string rcon_host, int rcon_port);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
+		void floodfill_resources(const WorldMap<Resource>::Viewport& view, int x, int y);
 
 		struct walk_t
 		{
@@ -58,6 +91,7 @@ class FactorioGame
 		};
 
 		WorldMap<walk_t> walk_map;
+		WorldMap<Resource> resource_map;
 };
 
 using namespace std;
@@ -69,20 +103,15 @@ Area::Area(string str)
 	if (!regex_search(str, match, exp) || match.size() < 4)
 		throw runtime_error("invalid area specification '"+str+"'");
 
-	x1 = stoi(match.str(1));
-	y1 = stoi(match.str(2));
-	x2 = stoi(match.str(3));
-	y2 = stoi(match.str(4));
+	left_top.x = stoi(match.str(1));
+	left_top.y = stoi(match.str(2));
+	right_bottom.x = stoi(match.str(3));
+	right_bottom.y = stoi(match.str(4));
 }
 
-string Area::prettyprint()
+string Area::str()
 {
-	return "("+to_string(x1)+","+to_string(y1)+") -- ("+to_string(x2)+","+to_string(y2)+")";
-}
-
-static bool starts_with(const string& str, const string& begin)
-{
-	return str.substr(0,begin.length())==begin;
+	return left_top.str() + " -- " + right_bottom.str();
 }
 
 FactorioGame::FactorioGame(string prefix, string rcon_host_, int rcon_port_)
@@ -159,7 +188,7 @@ void FactorioGame::parse_packet(const string& pkg)
 	Area area(match.str(2));
 	string data = match.str(3);
 
-	cout << "type="<<type<<", area="<<area.prettyprint()<<endl;
+	cout << "type="<<type<<", area="<<area.str()<<endl;
 
 	if (type=="tiles")
 		parse_tiles(area, data);
@@ -169,59 +198,61 @@ void FactorioGame::parse_packet(const string& pkg)
 		throw runtime_error("unknown packet type '"+type+"'");
 }
 
-void FactorioGame::parse_tiles(area, data)
+void FactorioGame::parse_tiles(const Area& area, const string& data)
 {
 	if (data.length() != 1024+1023)
 		throw runtime_error("parse_tiles: invalid length");
 	
-	auto view = walk_map.viewport(area.left_top, area.right_bottom, area.left_top);
+	auto view = walk_map.view(area.left_top, area.right_bottom, area.left_top);
 
 	for (int i=0; i<1024; i++)
 	{
 		int x = i%32;
 		int y = i/32;
-		view.at(x,y).can_walk = (data[2*i]=="0");
+		view.at(x,y).can_walk = (data[2*i]=='0');
 	}
 }
 
-enum resource_type_t
-{
-	COAL,
-	IRON,
-	COPPER,
-	STONE,
-	OIL
-};
-
-unordered_map<string, resource_type_t> resource_types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"oil", OIL} };
-
-void FactorioGame::parse_resources(area, data)
+void FactorioGame::parse_resources(const Area& area, const string& data)
 {
 	istringstream str(data);
 	string entry;
-	resource_type_t type;
-	int x,y;
-
 	regex reg("^ *([^ ]*) ([^ ]*) ([^ ]*) *$");
 	smatch match;
 
-	auto view = resource_map.viewport(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
+	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	// FIXME: clear and un-assign existing entities before
 
+
+	// parse all entities and write them to the WorldMap
 	while (getline(str, entry, ','))
 	{
 		if (!regex_search(entry, match, reg) || match.size() < 3)
 			throw runtime_error("malformed resource entry");
 		
-		type = resource_types[match.str(1)];
-		x = floor(stod(match.str(2)));
-		y = floor(stod(match.str(2)));
+		Resource::type_t type = Resource::types.at(match.str(1));
+		int x = int(stod(match.str(2)));
+		int y = int(stod(match.str(2)));
 
-		view.at(x,y) = Resource(x,y,type, NOT_YET_ASSIGNED);
+		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED);
 	}
 
+	// group them together
+	for (int x=area.left_top.x; x<area.right_bottom.x; x++)
+		for (int y=area.left_top.y; y<area.right_bottom.y; y++)
+		{
+			if (view.at(x,y).parent_patch == NOT_YET_ASSIGNED)
+				floodfill_resources(view, x,y);
+		}
+}
 
+void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, int x, int y)
+{
+	// TODO: auto-assign next free number
+	// TODO: floodfill
+	// TODO: detect neighboring patches
+	// TODO: update patchlist
 }
 
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <map>
 #include <cassert>
 #include <array>
@@ -5,35 +7,9 @@
 #include <type_traits>
 #include <stdexcept>
 #include <unordered_map>
-#include <string>
-#include <iostream>
 
-constexpr int tileidx(int x)
-{
-	return ((x % 32) + 32) % 32;
-}
 
-constexpr int chunkidx(int x)
-{
-	return (x>=0) ? x/32 : (x-31)/32;
-}
-
-struct Pos
-{
-	int x,y;
-	Pos(int x_, int y_) : x(x_), y(y_) {}
-	Pos() : x(0), y(0) {}
-
-	bool operator==(const Pos that) const
-	{
-		return this->x == that.x && this->y == that.y;
-	}
-
-	std::string str() { return std::to_string(x) + "," + std::to_string(y); }
-
-	static Pos tile_to_chunk(const Pos& p) { return Pos(chunkidx(p.x), chunkidx(p.y)); }
-	static Pos tile_to_chunk_ceil(const Pos& p) { return Pos(chunkidx(p.x+31), chunkidx(p.x+31)); }
-};
+#include "pos.hpp"
 
 namespace std {
 	template <> struct hash<Pos>
@@ -149,30 +125,3 @@ class WorldMap
 		std::unordered_map< Pos, Chunk<T> > storage;
 		Chunk<T> dummy_chunk;
 };
-
-using namespace std;
-
-struct bla
-{
-	int foo;
-	int bar;
-	bla(int f, int b) : foo(f), bar(b) {}
-	bla() {foo=42; bar=1337;}
-};
-
-int main()
-{
-	WorldMap<bla> map;
-	const WorldMap<bla>& ref = map;
-
-	WorldMap<bla>::Viewport vp1 = map.view(Pos(10,10), Pos(40,40), Pos(0,0));
-	auto vp2 = ref.view(Pos(10,10), Pos(40,40), Pos(0,0));
-
-	vp1.at(10,30)=bla(3,1);
-	volatile auto x = vp2.at(10,30);
-	cout << x.foo << x.bar << endl;
-
-	auto vp3 = map.view(Pos(1000,1000), Pos(1100,1100), Pos(1050,1050));
-	auto y = vp3.at(0,0);
-	cout << y.foo << endl;
-}
