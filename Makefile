@@ -5,11 +5,11 @@ CC=clang
 #CXX=g++
 
 #FLAGS=-Wall -Wextra
-FLAGS=-Weverything -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -g
+FLAGS=-Weverything -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -g
 
 CXXFLAGS=-std=c++14 $(FLAGS)
 
-test: worldmap.o
+test: factorio_io.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 %.o: %.cpp
