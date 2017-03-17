@@ -41,13 +41,13 @@ class WorldMap
 
 				parenttype parent;
 
-				Pos lefttop;
 				Pos origin;
+				Pos lefttop_tile, rightbot_tile; // DEBUG
 				std::vector<chunktype> chunkcache;
 				Pos lefttop_chunk;
 				int xlen_chunks, ylen_chunks;
 
-				Viewport_(parenttype parent_, const Pos& lefttop_tile, const Pos& rightbot_tile, const Pos& origin_) : parent(parent_), origin(origin_)
+				Viewport_(parenttype parent_, const Pos& lefttop_tile_, const Pos& rightbot_tile_, const Pos& origin_) : parent(parent_), origin(origin_), lefttop_tile(lefttop_tile_), rightbot_tile(rightbot_tile_)
 				{
 					lefttop_chunk = Pos::tile_to_chunk(lefttop_tile);
 					Pos rightbot_chunk = Pos::tile_to_chunk_ceil(rightbot_tile);
@@ -70,6 +70,8 @@ class WorldMap
 				{
 					int tilex = x+origin.x;
 					int tiley = y+origin.y;
+					if (!((tilex >= lefttop_tile.x) && (tiley >= lefttop_tile.y) && (tilex < rightbot_tile.x) && (tiley < rightbot_tile.y)))
+						throw std::invalid_argument("invalid coordinate for Viewport");
 					int chunkx = chunkidx(tilex) - lefttop_chunk.x;
 					int chunky = chunkidx(tiley) - lefttop_chunk.y;
 					assert(chunkx >= 0);
@@ -80,8 +82,6 @@ class WorldMap
 					int relx = tileidx(tilex);
 					int rely = tileidx(tiley);
 
-
-					std::cout<<"chunkcache[1]="<<chunkcache[1]<<std::endl;
 					return (*chunkcache[chunkx+chunky*xlen_chunks])[relx][rely];
 				}
 				reftype at(const Pos& pos) const { return at(pos.x, pos.y); }
@@ -105,7 +105,6 @@ class WorldMap
 		{
 			Chunk<T>* retval = &(storage[ Pos(x,y) ]);
 			assert(retval != NULL);
-			std::cout << "get_chunk returning "<<retval<<std::endl;
 			return retval;
 		}
 		

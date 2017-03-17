@@ -25,9 +25,9 @@ struct Pos
 		return this->x == that.x && this->y == that.y;
 	}
 
-	std::string str() { return std::to_string(x) + "," + std::to_string(y); }
+	std::string str() const { return std::to_string(x) + "," + std::to_string(y); }
 
 	static Pos tile_to_chunk(const Pos& p) { return Pos(chunkidx(p.x), chunkidx(p.y)); }
-	static Pos tile_to_chunk_ceil(const Pos& p) { return Pos(chunkidx(p.x+31), chunkidx(p.x+31)); }
+	static Pos tile_to_chunk_ceil(const Pos& p) { return Pos(chunkidx(p.x+31), chunkidx(p.y+31)); }
 };
 

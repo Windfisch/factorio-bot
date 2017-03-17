@@ -31,7 +31,7 @@ struct Area
 	Area(const Pos& lt, const Pos& rb) : left_top(lt), right_bottom(rb) {}
 	Area(std::string str);
 
-	std::string str();
+	std::string str() const;
 };
 
 constexpr int NOT_YET_ASSIGNED = -1; // TODO FIXME
@@ -105,11 +105,11 @@ Area::Area(string str)
 
 	left_top.x = stoi(match.str(1));
 	left_top.y = stoi(match.str(2));
-	right_bottom.x = stoi(match.str(3));
-	right_bottom.y = stoi(match.str(4));
+	right_bottom.x = stoi(match.str(3))+1; // mod sends them as rightbottom-inclusive
+	right_bottom.y = stoi(match.str(4))+1; // but we want an exclusive boundary
 }
 
-string Area::str()
+string Area::str() const
 {
 	return left_top.str() + " -- " + right_bottom.str();
 }
@@ -188,7 +188,7 @@ void FactorioGame::parse_packet(const string& pkg)
 	Area area(match.str(2));
 	string data = match.str(3);
 
-	cout << "type="<<type<<", area="<<area.str()<<endl;
+	//cout << "type="<<type<<", area="<<area.str()<<endl;
 
 	if (type=="tiles")
 		parse_tiles(area, data);
@@ -226,14 +226,14 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 
 
 	// parse all entities and write them to the WorldMap
-	while (getline(str, entry, ','))
+	while (getline(str, entry, ',')) if (entry!="")
 	{
 		if (!regex_search(entry, match, reg) || match.size() < 3)
 			throw runtime_error("malformed resource entry");
 		
 		Resource::type_t type = Resource::types.at(match.str(1));
 		int x = int(stod(match.str(2)));
-		int y = int(stod(match.str(2)));
+		int y = int(stod(match.str(3)));
 
 		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED);
 	}
@@ -258,11 +258,15 @@ void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view,
 
 int main()
 {
-	FactorioGame factorio("/home/flo/kruschkram/factorio2-mod/factorio/script-output/output", "localhost", 1234);
+	FactorioGame factorio("/home/flo/kruschkram/factorio-AImod/script-output/output", "localhost", 1234);
+	int i=0;
 
 	while (true)
 	{
-		cout << "> " << factorio.read_packet() << endl;
-		usleep(1000000);
+		factorio.parse_packet( factorio.read_packet() );
+		//usleep(1000);
+		i++;
+		if (i%100 == 0) cout << i << endl;
+		if (i>6000) return 0;
 	}
 }
