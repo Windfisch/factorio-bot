@@ -1,9 +1,10 @@
-#include <regex>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <stdexcept>
 #include <unistd.h>
+#include <cstdio>
 
 #include "worldmap.hpp"
 #include "pos.hpp"
@@ -98,15 +99,9 @@ using namespace std;
 
 Area::Area(string str)
 {
-	regex exp(" *(-?[0-9]+),(-?[0-9]+);(-?[0-9]+),(-?[0-9]+) *");
-	smatch match;
-	if (!regex_search(str, match, exp) || match.size() < 4)
-		throw runtime_error("invalid area specification '"+str+"'");
-
-	left_top.x = stoi(match.str(1));
-	left_top.y = stoi(match.str(2));
-	right_bottom.x = stoi(match.str(3))+1; // mod sends them as rightbottom-inclusive
-	right_bottom.y = stoi(match.str(4))+1; // but we want an exclusive boundary
+	std::sscanf(str.c_str(), "%i,%i;%i,%i", &left_top.x, &left_top.y, &right_bottom.x, &right_bottom.y);
+	right_bottom.x++; // mod sends them as rightbottom-inclusive
+	right_bottom.y++; // but we want an exclusive boundary
 }
 
 string Area::str() const
@@ -179,14 +174,15 @@ string FactorioGame::read_packet()
 
 void FactorioGame::parse_packet(const string& pkg)
 {
-	regex header("^([^ ]*) ([^ ]*): *(.*)$");
-	smatch match;
-	if (!regex_search(pkg, match, header) || match.size() < 3)
+	int p1 = pkg.find(' ');
+	int p2 = pkg.find(':', p1);
+
+	if (p1 == string::npos || p2 == string::npos)
 		throw runtime_error("malformed packet");
 
-	string type = match.str(1);
-	Area area(match.str(2));
-	string data = match.str(3);
+	string type = pkg.substr(0, p1);
+	Area area(pkg.substr(p1+1, p2-(p1+1)));
+	string data = pkg.substr(p2+2); // skip space
 
 	//cout << "type="<<type<<", area="<<area.str()<<endl;
 
@@ -217,9 +213,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 {
 	istringstream str(data);
 	string entry;
-	regex reg("^ *([^ ]*) ([^ ]*) ([^ ]*) *$");
-	smatch match;
-
+	
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	// FIXME: clear and un-assign existing entities before
@@ -228,12 +222,16 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	// parse all entities and write them to the WorldMap
 	while (getline(str, entry, ',')) if (entry!="")
 	{
-		if (!regex_search(entry, match, reg) || match.size() < 3)
+		int p1 = entry.find(' ');
+		int p2 = entry.find(' ', p1+1);
+
+		if (p1 == string::npos || p2 == string::npos)
 			throw runtime_error("malformed resource entry");
+		assert(p1!=p2);
 		
-		Resource::type_t type = Resource::types.at(match.str(1));
-		int x = int(stod(match.str(2)));
-		int y = int(stod(match.str(3)));
+		Resource::type_t type = Resource::types.at( entry.substr(0,p1) );
+		int x = int(stod( entry.substr(p1+1, p2-(p1+1)) ));
+		int y = int(stod( entry.substr(p2+1) ));
 
 		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED);
 	}
