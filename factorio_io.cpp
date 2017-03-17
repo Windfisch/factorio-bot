@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <cstdio>
+#include <cstring>
 
 #include "worldmap.hpp"
 #include "pos.hpp"
@@ -160,8 +161,9 @@ string FactorioGame::read_packet()
 		factorio_file.read(buf, READ_BUFSIZE);
 		auto n_read = factorio_file.gcount();
 		line_buffer.append(buf, n_read);
+		if (memchr(buf,'\n', n_read)) break;
 	}
-	if (!factorio_file.eof())
+	if (factorio_file.fail() && !factorio_file.eof())
 		throw std::runtime_error("file reading error");
 	
 	factorio_file.clear();
