@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
+#include <set>
+#include <deque>
 
 #include "worldmap.hpp"
 #include "pos.hpp"
@@ -34,6 +36,8 @@ struct Area
 	Area(std::string str);
 
 	std::string str() const;
+
+	bool contains(const Pos& p) const { return left_top <= p && p < right_bottom; }
 };
 
 constexpr int NOT_YET_ASSIGNED = -1; // TODO FIXME
@@ -50,15 +54,23 @@ struct Resource
 		OIL
 	};
 	static const unordered_map<string, Resource::type_t> types;
+
+	enum floodfill_flag_t
+	{
+		FLOODFILL_NONE,
+		FLOODFILL_QUEUED
+	};
+
+	floodfill_flag_t floodfill_flag = FLOODFILL_NONE;
 	
 	type_t type;
-	int parent_patch;
+	int patch_id;
 
-	Resource(type_t t, int parent) : type(t), parent_patch(parent) {}
-	Resource() : type(NONE), parent_patch(NOT_YET_ASSIGNED) {}
+	Resource(type_t t, int parent) : type(t), patch_id(parent) {}
+	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED) {}
 
 };
-const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"oil", OIL} };
+const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL} };
 
 class FactorioGame
 {
@@ -78,12 +90,14 @@ class FactorioGame
 
 		void parse_tiles(const Area& area, const string& data);
 		void parse_resources(const Area& area, const string& data);
+
+		int next_free_resource_id = 0;
 	
 	public:
 		FactorioGame(std::string prefix, std::string rcon_host, int rcon_port);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
-		void floodfill_resources(const WorldMap<Resource>::Viewport& view, int x, int y);
+		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 
 		struct walk_t
 		{
@@ -176,8 +190,10 @@ string FactorioGame::read_packet()
 
 void FactorioGame::parse_packet(const string& pkg)
 {
-	int p1 = pkg.find(' ');
-	int p2 = pkg.find(':', p1);
+	if (pkg=="") return;
+
+	auto p1 = pkg.find(' ');
+	auto p2 = pkg.find(':', p1);
 
 	if (p1 == string::npos || p2 == string::npos)
 		throw runtime_error("malformed packet");
@@ -224,8 +240,8 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	// parse all entities and write them to the WorldMap
 	while (getline(str, entry, ',')) if (entry!="")
 	{
-		int p1 = entry.find(' ');
-		int p2 = entry.find(' ', p1+1);
+		auto p1 = entry.find(' ');
+		auto p2 = entry.find(' ', p1+1);
 
 		if (p1 == string::npos || p2 == string::npos)
 			throw runtime_error("malformed resource entry");
@@ -242,16 +258,56 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	for (int x=area.left_top.x; x<area.right_bottom.x; x++)
 		for (int y=area.left_top.y; y<area.right_bottom.y; y++)
 		{
-			if (view.at(x,y).parent_patch == NOT_YET_ASSIGNED)
-				floodfill_resources(view, x,y);
+			if (view.at(x,y).type != Resource::NONE && view.at(x,y).patch_id == NOT_YET_ASSIGNED)
+				floodfill_resources(view, area, x,y, view.at(x,y).type == Resource::OIL ? 30 : 5 );
 		}
 }
 
-void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, int x, int y)
+void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
 {
-	// TODO: auto-assign next free number
-	// TODO: floodfill
-	// TODO: detect neighboring patches
+	int id = next_free_resource_id++;
+	
+	set<int> neighbors;
+	deque<Pos> todo;
+	todo.push_back(Pos(x,y));
+	int count = 0;
+	auto resource_type = view.at(x,y).type;
+	cout << "type = "<<resource_type<< " @"<<Pos(x,y).str()<<endl;
+
+	while (!todo.empty())
+	{
+		Pos p = todo.front();
+		todo.pop_front();
+		count++;
+		
+		if (area.contains(p)) // this is inside the chunk we should fill
+		{
+			view.at(p).patch_id = id;
+			
+			for (int x_offset=-radius; x_offset<=radius; x_offset++)
+				for (int y_offset=-radius; y_offset<=radius; y_offset++)
+				{
+					const int xx = x + x_offset;
+					const int yy = y + y_offset;
+					Resource& ref = view.at(xx,yy);
+					if (ref.type == resource_type && ref.floodfill_flag == Resource::FLOODFILL_NONE)
+					{
+						ref.floodfill_flag = Resource::FLOODFILL_QUEUED;
+						todo.push_back(Pos(xx,yy));
+					}
+				}
+		}
+		else // it's outside the chunk. do not continue with floodfilling.
+		{
+			const Resource& ref = view.at(p);
+
+			if (ref.type == resource_type)
+				neighbors.insert(ref.patch_id);
+		}
+	}
+
+	cout << "count=" << count << ", neighbors="<< neighbors.size()<< endl;
+	
 	// TODO: update patchlist
 }
 
@@ -267,6 +323,6 @@ int main()
 		//usleep(1000);
 		i++;
 		if (i%100 == 0) cout << i << endl;
-		if (i>6000) return 0;
+		if (i>6000) break;
 	}
 }

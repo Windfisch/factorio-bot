@@ -25,6 +25,11 @@ struct Pos
 		return this->x == that.x && this->y == that.y;
 	}
 
+	bool operator< (const Pos& that) const { return this->x <  that.x && this->y <  that.y; }
+	bool operator<=(const Pos& that) const { return this->x <= that.x && this->y <= that.y; }
+	bool operator> (const Pos& that) const { return this->x >  that.x && this->y >  that.y; }
+	bool operator>=(const Pos& that) const { return this->x >= that.x && this->y >= that.y; }
+
 	std::string str() const { return std::to_string(x) + "," + std::to_string(y); }
 
 	static Pos tile_to_chunk(const Pos& p) { return Pos(chunkidx(p.x), chunkidx(p.y)); }
