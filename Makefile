@@ -1,19 +1,86 @@
-#CXX=clang++
-#CC=clang
+# possible values: GCC, clang
+COMPILER=clang
+EXE=test
+OBJECTS=factorio_io.o
+DEBUG=1
 
-CC=gcc
-CXX=g++
 
-FLAGS=-Wall -Wextra -g -O -pg -nopie
-#FLAGS=-Weverything -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -g -O2
+DEBUGFLAGS = -g #-fsanitize=undefined,address
+FASTFLAGS = -O2
+CXXFLAGS_BASE = -std=c++14
+CFLAGS_BASE = -std=c99
 
-CXXFLAGS=-std=c++14 $(FLAGS)
 
-test: factorio_io.o
-	$(CXX) $(CXXFLAGS) $^ -o $@
+COMPILER ?= GCC
+ifeq ($(COMPILER),GCC)
+	CC=gcc
+	CXX=g++
+	WARNFLAGS=-Wall -Wextra -Werror=return-type -Wno-missing-field-initializers
+else
+	CC=clang
+	CXX=clang++
+	WARNFLAGS=-Weverything -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
+endif
 
-%.o: %.cpp
-	$(CXX) -c $(CXXFLAGS) $^ -o $@
+
+DEBUG ?= 1
+ifeq ($(DEBUG),1)
+	FLAGS += $(DEBUGFLAGS)
+else
+	FLAGS += $(FASTFLAGS)
+endif
+
+FLAGS += $(WARNFLAGS)
+CFLAGS = $(CFLAGS_BASE) $(FLAGS)
+CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS)
+LINK=$(CXX)
+LINKFLAGS=$(CXXFLAGS)
+
+# Pseudotargets
+.PHONY: all clean run
+
+all: $(EXE)
 
 clean:
-	rm -f test *.o
+	rm -f $(EXE) $(OBJECTS) $(OBJECTS:.o=.d) depend
+
+info:
+	@echo DEBUGFLAGS = $(DEBUGFLAGS)
+	@echo FASTFLAGS = $(FASTFLAGS)
+	@echo DEBUG = $(DEBUG)
+	@echo CXXFLAGS_BASE = $(CXXFLAGS_BASE)
+	@echo CXXFLAGS = $(CXXFLAGS)
+	@echo LDFLAGS= $(LDFLAGS)
+
+
+
+# Build system
+
+include depend
+
+depend: $(OBJECTS:.o=.d)
+	cat $^ > $@
+
+%.d: %.cpp
+	$(CXX) $(CXXFLAGS) -M $< -o $@
+
+%.d: %.c
+	$(CC) $(CFLAGS) -M $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $<
+
+%.o: %.c
+	$(CC) $(CXXFLAGS) -c $<
+
+$(EXE): $(OBJECTS)
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
+
+
+-include .dummy.mk
+
+.dummy.mk: Makefile
+	@echo Makefile changed, cleaning to rebuild
+	@echo "# used to let all targets depend on Makefile" > $@
+	make -s clean
+
