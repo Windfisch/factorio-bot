@@ -11,6 +11,7 @@
 
 #include "worldmap.hpp"
 #include "pos.hpp"
+#include "gui/gui.h"
 
 #define READ_BUFSIZE 1024
 
@@ -317,12 +318,16 @@ int main()
 	FactorioGame factorio("/home/flo/kruschkram/factorio-AImod/script-output/output", "localhost", 1234);
 	int i=0;
 
+	GUI::MapGui gui(NULL);
+
 	while (true)
 	{
 		factorio.parse_packet( factorio.read_packet() );
 		//usleep(1000);
 		i++;
-		if (i%100 == 0) cout << i << endl;
-		if (i>6000) break;
+		//if (i%100 == 0) cout << i << endl;
+		//if (i>6000) break;
+		
+		GUI::wait(0.01);
 	}
 }

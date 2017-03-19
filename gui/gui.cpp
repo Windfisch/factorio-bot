@@ -21,9 +21,9 @@ class _MapGui_impl
 class MapBox : public Fl_Box
 {
        protected:
-               virtual void draw(void)
+               virtual void draw(void);
        private:
-               std::vector<char> imgbuf;
+               std::vector<unsigned char> imgbuf;
 	       std::unique_ptr<Fl_RGB_Image> rgbimg;
 
        public:
@@ -35,7 +35,7 @@ void MapBox::draw(void)
 	rgbimg->draw(x(),y());
 }
 
-MapBox::MapBox(int x, int y, int w, int h, const char* l = NULL) : Fl_Box(x,y,w,h,l)
+MapBox::MapBox(int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l)
 {
 	imgbuf.resize(4*1000*1000);
 	for (int i=0; i<1000*1000; i++)

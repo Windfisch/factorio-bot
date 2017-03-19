@@ -1,7 +1,7 @@
 # possible values: GCC, clang
 COMPILER=clang
 EXE=test
-OBJECTS=factorio_io.o
+OBJECTS=factorio_io.o gui/gui.o
 DEBUG=1
 
 
@@ -10,6 +10,7 @@ FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
 
+GUIFLAGS = -w # disable all warnings
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
@@ -31,10 +32,10 @@ else
 endif
 
 FLAGS += $(WARNFLAGS)
-CFLAGS = $(CFLAGS_BASE) $(FLAGS)
-CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS)
+CFLAGS = $(CFLAGS_BASE) $(FLAGS) `fltk-config --cflags`
+CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags`
 LINK=$(CXX)
-LINKFLAGS=$(CXXFLAGS)
+LINKFLAGS=$(CXXFLAGS) `fltk-config --ldflags`
 
 # Pseudotargets
 .PHONY: all clean run
@@ -64,14 +65,22 @@ depend: $(OBJECTS:.o=.d)
 %.d: %.cpp
 	$(CXX) $(CXXFLAGS) -M $< -o $@
 
+gui/%.d: gui/%.cpp
+	echo foo
+	$(CXX) $(CXXFLAGS) $(GUIFLAGS) -M $< -o $@
+
 %.d: %.c
 	$(CC) $(CFLAGS) -M $< -o $@
 
+gui/%.o: gui/%.cpp
+	echo foo
+	$(CXX) $(CXXFLAGS) $(GUIFLAGS) -c $< -o $@
+
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.o: %.c
-	$(CC) $(CXXFLAGS) -c $<
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 $(EXE): $(OBJECTS)
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
