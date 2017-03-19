@@ -53,6 +53,8 @@ info:
 	@echo CXXFLAGS = $(CXXFLAGS)
 	@echo LDFLAGS= $(LDFLAGS)
 
+run: $(EXE)
+	./$(EXE)
 
 
 # Build system
