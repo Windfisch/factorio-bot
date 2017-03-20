@@ -99,12 +99,24 @@ static MapBox* foo = 0;
 
 void MapBox::update_imgbuf()
 {
-	auto view = game->resource_map.view(Pos(-500,-500),Pos(500,500),Pos(-500,-500));
+	Pos origin=Pos(-500,-500);
+	auto view = game->resource_map.view(Pos(-500,-500),Pos(500,500),origin);
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
 		{
 			int idx = (y*imgwidth+x)*4;
-			Color col = get_color(view.at(x,y).patch_id);
+			Color col = get_color(long(view.at(x,y).type));
+			//Color col = get_color(long(view.at(x,y).resource_patch.lock().get()));
+			//Color col = get_color(view.at(x,y).patch_id);
+			
+			int rx = ((x+origin.x)%32 + 32)%32;
+			int ry = ((y+origin.y)%32 + 32)%32;
+			if ( (rx==0 || rx==31) && (ry==0 || ry==31))
+			{
+				if (x + origin.x < 0) col.r = 0; else col.r = 255;
+				if (y + origin.y < 0) col.g = 0; else col.g = 255;
+				col.b = 127;
+			}
 			imgbuf[idx+0] = col.r;
 			imgbuf[idx+1] = col.g;
 			imgbuf[idx+2] = col.b;

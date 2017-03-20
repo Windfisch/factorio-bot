@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_map>
 #include <fstream>
+#include <set>
 
 #include "worldmap.hpp"
 #include "pos.hpp"
@@ -31,6 +32,8 @@ struct Area
 
 constexpr int NOT_YET_ASSIGNED = -1; // TODO FIXME
 
+struct ResourcePatch;
+
 struct Resource
 {
 	enum type_t
@@ -54,6 +57,7 @@ struct Resource
 	
 	type_t type;
 	int patch_id;
+	std::weak_ptr<ResourcePatch> resource_patch;
 
 	Resource(type_t t, int parent) : type(t), patch_id(parent) {}
 	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED) {}
@@ -96,4 +100,5 @@ class FactorioGame
 
 		WorldMap<walk_t> walk_map;
 		WorldMap<Resource> resource_map;
+		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
 };
