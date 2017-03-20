@@ -179,6 +179,7 @@ void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view,
 	
 	set<int> neighbors;
 	deque<Pos> todo;
+	vector<Pos> orepatch;
 	todo.push_back(Pos(x,y));
 	int count = 0;
 	auto resource_type = view.at(x,y).type;
@@ -188,6 +189,7 @@ void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view,
 	{
 		Pos p = todo.front();
 		todo.pop_front();
+		orepatch.push_back(p);
 		count++;
 		
 		if (area.contains(p)) // this is inside the chunk we should fill
@@ -216,9 +218,28 @@ void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view,
 		}
 	}
 
-	cout << "count=" << count << ", neighbors="<< neighbors.size()<< endl;
+	cout << "count=" << count << ", neighbors=" << neighbors.size() << endl;
 	
+
+	shared_ptr<ResourcePatch> resource_patch;
+
 	// TODO: update patchlist
+	if (neighbors.size() == 0)
+	{
+		resource_patch = make_shared<ResourcePatch>(orepatch, resource_type);
+	}
+	else
+	{
+		auto largest = std::max_element(neighbors.begin(), neighbors.end(), [](auto a, auto b) {return a->elements.size() > a->elements.size();});
+	}
+
+	// clear floodfill_flag
+	for (const Pos& p : orepatch)
+	{
+		const Resource& ref = view.at(p);
+		ref.floodfill_flag = Resource::FLOODFILL_NONE;
+		ref.patch = resource_patch;
+	}
 }
 
 
