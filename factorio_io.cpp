@@ -162,7 +162,12 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 		int x = int(floor(stod( entry.substr(p1+1, p2-(p1+1)) )));
 		int y = int(floor(stod( entry.substr(p2+1) )));
 
-		assert(area.contains(Pos(x,y)));
+		if (!area.contains(Pos(x,y)))
+		{
+			// TODO FIXME
+			cout << "wtf, " << Pos(x,y).str() << " is not in "<< area.str() << endl;
+			break;
+		}
 
 		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED);
 	}
@@ -181,9 +186,11 @@ struct ResourcePatch
 	vector<Pos> positions;
 	Resource::type_t type;
 	int patch_id;
+	Area bounding_box;
 
 	ResourcePatch(const vector<Pos>& positions_, Resource::type_t t, int id) : positions(std::move(positions_)), type(t), patch_id(id)
 	{
+		recalc_bounding_box();
 	}
 
 	void merge_into(ResourcePatch& other)
@@ -195,7 +202,27 @@ struct ResourcePatch
 	void extend(const vector<Pos>& newstuff)
 	{
 		positions.insert(positions.end(), newstuff.begin(), newstuff.end());
+		recalc_bounding_box();
 	}
+
+	private:
+		void recalc_bounding_box()
+		{
+			bool first = true;
+			for (const Pos& p : positions)
+			{
+				if (p.x < bounding_box.left_top.x || first)
+					bounding_box.left_top.x = p.x;
+				if (p.x >= bounding_box.right_bottom.x || first)
+					bounding_box.right_bottom.x = p.x+1;
+				if (p.y < bounding_box.left_top.y || first)
+					bounding_box.left_top.y = p.y;
+				if (p.y >= bounding_box.right_bottom.y || first)
+					bounding_box.right_bottom.y = p.y+1;
+
+				first = false;
+			}
+		}
 };
 
 void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
@@ -285,10 +312,12 @@ void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view,
 
 	assert(resource_patch);
 
+	auto view2 = view.extend(resource_patch->bounding_box.left_top, resource_patch->bounding_box.right_bottom);
+
 	// clear floodfill_flag
 	for (const Pos& p : resource_patch->positions) // TODO FIXME: view might be too small
 	{
-		Resource& ref = view.at(p);
+		Resource& ref = view2.at(p);
 		ref.floodfill_flag = Resource::FLOODFILL_NONE;
 		ref.patch_id = resource_patch->patch_id;
 		ref.resource_patch = resource_patch;

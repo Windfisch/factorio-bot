@@ -105,8 +105,8 @@ void MapBox::update_imgbuf()
 		for (int y=0; y<imgheight; y++)
 		{
 			int idx = (y*imgwidth+x)*4;
-			Color col = get_color(long(view.at(x,y).type));
-			//Color col = get_color(long(view.at(x,y).resource_patch.lock().get()));
+			//Color col = get_color(long(view.at(x,y).type));
+			Color col = get_color(long(view.at(x,y).resource_patch.lock().get()));
 			//Color col = get_color(view.at(x,y).patch_id);
 			
 			int rx = ((x+origin.x)%32 + 32)%32;

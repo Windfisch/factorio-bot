@@ -66,6 +66,11 @@ class WorldMap
 			public:
 				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
 
+				Viewport_<is_const> extend(const Pos& lefttop_tile_, const Pos& rightbot_tile_) const
+				{
+					return Viewport_<is_const>(parent, lefttop_tile_, rightbot_tile_, origin);
+				}
+
 				reftype at(int x, int y) const
 				{
 					int tilex = x+origin.x;
