@@ -68,13 +68,15 @@ class _MapGui_impl
 
 int MapBox::handle(int event)
 {
+	const Pos mouse = Pos(Fl::event_x(), Fl::event_y()) - Pos(imgwidth/2, imgheight/2) - Pos(x(),y());
+
 	switch (event)
 	{
 		case FL_PUSH:
-			canvas_drag = canvas_center - Pos(Fl::event_x(), Fl::event_y());
+			canvas_drag = canvas_center - mouse;
 			return 1;
 		case FL_DRAG:
-			canvas_center = canvas_drag + Pos(Fl::event_x(), Fl::event_y());
+			canvas_center = canvas_drag + mouse;
 			cout << canvas_center.str() << endl;
 			update_imgbuf();
 			redraw();
@@ -84,8 +86,8 @@ int MapBox::handle(int event)
 			zoom_level += Fl::event_dy();
 			zoom_level = clamp(zoom_level, -5, 1);
 
-			canvas_center = zoom_transform(canvas_center, zoom_level_prev-zoom_level);
-			canvas_drag = zoom_transform(canvas_drag, zoom_level_prev-zoom_level);
+			canvas_center = zoom_transform(canvas_center-mouse, zoom_level_prev-zoom_level)+mouse;
+			canvas_drag = zoom_transform(canvas_drag-mouse, zoom_level_prev-zoom_level)+mouse;
 			
 			update_imgbuf();
 			redraw();
@@ -168,7 +170,8 @@ void MapBox::update_imgbuf()
 		{
 			int idx = (y*imgwidth+x)*4;
 			Pos mappos = zoom_transform(Pos(x-imgwidth/2,y-imgheight/2)-canvas_center, zoom_level);
-			Color col = get_color(long(view.at(mappos).resource_patch.lock().get()));
+			Color col = get_color(long(view.at(mappos).patch_id));
+			//Color col = get_color(long(view.at(mappos).resource_patch.lock().get()));
 			
 			int rx = ((mappos.x)%32 + 32)%32;
 			int ry = ((mappos.y)%32 + 32)%32;

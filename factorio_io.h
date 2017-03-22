@@ -30,7 +30,7 @@ struct Area
 	bool contains(const Pos& p) const { return left_top <= p && p < right_bottom; }
 };
 
-constexpr int NOT_YET_ASSIGNED = -1; // TODO FIXME
+constexpr int NOT_YET_ASSIGNED = 0; // TODO FIXME
 
 struct ResourcePatch;
 
@@ -83,7 +83,7 @@ class FactorioGame
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 
-		int next_free_resource_id = 0;
+		int next_free_resource_id = 1;
 	
 	public:
 		FactorioGame(std::string prefix, std::string rcon_host, int rcon_port);
