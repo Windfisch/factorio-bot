@@ -6,28 +6,53 @@
 #include "gui.h"
 #include "../factorio_io.h"
 #include <cmath>
+#include <iostream>
+
+using std::cout;
+using std::endl;
 
 using std::floor;
 using std::sin;
+
+static constexpr int clamp(int v, int a, int b)
+{
+	return (v<a)?a:  ( (v>b?b: v) );
+}
 
 namespace GUI
 {
 
 class MapBox : public Fl_Box
 {
-       protected:
-               virtual void draw(void);
-       private:
-               std::vector<unsigned char> imgbuf;
-	       int imgwidth, imgheight;
-	       std::unique_ptr<Fl_RGB_Image> rgbimg;
-	       const FactorioGame* game;
+	protected:
+		virtual void draw(void);
+		virtual int handle(int ev);
+	private:
+		std::vector<unsigned char> imgbuf;
+		int imgwidth, imgheight;
+		std::unique_ptr<Fl_RGB_Image> rgbimg;
+		const FactorioGame* game;
 
-       public:
-               MapBox(const FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
-	       void update_imgbuf();
+		Pos canvas_center; // divide this by zoom_level to get tile coords
+		Pos canvas_drag;
+		int zoom_level = 0; // powers of two
+
+		Pos zoom_transform(const Pos& p, int factor);
+
+	public:
+		MapBox(const FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
+		void update_imgbuf();
 };
 
+Pos MapBox::zoom_transform(const Pos& p, int factor)
+{
+	if (factor > 0)
+		return p*(1<<factor);
+	else if (factor < 0)
+		return p/(1<<(-factor));
+	else
+		return p;
+}
 
 class _MapGui_impl
 {
@@ -40,6 +65,36 @@ class _MapGui_impl
 
 		const FactorioGame* game;
 };
+
+int MapBox::handle(int event)
+{
+	switch (event)
+	{
+		case FL_PUSH:
+			canvas_drag = canvas_center - Pos(Fl::event_x(), Fl::event_y());
+			return 1;
+		case FL_DRAG:
+			canvas_center = canvas_drag + Pos(Fl::event_x(), Fl::event_y());
+			cout << canvas_center.str() << endl;
+			update_imgbuf();
+			redraw();
+			return 0;
+		case FL_MOUSEWHEEL:
+			int zoom_level_prev = zoom_level;
+			zoom_level += Fl::event_dy();
+			zoom_level = clamp(zoom_level, -5, 1);
+
+			canvas_center = zoom_transform(canvas_center, zoom_level_prev-zoom_level);
+			canvas_drag = zoom_transform(canvas_drag, zoom_level_prev-zoom_level);
+			
+			update_imgbuf();
+			redraw();
+			cout << "wheel " << Fl::event_dy() << endl;
+			return 1;
+	}
+
+	return Fl_Box::handle(event);
+}
 
 void MapBox::draw(void)
 {
@@ -99,22 +154,22 @@ static MapBox* foo = 0;
 
 void MapBox::update_imgbuf()
 {
-	Pos origin=Pos(-500,-500);
-	auto view = game->resource_map.view(Pos(-500,-500),Pos(500,500),origin);
+	Pos lt = zoom_transform(Pos(-imgwidth/2, -imgheight/2)-canvas_center, zoom_level);
+	Pos rb = zoom_transform(Pos(imgwidth-imgwidth/2, imgheight-imgheight/2)-canvas_center, zoom_level) + Pos(1,1);
+	auto view = game->resource_map.view(lt, rb, Pos(0,0));
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
 		{
 			int idx = (y*imgwidth+x)*4;
-			//Color col = get_color(long(view.at(x,y).type));
-			Color col = get_color(long(view.at(x,y).resource_patch.lock().get()));
-			//Color col = get_color(view.at(x,y).patch_id);
+			Pos mappos = zoom_transform(Pos(x-imgwidth/2,y-imgheight/2)-canvas_center, zoom_level);
+			Color col = get_color(long(view.at(mappos).resource_patch.lock().get()));
 			
-			int rx = ((x+origin.x)%32 + 32)%32;
-			int ry = ((y+origin.y)%32 + 32)%32;
+			int rx = ((mappos.x)%32 + 32)%32;
+			int ry = ((mappos.y)%32 + 32)%32;
 			if ( (rx==0 || rx==31) && (ry==0 || ry==31))
 			{
-				if (x + origin.x < 0) col.r = 0; else col.r = 255;
-				if (y + origin.y < 0) col.g = 0; else col.g = 255;
+				if (mappos.x < 0) col.r = 0; else col.r = 255;
+				if (mappos.y < 0) col.g = 0; else col.g = 255;
 				col.b = 127;
 			}
 			imgbuf[idx+0] = col.r;
@@ -145,7 +200,7 @@ _MapGui_impl::_MapGui_impl(const FactorioGame* game)
 	this->game = game;
 }
 
-double GUI::wait(double t)
+double wait(double t)
 {
 	static int cnt = 0;
 	if (cnt++ % 100 == 0) foo->update_imgbuf();

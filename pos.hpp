@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "util.hpp"
 
 constexpr int tileidx(int x)
 {
@@ -19,6 +20,8 @@ struct Pos
 
 	Pos operator+(const Pos& b) const { return Pos(x+b.x, y+b.y); }
 	Pos operator-(const Pos& b) const { return Pos(x-b.x, y-b.y); }
+	Pos operator*(int f) const { return Pos(x*f, y*f); }
+	Pos operator/(int f) const { return Pos(sane_div(x,f), sane_div(y,f)); }
 
 	bool operator==(const Pos that) const
 	{

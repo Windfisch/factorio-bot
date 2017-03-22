@@ -10,7 +10,7 @@ FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
 
-GUIFLAGS = -w # disable all warnings
+GUIFLAGS = -w -O2 # disable all warnings
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
