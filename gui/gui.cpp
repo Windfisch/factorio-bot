@@ -223,7 +223,7 @@ _MapGui_impl::_MapGui_impl(const FactorioGame* game)
 double wait(double t)
 {
 	static int cnt = 0;
-	if (cnt++ % 100 == 0) foo->update_imgbuf();
+	if (cnt++ % 100 == 0) {foo->update_imgbuf(); foo->redraw(); }
 	return Fl::wait(t);
 }
 
