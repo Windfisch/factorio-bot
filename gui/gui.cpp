@@ -6,10 +6,6 @@
 #include "gui.h"
 #include "../factorio_io.h"
 #include <cmath>
-#include <iostream>
-
-using std::cout;
-using std::endl;
 
 using std::floor;
 using std::sin;
@@ -77,7 +73,6 @@ int MapBox::handle(int event)
 			return 1;
 		case FL_DRAG:
 			canvas_center = canvas_drag + mouse;
-			cout << canvas_center.str() << endl;
 			update_imgbuf();
 			redraw();
 			return 0;
@@ -91,7 +86,6 @@ int MapBox::handle(int event)
 			
 			update_imgbuf();
 			redraw();
-			cout << "wheel " << Fl::event_dy() << endl;
 			return 1;
 	}
 
@@ -125,15 +119,14 @@ struct Color {
 	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){}
 	void blend(const Color& other, float alpha)
 	{
-		this->r = alpha*this->r + (1-alpha)*other.r;
-		this->g = alpha*this->g + (1-alpha)*other.g;
-		this->b = alpha*this->b + (1-alpha)*other.b;
+		this->r = clamp(int(alpha*this->r + (1-alpha)*other.r), 0, 255);
+		this->g = clamp(int(alpha*this->g + (1-alpha)*other.g), 0, 255);
+		this->b = clamp(int(alpha*this->b + (1-alpha)*other.b), 0, 255);
 	}
 };
 
 Color color_hsv(double hue, double sat, double val)
 {
-	double r,g,b;
 	int i = int(floor(hue));
 	double f = hue * 6 - i;
 	int p = int(255 * val * (1 - sat));
@@ -149,6 +142,7 @@ Color color_hsv(double hue, double sat, double val)
 		case 3: return Color(p,q,v);
 		case 4: return Color(t,p,v);
 		case 5: return Color(v,p,q);
+		default: return Color(255,0,255); // cannot happen
 	}
 }
 
@@ -170,7 +164,7 @@ void MapBox::update_imgbuf()
 		{
 			int idx = (y*imgwidth+x)*4;
 			Pos mappos = zoom_transform(Pos(x-imgwidth/2,y-imgheight/2)-canvas_center, zoom_level);
-			Color col = get_color(long(view.at(mappos).patch_id));
+			Color col = get_color(view.at(mappos).patch_id);
 			//Color col = get_color(long(view.at(mappos).resource_patch.lock().get()));
 			
 			int rx = ((mappos.x)%32 + 32)%32;
@@ -207,8 +201,10 @@ void MapBox::update_imgbuf()
 MapGui::MapGui(const FactorioGame* game) : impl(new _MapGui_impl(game)) {}
 MapGui::~MapGui() {}
 
-_MapGui_impl::_MapGui_impl(const FactorioGame* game)
+_MapGui_impl::_MapGui_impl(const FactorioGame* game_)
 {
+	this->game = game_;
+	
 	window.reset(new Fl_Window(340,180));
 	mapbox.reset(new MapBox(game,20,40,300,100,"Hello, World!"));
 	mapbox->box(FL_UP_BOX);
@@ -219,8 +215,6 @@ _MapGui_impl::_MapGui_impl(const FactorioGame* game)
 	window->resizable(mapbox.get());
 	window->end();
 	window->show();
-
-	this->game = game;
 }
 
 double wait(double t)

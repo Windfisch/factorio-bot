@@ -113,8 +113,6 @@ void FactorioGame::parse_packet(const string& pkg)
 	Area area(pkg.substr(p1+1, p2-(p1+1)));
 	string data = pkg.substr(p2+2); // skip space
 
-	//cout << "type="<<type<<", area="<<area.str()<<endl;
-
 	if (type=="tiles")
 		parse_tiles(area, data);
 	else if (type=="resources")
@@ -146,7 +144,6 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	// FIXME: clear and un-assign existing entities before
-	cout << area.str() << endl;
 
 	// parse all entities and write them to the WorldMap
 	while (getline(str, entry, ',')) if (entry!="")
