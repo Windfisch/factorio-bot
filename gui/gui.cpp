@@ -121,6 +121,12 @@ MapBox::MapBox(const FactorioGame* g, int x, int y, int w, int h, const char* l)
 struct Color {
 	int r,g,b;
 	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){}
+	void blend(const Color& other, float alpha)
+	{
+		this->r = alpha*this->r + (1-alpha)*other.r;
+		this->g = alpha*this->g + (1-alpha)*other.g;
+		this->b = alpha*this->b + (1-alpha)*other.b;
+	}
 };
 
 Color color_hsv(double hue, double sat, double val)
@@ -172,6 +178,20 @@ void MapBox::update_imgbuf()
 				if (mappos.y < 0) col.g = 0; else col.g = 255;
 				col.b = 127;
 			}
+
+			if (zoom_level < -2)
+			{
+				Pos tmp = Pos(x-imgwidth/2,y-imgwidth/2)-canvas_center;
+				int z = 1<< (-zoom_level);
+				if ((sane_mod(tmp.x,z)==0 || sane_mod(tmp.x,z)==z) || (sane_mod(tmp.y,z)==0 || sane_mod(tmp.y,z)==z))
+				{
+					//col.r=255-col.r;
+					//col.g=255-col.g;
+					//col.b=255-col.b;
+					col.blend(Color(127,127,127), zoom_level==-3 ? 0.7 : 0.5);
+				}
+			}
+
 			imgbuf[idx+0] = col.r;
 			imgbuf[idx+1] = col.g;
 			imgbuf[idx+2] = col.b;
