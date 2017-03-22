@@ -65,14 +65,11 @@ depend: $(OBJECTS:.o=.d)
 	cat $^ > $@
 
 %.d: %.cpp
-	$(CXX) $(CXXFLAGS) -M $< -o $@
+	$(CXX) $(CXXFLAGS) -MM -MT $(@:.d=.o) $< -o $@
 
 gui/%.d: gui/%.cpp
 	echo foo
-	$(CXX) $(CXXFLAGS) $(GUIFLAGS) -M $< -o $@
-
-%.d: %.c
-	$(CC) $(CFLAGS) -M $< -o $@
+	$(CXX) $(CXXFLAGS) -MM -MT $(@:.d=.o) $(GUIFLAGS) $< -o $@
 
 gui/%.o: gui/%.cpp
 	echo foo
@@ -80,9 +77,6 @@ gui/%.o: gui/%.cpp
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.o: %.c
-	$(CC) $(CXXFLAGS) -c $< -o $@
 
 $(EXE): $(OBJECTS)
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
