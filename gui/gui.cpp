@@ -183,7 +183,7 @@ void MapBox::update_imgbuf()
 			{
 				Pos tmp = Pos(x-imgwidth/2,y-imgwidth/2)-canvas_center;
 				int z = 1<< (-zoom_level);
-				if ((sane_mod(tmp.x,z)==0 || sane_mod(tmp.x,z)==z) || (sane_mod(tmp.y,z)==0 || sane_mod(tmp.y,z)==z))
+				if (sane_mod(tmp.x,z)==0 || sane_mod(tmp.y,z)==0)
 				{
 					//col.r=255-col.r;
 					//col.g=255-col.g;
