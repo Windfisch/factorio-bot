@@ -1,0 +1,11 @@
+{
+	"name": "Windfisch",
+	"version": "0.0.1",
+	"title": "Windfisch's mod",
+	"author": "Windfisch",
+	"contact": "flo@windfisch.org",
+	"homepage": "TODO",
+	"description": "Windfisch's awesome mod",
+	"factorio_version": "0.14.22",
+	"license": "GPL3"
+}

@@ -26,8 +26,6 @@ const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}
 Area::Area(string str)
 {
 	std::sscanf(str.c_str(), "%i,%i;%i,%i", &left_top.x, &left_top.y, &right_bottom.x, &right_bottom.y);
-	right_bottom.x++; // mod sends them as rightbottom-inclusive
-	right_bottom.y++; // but we want an exclusive boundary
 }
 
 string Area::str() const
