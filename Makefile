@@ -5,7 +5,7 @@ OBJECTS=factorio_io.o gui/gui.o
 DEBUG=1
 
 
-DEBUGFLAGS = -g #-fsanitize=undefined,address
+DEBUGFLAGS = -g -O0 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
