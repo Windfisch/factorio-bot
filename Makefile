@@ -85,7 +85,7 @@ mod: $(MODDESTS)
 
 DATAFILE=$(FACTORIODIR)/script-output/output1.txt
 SAVEGAME=$(FACTORIODIR)/factorio-bot.zip
-SERVERSETTINGS=foo.json
+SERVERSETTINGS=luamod/server-settings.json
 
 datafile: $(DATAFILE)
 del_datafile:
