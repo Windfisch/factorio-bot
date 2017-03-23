@@ -104,21 +104,61 @@ void FactorioGame::parse_packet(const string& pkg)
 	if (pkg=="") return;
 
 	auto p1 = pkg.find(' ');
-	auto p2 = pkg.find(':', p1);
+	auto p2 = pkg.find(':');
 
-	if (p1 == string::npos || p2 == string::npos)
+	if (p1 == string::npos || p1 > p2)
+		p1 = p2;
+
+	if (p2 == string::npos)
 		throw runtime_error("malformed packet");
 
 	string type = pkg.substr(0, p1);
+	
 	Area area(pkg.substr(p1+1, p2-(p1+1)));
+	
 	string data = pkg.substr(p2+2); // skip space
 
 	if (type=="tiles")
 		parse_tiles(area, data);
 	else if (type=="resources")
 		parse_resources(area, data);
+	else if (type=="entity_prototypes")
+		parse_entity_prototypes(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
+}
+
+static vector<string> split (const string& data, char delim=' ')
+{
+	istringstream str(data);
+	string entry;
+	vector<string> result;
+
+	while (getline(str, entry, delim))
+		result.push_back(std::move(entry));
+	
+	return result;
+}
+
+void FactorioGame::parse_entity_prototypes(const string& data)
+{
+	cout << data << endl;
+	istringstream str(data);
+	string entry;
+
+	while (getline(str, entry, '$')) if (entry!="")
+	{
+		vector<string> fields = split(entry);
+
+		//if (fields.size() != 3)
+		//	throw runtime_error("malformed parse_entity_prototypes packet");
+
+		const string& name = fields[0];
+		const string& collision = fields[1];
+		Area collision_box = Area(fields[2]);
+
+		entity_prototypes[name] = EntityPrototype(collision, collision_box);
+	}
 }
 
 void FactorioGame::parse_tiles(const Area& area, const string& data)
@@ -132,6 +172,7 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 	{
 		int x = i%32;
 		int y = i/32;
+		view.at(x,y).known = true;
 		view.at(x,y).can_walk = (data[2*i]=='0');
 	}
 }

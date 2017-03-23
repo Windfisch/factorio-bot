@@ -64,6 +64,17 @@ struct Resource
 
 };
 
+struct EntityPrototype
+{
+	bool collides_player;
+	Area collision_box;
+
+	EntityPrototype() {}
+	EntityPrototype(bool collides_player_, const Area& collision_box_) : collides_player(collides_player_), collision_box(collision_box_) {}
+	EntityPrototype(const std::string& collision_str, const Area& collision_box_) :
+		collides_player(collision_str.find('P') != std::string::npos), collision_box(collision_box_) {}
+};
+
 class FactorioGame
 {
 	private:
@@ -80,8 +91,11 @@ class FactorioGame
 		std::string factorio_file_name();
 		std::string remove_line_from_buffer();
 
+		std::unordered_map< std::string, EntityPrototype > entity_prototypes;
+
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
+		void parse_entity_prototypes(const std::string& data);
 
 		int next_free_resource_id = 1;
 	
@@ -93,9 +107,13 @@ class FactorioGame
 
 		struct walk_t
 		{
+			bool known;
 			bool can_walk;
 			bool can_cross;
-			bool corridor[4];
+			int tree_amount;
+			int corridor[4];
+
+			walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
 		};
 
 		WorldMap<walk_t> walk_map;

@@ -116,6 +116,7 @@ MapBox::MapBox(const FactorioGame* g, int x, int y, int w, int h, const char* l)
 
 struct Color {
 	int r,g,b;
+	Color() : r(0),g(0),b(0){}
 	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){}
 	void blend(const Color& other, float alpha)
 	{
@@ -158,14 +159,22 @@ void MapBox::update_imgbuf()
 {
 	Pos lt = zoom_transform(Pos(-imgwidth/2, -imgheight/2)-canvas_center, zoom_level);
 	Pos rb = zoom_transform(Pos(imgwidth-imgwidth/2, imgheight-imgheight/2)-canvas_center, zoom_level) + Pos(1,1);
-	auto view = game->resource_map.view(lt, rb, Pos(0,0));
+	//auto view = game->resource_map.view(lt, rb, Pos(0,0));
+	auto view = game->walk_map.view(lt, rb, Pos(0,0));
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
 		{
 			int idx = (y*imgwidth+x)*4;
 			Pos mappos = zoom_transform(Pos(x-imgwidth/2,y-imgheight/2)-canvas_center, zoom_level);
-			Color col = get_color(view.at(mappos).patch_id);
+			//Color col = get_color(view.at(mappos).patch_id);
 			//Color col = get_color(long(view.at(mappos).resource_patch.lock().get()));
+			
+			Color col;
+			const auto& w = view.at(mappos);
+			if (!w.known) col = Color(0,0,0);
+			else if (!w.can_walk) col = Color(0,0,255);
+			else if (!w.can_cross) col = Color(255,255,0);
+			else col = Color(0,127,0);
 			
 			int rx = ((mappos.x)%32 + 32)%32;
 			int ry = ((mappos.y)%32 + 32)%32;
