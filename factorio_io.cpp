@@ -498,8 +498,8 @@ int main()
 	GUI::MapGui gui(&factorio);
 
 	for (int i=0; i<6000; i++) factorio.parse_packet(factorio.read_packet());
-	cout << a_star(Pos(198,383), Pos(309,241), factorio.walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4).size()<< endl;
-	return 0;
+	//cout << a_star(Pos(198,383), Pos(309,241), factorio.walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4).size()<< endl;
+	//return 0;
 
 
 	while (true)
