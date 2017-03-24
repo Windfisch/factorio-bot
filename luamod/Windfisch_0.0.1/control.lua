@@ -195,6 +195,7 @@ function on_chunk_generated(event)
 	--chart_chunk_for_pathfinding(surface, area)
 	
 	writeout_resources(surface, area)
+	writeout_objects(surface, area)
 	writeout_tiles(surface, area)
 end
 

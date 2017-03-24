@@ -112,6 +112,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_resources(area, data);
 	else if (type=="entity_prototypes")
 		parse_entity_prototypes(data);
+	else if (type=="objects")
+		parse_objects(area,data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
@@ -164,6 +166,41 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 		view.at(x,y).can_walk = (data[2*i]=='0');
 	}
 }
+
+void FactorioGame::parse_objects(const Area& area, const string& data)
+{
+	istringstream str(data);
+	string entry;
+
+	auto view = walk_map.view(area.left_top, area.right_bottom, Pos(0,0));
+	
+	while(getline(str, entry, ',')) if (entry!="")
+	{
+		vector<string> fields = split(entry);
+
+		if (fields.size() != 3)
+			throw runtime_error("malformed parse_objects packet");
+
+		const string& name = fields[0];
+		double x = stod(fields[1]);
+		double y = stod(fields[2]);
+
+		Entity ent(Pos_f(x,y), entity_prototypes.at(name));
+
+		// TODO FIXME: insert this in some list, and decouple the following code from this function
+		
+		// update walk_t information
+		if (ent.proto->collides_player)
+		{
+			Area_f box = ent.collision_box();
+			Area outer = box.outer();
+
+			int x1 = int(floor(box.left_top.x));
+			int x2 = int(ceil(box.right_bottom.x));
+		}
+	}
+}
+
 
 void FactorioGame::parse_resources(const Area& area, const string& data)
 {

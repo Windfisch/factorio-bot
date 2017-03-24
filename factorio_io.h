@@ -60,6 +60,16 @@ struct EntityPrototype
 		collides_player(collision_str.find('P') != std::string::npos), collision_box(collision_box_) {}
 };
 
+struct Entity
+{
+	Pos_f pos;
+	const EntityPrototype* proto;
+
+	Area_f collision_box() const { return proto->collision_box.shift(pos); }
+
+	Entity(const Pos_f& pos_, const EntityPrototype* proto_) : pos(pos_), proto(proto_) {}
+};
+
 class FactorioGame
 {
 	private:
@@ -81,6 +91,7 @@ class FactorioGame
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 		void parse_entity_prototypes(const std::string& data);
+		void parse_objects(const Area& area, const std::string& data);
 
 		int next_free_resource_id = 1;
 	
