@@ -6,6 +6,7 @@
 
 #include "worldmap.hpp"
 #include "pos.hpp"
+#include "area.hpp"
 
 enum dir4_t
 {
@@ -13,21 +14,6 @@ enum dir4_t
 	EAST,
 	SOUTH,
 	WEST
-};
-
-struct Area
-{
-	Pos left_top;
-	Pos right_bottom;
-
-	Area() {}
-	Area(int x1, int y1, int x2, int y2) : left_top(x1,y1), right_bottom(x2,y2)  {}
-	Area(const Pos& lt, const Pos& rb) : left_top(lt), right_bottom(rb) {}
-	Area(std::string str);
-
-	std::string str() const;
-
-	bool contains(const Pos& p) const { return left_top <= p && p < right_bottom; }
 };
 
 constexpr int NOT_YET_ASSIGNED = 0; // TODO FIXME
@@ -67,11 +53,10 @@ struct Resource
 struct EntityPrototype
 {
 	bool collides_player;
-	Area collision_box;
+	Area_f collision_box;
 
-	EntityPrototype() {}
-	EntityPrototype(bool collides_player_, const Area& collision_box_) : collides_player(collides_player_), collision_box(collision_box_) {}
-	EntityPrototype(const std::string& collision_str, const Area& collision_box_) :
+	EntityPrototype(bool collides_player_, const Area_f& collision_box_) : collides_player(collides_player_), collision_box(collision_box_) {}
+	EntityPrototype(const std::string& collision_str, const Area_f& collision_box_) :
 		collides_player(collision_str.find('P') != std::string::npos), collision_box(collision_box_) {}
 };
 
@@ -91,7 +76,7 @@ class FactorioGame
 		std::string factorio_file_name();
 		std::string remove_line_from_buffer();
 
-		std::unordered_map< std::string, EntityPrototype > entity_prototypes;
+		std::unordered_map< std::string, const EntityPrototype* > entity_prototypes;
 
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);

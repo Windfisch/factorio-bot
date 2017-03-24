@@ -1,0 +1,32 @@
+#pragma once
+#include <type_traits>
+#include <string>
+#include <cmath>
+#include "pos.hpp"
+
+template<typename T> struct Area_
+{
+	Pos_<T> left_top;
+	Pos_<T> right_bottom;
+
+	Area_() {}
+	Area_(T x1, T y1, T x2, T y2) : left_top(x1,y1), right_bottom(x2,y2)  {}
+	Area_(const Pos_<T>& lt, const Pos_<T>& rb) : left_top(lt), right_bottom(rb) {}
+	Area_(std::string str);
+	
+	std::string str() const;
+
+	bool contains(const Pos_<T>& p) const { return left_top <= p && p < right_bottom; }
+	
+	template <typename U=T> typename std::enable_if< std::is_floating_point<U>::value, Area_<int> >::type
+	/*Area_<int>*/ outer() const
+	{
+		return Area_<int>( Pos_<int>(int(std::floor(left_top.x)), int(std::floor(left_top.y))),
+		                   Pos_<int>(int(std::ceil(right_bottom.x)), int(std::ceil(right_bottom.y))) );
+	}
+
+	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
+};
+
+typedef Area_<int> Area;
+typedef Area_<double> Area_f;

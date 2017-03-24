@@ -23,16 +23,6 @@ using namespace std;
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL} };
 
 
-Area::Area(string str)
-{
-	std::sscanf(str.c_str(), "%i,%i;%i,%i", &left_top.x, &left_top.y, &right_bottom.x, &right_bottom.y);
-}
-
-string Area::str() const
-{
-	return left_top.str() + " -- " + right_bottom.str();
-}
-
 FactorioGame::FactorioGame(string prefix, string rcon_host_, int rcon_port_)
 {
 	factorio_file_prefix = prefix;
@@ -148,14 +138,14 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 	{
 		vector<string> fields = split(entry);
 
-		//if (fields.size() != 3)
-		//	throw runtime_error("malformed parse_entity_prototypes packet");
+		if (fields.size() != 3)
+			throw runtime_error("malformed parse_entity_prototypes packet");
 
 		const string& name = fields[0];
 		const string& collision = fields[1];
-		Area collision_box = Area(fields[2]);
+		Area_f collision_box = Area_f(fields[2]);
 
-		entity_prototypes[name] = EntityPrototype(collision, collision_box);
+		entity_prototypes[name] = new EntityPrototype(collision, collision_box); // no automatic memory management, because prototypes never change.
 	}
 }
 

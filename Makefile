@@ -1,7 +1,7 @@
 # possible values: GCC, clang
 COMPILER=clang
 EXE=test
-OBJECTS=factorio_io.o gui/gui.o
+OBJECTS=factorio_io.o area.o gui/gui.o
 DEBUG=1
 
 
