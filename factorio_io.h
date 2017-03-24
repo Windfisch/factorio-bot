@@ -13,7 +13,12 @@ enum dir4_t
 	NORTH=0,
 	EAST,
 	SOUTH,
-	WEST
+	WEST,
+
+	TOP=NORTH,
+	RIGHT=EAST,
+	BOTTOM=SOUTH,
+	LEFT=WEST
 };
 
 constexpr int NOT_YET_ASSIGNED = 0; // TODO FIXME
@@ -107,7 +112,7 @@ class FactorioGame
 			bool can_walk;
 			bool can_cross;
 			int tree_amount;
-			int corridor[4];
+			double margins[4];
 
 			walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
 		};

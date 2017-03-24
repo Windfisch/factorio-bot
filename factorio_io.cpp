@@ -173,6 +173,14 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	string entry;
 
 	auto view = walk_map.view(area.left_top, area.right_bottom, Pos(0,0));
+
+
+	// clear margins
+	for (int x = area.left_top.x; x < area.right_bottom.x; x++)
+		for (int y = area.left_top.y; y < area.right_bottom.y; y++)
+			for (int i=0; i<4; i++)
+				view.at(x,y).margins[i] = 1.;
+
 	
 	while(getline(str, entry, ',')) if (entry!="")
 	{
@@ -182,10 +190,10 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 			throw runtime_error("malformed parse_objects packet");
 
 		const string& name = fields[0];
-		double x = stod(fields[1]);
-		double y = stod(fields[2]);
+		double ent_x = stod(fields[1]);
+		double ent_y = stod(fields[2]);
 
-		Entity ent(Pos_f(x,y), entity_prototypes.at(name));
+		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name));
 
 		// TODO FIXME: insert this in some list, and decouple the following code from this function
 		
@@ -194,9 +202,99 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		{
 			Area_f box = ent.collision_box();
 			Area outer = box.outer();
+			Area inner = Area( outer.left_top+Pos(1,1), outer.right_bottom-Pos(1,1) );
+			Area relevant_outer = outer.intersect(area);
+			Area relevant_inner = inner.intersect(area);
 
-			int x1 = int(floor(box.left_top.x));
-			int x2 = int(ceil(box.right_bottom.x));
+			// calculate margins
+			double rightmargin_of_lefttile = box.left_top.x - outer.left_top.x;
+			double leftmargin_of_righttile = outer.right_bottom.x - box.right_bottom.x;
+			double bottommargin_of_toptile = box.left_top.y - outer.left_top.y;
+			double topmargin_of_bottomtile = outer.right_bottom.y - box.right_bottom.y;
+
+			if (area.contains_y(outer.left_top.y))
+			{
+				for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
+				{
+					auto& tile = view.at(x, outer.left_top.y);
+					double& margin = tile.margins[TOP];
+
+					if (margin > bottommargin_of_toptile)
+						margin = bottommargin_of_toptile;
+
+					if (outer.right_bottom.y-1 != outer.left_top.y)
+						tile.margins[BOTTOM] = 0.;
+				}
+
+				for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
+				{
+					auto& tile = view.at(x, outer.left_top.y);
+					tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
+				}
+			}
+
+			if (area.contains_y(outer.right_bottom.y-1))
+			{
+				for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
+				{
+					auto& tile = view.at(x, outer.right_bottom.y-1);
+					double& margin = tile.margins[BOTTOM];
+
+					if (margin > topmargin_of_bottomtile)
+						margin = topmargin_of_bottomtile;
+
+					if (outer.right_bottom.y-1 != outer.left_top.y)
+						tile.margins[TOP] = 0.;
+				}
+				
+				for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
+				{
+					auto& tile = view.at(x, outer.right_bottom.y-1);
+					tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
+				}
+			}
+
+			if (area.contains_x(outer.left_top.x))
+			{
+				for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
+				{
+					auto& tile = view.at(outer.left_top.x, y);
+					double& margin = tile.margins[LEFT];
+
+					if (margin > rightmargin_of_lefttile)
+						margin = rightmargin_of_lefttile;
+
+					if (outer.right_bottom.x-1 != outer.left_top.x)
+						tile.margins[RIGHT] = 0.;
+				}
+				
+				for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
+				{
+					auto& tile = view.at(outer.left_top.x, y);
+					tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
+				}
+			}
+
+			if (area.contains_x(outer.right_bottom.x-1))
+			{
+				for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
+				{
+					auto& tile = view.at(outer.right_bottom.x-1, y);
+					double& margin = tile.margins[RIGHT];
+
+					if (margin > leftmargin_of_righttile)
+						margin = leftmargin_of_righttile;
+
+					if (outer.right_bottom.x-1 != outer.left_top.x)
+						tile.margins[LEFT] = 0.;
+				}
+				
+				for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
+				{
+					auto& tile = view.at(outer.right_bottom.x-1, y);
+					tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
+				}
+			}
 		}
 	}
 }
