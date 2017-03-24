@@ -142,19 +142,19 @@ MapBox::MapBox(const FactorioGame* g, int x, int y, int w, int h, const char* l)
 struct Color {
 	int r,g,b;
 	Color() : r(0),g(0),b(0){}
-	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){}
+	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){ assert(r<256 && g<256 && b<256); }
 	void blend(const Color& other, float alpha)
 	{
-		this->r = clamp(int(alpha*this->r + (1-alpha)*other.r), 0, 255);
-		this->g = clamp(int(alpha*this->g + (1-alpha)*other.g), 0, 255);
-		this->b = clamp(int(alpha*this->b + (1-alpha)*other.b), 0, 255);
+		this->r = clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255);
+		this->g = clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255);
+		this->b = clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255);
 	}
 };
 
 Color color_hsv(double hue, double sat, double val)
 {
 	int i = int(floor(hue));
-	double f = hue * 6 - i;
+	double f = hue - i;
 	int p = int(255 * val * (1 - sat));
 	int q = int(255 * val * (1 - f * sat));
 	int t = int(255 * val * (1 - (1 - f) * sat));
@@ -184,7 +184,7 @@ void MapBox::update_imgbuf()
 {
 	Pos lt = zoom_transform(Pos(-imgwidth/2, -imgheight/2)-canvas_center, zoom_level);
 	Pos rb = zoom_transform(Pos(imgwidth-imgwidth/2, imgheight-imgheight/2)-canvas_center, zoom_level) + Pos(1,1);
-	//auto view = game->resource_map.view(lt, rb, Pos(0,0));
+	auto resview = game->resource_map.view(lt, rb, Pos(0,0));
 	auto view = game->walk_map.view(lt, rb, Pos(0,0));
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
@@ -241,6 +241,9 @@ void MapBox::update_imgbuf()
 				}
 			}
 
+			if (resview.at(mappos).patch_id)
+				col.blend(get_color(resview.at(mappos).patch_id), .5);
+			
 			imgbuf[idx+0] = col.r;
 			imgbuf[idx+1] = col.g;
 			imgbuf[idx+2] = col.b;
