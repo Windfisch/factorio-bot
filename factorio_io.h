@@ -6,6 +6,7 @@
 #include <fstream>
 #include <set>
 
+#include "pathfinding.hpp"
 #include "worldmap.hpp"
 #include "pos.hpp"
 #include "area.hpp"
@@ -108,23 +109,7 @@ class FactorioGame
 		void parse_packet(const std::string& data);
 		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 
-		struct walk_t
-		{
-			bool known;
-			bool can_walk;
-			bool can_cross;
-			int tree_amount;
-			double margins[4];
-
-
-			bool in_openlist = false;
-			double g_val;
-			Pos predecessor;
-
-			walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
-		};
-
-		WorldMap<walk_t> walk_map;
+		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
 };

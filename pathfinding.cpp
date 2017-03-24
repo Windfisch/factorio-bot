@@ -4,21 +4,15 @@
 #include <unordered_set>
 #include <iostream>
 
+#include <boost/heap/binomial_heap.hpp>
+
 #include "pathfinding.hpp"
 #include "worldmap.hpp"
 #include "factorio_io.h"
 #include "pos.hpp"
 
 using namespace std;
-
-struct Entry
-{
-	Pos pos;
-	double f;
-
-	Entry(const Pos& p, double f_) : pos(p), f(f_) {}
-	bool operator<(const Entry& other) const { return f > other.f; }
-};
+using namespace pathfinding;
 
 static double heuristic(const Pos& p, const Pos& goal)
 {
@@ -26,20 +20,19 @@ static double heuristic(const Pos& p, const Pos& goal)
 	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y);
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<FactorioGame::walk_t>::Viewport& view, double size)
+vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Viewport& view, double size)
 {
-	vector<Entry> openlist;
+	boost::heap::binomial_heap<Entry> openlist;
 
 	unordered_set<Pos> closedlist;
 
-	openlist.push_back( Entry(start, 0.) );
+	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
 	view.at(start).in_openlist = true;
 
 	while(!openlist.empty())
 	{
-		auto current = openlist[0];
-		pop_heap(openlist.begin(), openlist.end());
-		openlist.pop_back();
+		auto current = openlist.top();
+		openlist.pop();
 
 		if (current.pos == end)
 		{
@@ -113,18 +106,11 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<FactorioGame
 				
 				if (succ.in_openlist)
 				{
-					for (auto& ent : openlist)
-						if (ent.pos == successor)
-						{
-							ent.f = f;
-							break;
-						}
-					make_heap(openlist.begin(), openlist.end());
+					openlist.update(succ.openlist_handle, Entry(successor, f));
 				}
 				else
 				{
-					openlist.push_back(Entry(successor, f));
-					push_heap(openlist.begin(), openlist.end());
+					succ.openlist_handle = openlist.push(Entry(successor, f));
 					succ.in_openlist = true;
 				}
 			}
