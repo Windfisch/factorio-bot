@@ -1,7 +1,7 @@
 # possible values: GCC, clang
-COMPILER=clang
+COMPILER=GCC
 EXE=test
-OBJECTS=factorio_io.o area.o gui/gui.o
+OBJECTS=factorio_io.o area.o pathfinding.o gui/gui.o
 DEBUG=1
 
 
@@ -10,18 +10,18 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -g -O0 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -g -pg -nopie -Og -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
 
-GUIFLAGS = -w -O2 # disable all warnings
+GUIFLAGS = -w -Og # disable all warnings
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
 	CC=gcc
 	CXX=g++
-	WARNFLAGS=-Wall -Wextra -Werror=return-type -Wno-missing-field-initializers
+	WARNFLAGS=-Wall -Wextra -Wno-missing-field-initializers
 else
 	CC=clang
 	CXX=clang++

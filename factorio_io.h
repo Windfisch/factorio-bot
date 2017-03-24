@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -113,6 +115,11 @@ class FactorioGame
 			bool can_cross;
 			int tree_amount;
 			double margins[4];
+
+
+			bool in_openlist = false;
+			double g_val;
+			Pos predecessor;
 
 			walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
 		};

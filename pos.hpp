@@ -32,6 +32,8 @@ struct Pos_
 		return this->x == that.x && this->y == that.y;
 	}
 
+	bool operator!=(const Pos_<T> that) const { return !operator==(that); }
+
 	bool operator< (const Pos_<T>& that) const { return this->x <  that.x && this->y <  that.y; }
 	bool operator<=(const Pos_<T>& that) const { return this->x <= that.x && this->y <= that.y; }
 	bool operator> (const Pos_<T>& that) const { return this->x >  that.x && this->y >  that.y; }

@@ -5,11 +5,15 @@
 
 #include "gui.h"
 #include "../factorio_io.h"
+#include "../pathfinding.hpp"
 #include <cmath>
 #include <iostream>
+#include <vector>
+#include <stdlib.h>
 
 using std::cout;
 using std::endl;
+using std::vector;
 
 using std::floor;
 using std::sin;
@@ -41,6 +45,10 @@ class MapBox : public Fl_Box
 		void give_info(const Pos& pos);
 
 		Pos last_info_pos;
+
+		Pos last_click[3];
+
+		vector<Pos> last_path;
 
 	public:
 		MapBox(const FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
@@ -90,9 +98,24 @@ int MapBox::handle(int event)
 
 	switch (event)
 	{
-		case FL_PUSH:
+		case FL_PUSH: {
 			canvas_drag = canvas_center - mouse;
+
+			int button = Fl::event_button() - 1;
+			if (0 <= button && button < 3)
+			{
+				last_click[button] = zoom_transform(mouse-canvas_center, zoom_level);
+
+				if (button == 2)
+				{
+					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
+					last_path = a_star( last_click[0], last_click[2], const_cast<FactorioGame*>(game)->walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4);
+					cout << last_path.size() << endl;
+					exit(0);
+				}
+			}
 			return 1;
+		}
 		case FL_DRAG:
 			canvas_center = canvas_drag + mouse;
 			update_imgbuf();
@@ -101,7 +124,7 @@ int MapBox::handle(int event)
 		case FL_MOVE:
 			give_info(zoom_transform(mouse-canvas_center, zoom_level));
 			return 0;
-		case FL_MOUSEWHEEL:
+		case FL_MOUSEWHEEL: {
 			int zoom_level_prev = zoom_level;
 			zoom_level += Fl::event_dy();
 			zoom_level = clamp(zoom_level, -5, 1);
@@ -112,6 +135,7 @@ int MapBox::handle(int event)
 			update_imgbuf();
 			redraw();
 			return 1;
+		}
 	}
 
 	return Fl_Box::handle(event);
@@ -249,6 +273,28 @@ void MapBox::update_imgbuf()
 			imgbuf[idx+2] = col.b;
 			imgbuf[idx+3] = 255;
 		}
+
+	for (int i=0; i<last_path.size(); i++)
+	{
+		float x = i / float(last_path.size());
+		Color col = Color( 255*x, 255*(1-x), 196 );
+
+		Pos screenpos = zoom_transform( last_path[i], -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+
+		for (int x=-1; x<=1; x++) for (int y=-1; y<1; y++)
+		{
+			Pos screenpos2 = screenpos + Pos(x,y);
+			if (Pos(0,0) <= screenpos2 && screenpos2 < Pos(imgwidth, imgheight))
+			{
+				int idx = (screenpos2.y*imgwidth+screenpos2.x)*4;
+
+				imgbuf[idx+0] = col.r;
+				imgbuf[idx+1] = col.g;
+				imgbuf[idx+2] = col.b;
+				imgbuf[idx+3] = 255;
+			}
+		}
+	}
 
 	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
