@@ -27,8 +27,6 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 
 	boost::heap::binomial_heap<Entry> openlist;
 
-	unordered_set<Pos> closedlist; // FIXME replace by flag
-
 	vector<walk_t*> needs_cleanup;
 
 	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
@@ -58,7 +56,7 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 			goto a_star_cleanup;
 		}
 
-		closedlist.insert(current.pos);
+		view.at(current.pos).in_closedlist = true;
 
 		// expand node
 		
@@ -92,10 +90,10 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 
 			if (can_walk)
 			{
-				if (closedlist.find(successor) != closedlist.end())
+				auto& succ = view.at(successor);
+				if (succ.in_closedlist)
 					continue;
 
-				auto& succ = view.at(successor);
 				double cost = sqrt(step.x*step.x + step.y*step.y);
 				double new_g = view.at(current.pos).g_val + cost;
 
@@ -122,7 +120,10 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 a_star_cleanup:
 	
 	for (walk_t* w : needs_cleanup)
+	{
 		w->openlist_handle = pathfinding::openlist_handle_t();
+		w->in_closedlist = false;
+	}
 
 	return result;
 }

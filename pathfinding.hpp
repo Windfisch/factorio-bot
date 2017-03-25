@@ -29,6 +29,7 @@ namespace pathfinding
 		double g_val;
 		Pos predecessor;
 		openlist_handle_t openlist_handle;
+		bool in_closedlist=false;
 
 		walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
 	};
