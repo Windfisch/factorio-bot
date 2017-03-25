@@ -10,7 +10,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -g -O2 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
@@ -88,7 +88,7 @@ SAVEGAME=$(FACTORIODIR)/factorio-bot.zip
 SERVERSETTINGS=luamod/server-settings.json
 
 datafile: $(DATAFILE)
-del_datafile:
+rm_datafile:
 	rm -f $(DATAFILE)
 savegame: $(SAVEGAME)
 
