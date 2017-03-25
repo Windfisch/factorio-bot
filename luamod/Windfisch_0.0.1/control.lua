@@ -81,9 +81,9 @@ function on_tick(event)
 		if id.idx > id.n then global.initial_discovery = nil end
 	end
 		
-	if false then
 	for idx, player in pairs(game.players) do
-		if global.p[idx].walking and false then
+		-- if global.p[idx].walking and player.connected then
+		if global.p[1].walking and player.connected then -- TODO FIXME
 			local w = global.p[idx].walking
 			local pos = player.character.position
 			local dest = w.waypoints[w.idx]
@@ -132,7 +132,6 @@ function on_tick(event)
 			end
 		end
 	end
-	end -- if false
 
 	if event.tick - global.firsttick == 600 then
 		--dump_map("map.ppm")
@@ -668,4 +667,15 @@ function rcon_test(foo)
 	print("rcon_test("..foo..")")
 end
 
-remote.add_interface("windfisch", {test=rcon_test})
+function rcon_set_waypoints(waypoints) -- e.g. waypoints= { {0,0}, {3,3}, {42,1337} }
+	tmp = {}
+	for i = 1, #waypoints do
+		tmp[i] = {x=waypoints[i][1], y=waypoints[i][2]}
+	end
+	global.p[1].walking = {idx=1, waypoints=tmp}
+end
+
+remote.add_interface("windfisch", {
+	test=rcon_test,
+	set_waypoints=rcon_set_waypoints
+})
