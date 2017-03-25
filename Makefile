@@ -1,5 +1,5 @@
 # possible values: GCC, clang
-COMPILER=GCC
+COMPILER=clang
 EXE=test
 OBJECTS=factorio_io.o area.o pathfinding.o gui/gui.o
 DEBUG=1
@@ -10,12 +10,12 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -g -pg -nopie -Og -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -g -O2 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
 
-GUIFLAGS = -w -Og # disable all warnings
+GUIFLAGS = -w -O2 # disable all warnings
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
