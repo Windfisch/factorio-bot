@@ -17,17 +17,23 @@ using namespace pathfinding;
 static double heuristic(const Pos& p, const Pos& goal)
 {
 	Pos tmp = p-goal;
-	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y);
+	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y)*1.1; // FIXME overapproximation for speed
 }
 
 vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Viewport& view, double size)
 {
+	assert(size<=1.);
+	vector<Pos> result;
+
 	boost::heap::binomial_heap<Entry> openlist;
 
-	unordered_set<Pos> closedlist;
+	unordered_set<Pos> closedlist; // FIXME replace by flag
+
+	vector<walk_t*> needs_cleanup;
 
 	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
 	view.at(start).in_openlist = true;
+	needs_cleanup.push_back(&view.at(start));
 
 	while(!openlist.empty())
 	{
@@ -37,8 +43,6 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 		if (current.pos == end)
 		{
 			// found goal.
-			
-			vector<Pos> result;
 
 			Pos p = current.pos;
 
@@ -52,8 +56,7 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 				result.push_back(p);
 			}
 
-
-			return result;
+			goto a_star_cleanup;
 		}
 
 		closedlist.insert(current.pos);
@@ -112,8 +115,20 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 				{
 					succ.openlist_handle = openlist.push(Entry(successor, f));
 					succ.in_openlist = true;
+
+					needs_cleanup.push_back(&succ);
 				}
 			}
 		}
 	}
+
+a_star_cleanup:
+	
+	for (walk_t* w : needs_cleanup)
+	{
+		w->in_openlist = false;
+		w->openlist_handle = pathfinding::openlist_handle_t();
+	}
+
+	return result;
 }
