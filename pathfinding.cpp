@@ -32,7 +32,6 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 	vector<walk_t*> needs_cleanup;
 
 	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
-	view.at(start).in_openlist = true;
 	needs_cleanup.push_back(&view.at(start));
 
 	while(!openlist.empty())
@@ -100,22 +99,20 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 				double cost = sqrt(step.x*step.x + step.y*step.y);
 				double new_g = view.at(current.pos).g_val + cost;
 
-				if (succ.in_openlist && succ.g_val < new_g) // ignore this successor, when a better way is already known
+				if (succ.openlist_handle != openlist_handle_t() && succ.g_val < new_g) // ignore this successor, when a better way is already known
 					continue;
 
 				double f = new_g + heuristic(successor, end);
 				succ.predecessor = current.pos;
 				succ.g_val = new_g;
 				
-				if (succ.in_openlist)
+				if (succ.openlist_handle != openlist_handle_t())
 				{
 					openlist.update(succ.openlist_handle, Entry(successor, f));
 				}
 				else
 				{
 					succ.openlist_handle = openlist.push(Entry(successor, f));
-					succ.in_openlist = true;
-
 					needs_cleanup.push_back(&succ);
 				}
 			}
@@ -125,10 +122,7 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 a_star_cleanup:
 	
 	for (walk_t* w : needs_cleanup)
-	{
-		w->in_openlist = false;
 		w->openlist_handle = pathfinding::openlist_handle_t();
-	}
 
 	return result;
 }

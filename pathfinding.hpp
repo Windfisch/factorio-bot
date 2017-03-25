@@ -26,7 +26,6 @@ namespace pathfinding
 		double margins[4];
 
 
-		bool in_openlist = false;
 		double g_val;
 		Pos predecessor;
 		openlist_handle_t openlist_handle;
