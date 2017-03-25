@@ -10,7 +10,7 @@ class _MapGui_impl;
 class MapGui
 {
 	public:
-		MapGui(const FactorioGame* game);
+		MapGui(FactorioGame* game);
 		~MapGui();
 
 	private:

@@ -83,7 +83,7 @@ function on_tick(event)
 		
 	for idx, player in pairs(game.players) do
 		-- if global.p[idx].walking and player.connected then
-		if global.p[1].walking and player.connected then -- TODO FIXME
+		if global.p[idx] and global.p[idx].walking and player.connected then -- TODO FIXME
 			local w = global.p[idx].walking
 			local pos = player.character.position
 			local dest = w.waypoints[w.idx]

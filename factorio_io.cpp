@@ -24,11 +24,28 @@ using namespace std;
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL} };
 
 
-FactorioGame::FactorioGame(string prefix, string rcon_host_, int rcon_port_)
+FactorioGame::FactorioGame(string prefix, string rcon_host_, int rcon_port_) : rcon(rcon_host_, rcon_port_, "ficken23")
 {
 	factorio_file_prefix = prefix;
 	rcon_host = rcon_host_;
 	rcon_port = rcon_port_;
+}
+
+void FactorioGame::set_waypoints(const std::vector<Pos>& waypoints)
+{
+	if (waypoints.size() < 1)
+	{
+		cout << "ignoring zero-size path" << endl;
+		return;
+	}
+
+	string foo = "";
+	for (Pos p : waypoints)
+		foo = foo + ",{" + p.str() + "}";
+
+	foo = foo.substr(1);
+
+	rcon.sendrecv("/c remote.call('windfisch', 'set_waypoints', {"+foo+"})");
 }
 
 string FactorioGame::factorio_file_name()

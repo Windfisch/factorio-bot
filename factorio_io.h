@@ -10,6 +10,7 @@
 #include "worldmap.hpp"
 #include "pos.hpp"
 #include "area.hpp"
+#include "rcon.h"
 
 enum dir4_t
 {
@@ -81,6 +82,8 @@ struct Entity
 class FactorioGame
 {
 	private:
+		Rcon rcon;
+
 		std::string line_buffer;
 
 		std::string factorio_file_prefix;
@@ -108,6 +111,8 @@ class FactorioGame
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
+
+		void set_waypoints(const std::vector<Pos>& waypoints);
 
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;

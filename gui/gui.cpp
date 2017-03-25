@@ -34,7 +34,7 @@ class MapBox : public Fl_Box
 		std::vector<unsigned char> imgbuf;
 		int imgwidth, imgheight;
 		std::unique_ptr<Fl_RGB_Image> rgbimg;
-		const FactorioGame* game;
+		FactorioGame* game;
 
 		Pos canvas_center; // divide this by zoom_level to get tile coords
 		Pos canvas_drag;
@@ -50,7 +50,7 @@ class MapBox : public Fl_Box
 		vector<Pos> last_path;
 
 	public:
-		MapBox(const FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
+		MapBox(FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
 		void update_imgbuf();
 };
 
@@ -67,13 +67,13 @@ Pos MapBox::zoom_transform(const Pos& p, int factor)
 class _MapGui_impl
 {
 	public:
-		_MapGui_impl(const FactorioGame* game);
+		_MapGui_impl(FactorioGame* game);
 
 	private:
 		std::unique_ptr<Fl_Window> window;
 		std::unique_ptr<MapBox> mapbox;
 
-		const FactorioGame* game;
+		FactorioGame* game;
 };
 
 void MapBox::give_info(const Pos& pos)
@@ -108,7 +108,8 @@ int MapBox::handle(int event)
 				if (button == 2)
 				{
 					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
-					last_path = a_star( last_click[0], last_click[2], const_cast<FactorioGame*>(game)->walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4);
+					last_path = a_star( last_click[0], last_click[2], game->walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4);
+					game->set_waypoints(last_path);
 					cout << last_path.size() << endl;
 				}
 			}
@@ -144,7 +145,7 @@ void MapBox::draw(void)
 	rgbimg->draw(x(),y(),w(),h());
 }
 
-MapBox::MapBox(const FactorioGame* g, int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l), game(g)
+MapBox::MapBox(FactorioGame* g, int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l), game(g)
 {
 	imgwidth = 1000;
 	imgheight = 1000;
@@ -297,10 +298,10 @@ void MapBox::update_imgbuf()
 	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
 
-MapGui::MapGui(const FactorioGame* game) : impl(new _MapGui_impl(game)) {}
+MapGui::MapGui(FactorioGame* game) : impl(new _MapGui_impl(game)) {}
 MapGui::~MapGui() {}
 
-_MapGui_impl::_MapGui_impl(const FactorioGame* game_)
+_MapGui_impl::_MapGui_impl(FactorioGame* game_)
 {
 	this->game = game_;
 	

@@ -150,12 +150,3 @@ Rcon::Packet Rcon::sendrecv(const std::string& data)
 		throw std::runtime_error("sendrecv() received invalid ID");
 	return pkg;
 }
-
-
-int main()
-{
-	Rcon rcon("localhost", 1234, "ficken23");
-	for (unsigned i=0; i<10; i++)
-		rcon.sendrecv("/c print('hello world')");
-}
-
