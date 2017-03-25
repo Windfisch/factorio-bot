@@ -123,7 +123,7 @@ function on_tick(event)
 			print("waypoint "..w.idx.." of "..#w.waypoints..", pos = "..coord(pos)..", dest = "..coord(dest).. ", dx/dy="..dx.."/"..dy..", dir="..direction)
 
 			if direction ~= "" then
-				player.character.walking_state = {walking=true, direction=defines.direction[direction]}
+				player.walking_state = {walking=true, direction=defines.direction[direction]}
 			else
 				w.idx = w.idx + 1
 				if w.idx > #w.waypoints then
