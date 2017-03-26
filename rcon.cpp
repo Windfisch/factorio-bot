@@ -80,12 +80,12 @@ static void recvn(int sockfd, uint8_t* buf, size_t len)
 	}
 }
 
-Rcon::Rcon(std::string host, int port)
+void Rcon::connect(std::string host, int port)
 {
 	sockfd = connect_socket(host.c_str(), port);
 }
 
-Rcon::Rcon(std::string host, int port, std::string password)
+void Rcon::connect(std::string host, int port, std::string password)
 {
 	sockfd = connect_socket(host.c_str(), port);
 

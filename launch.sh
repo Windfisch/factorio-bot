@@ -9,12 +9,17 @@ if [ ! -e $CONF ]; then
 	exit 1
 fi
 
-if [ ! $# -eq 2 ]; then
+if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] ; then
 	echo "Usage:"
 	echo "    $0 --start|--stop server|clientname"
+	echo "    $0 --bot"
 	echo ""
-	echo "This tool will install factorio to /installation/path/, prepare the mod and"
-	echo "generate a config file into the current directory"
+	echo "The first form will start or stop a Factorio server/client."
+	echo "The second form will launch the bot."
+	echo "Usually, you want to do:"
+	echo "  - $0 --start server"
+	echo "  - ($0 --start client)"
+	echo "  - $0 --start bot"
 	exit 0
 fi
 
@@ -33,6 +38,7 @@ echo "MAP='$MAP'"
 case "$ACTION" in
 	--start) ;;
 	--stop) ;;
+	--bot) ;;
 	*)
 		echo "ERROR: action '$ACTION' not understood. run '$0 --help'"
 		exit 1
@@ -45,6 +51,13 @@ if [ ! -d "$INSTALLPATH/$TARGET" ]; then
 	echo -n '      available targets are '; ( cd "$INSTALLPATH" && echo */ | sed 's./..g'; )
 	exit 1
 fi
+
+
+if [ $ACTION == --bot ]; then
+	./test "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
+	exit 0
+fi
+
 
 PIDFILE="$INSTALLPATH/$TARGET.pid"
 JOINFILE="$INSTALLPATH/server/script-output/players_connected.txt"

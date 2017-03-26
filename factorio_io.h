@@ -107,7 +107,8 @@ class FactorioGame
 		int next_free_resource_id = 1;
 	
 	public:
-		FactorioGame(std::string prefix, std::string rcon_host, int rcon_port);
+		FactorioGame(std::string prefix);
+		void rcon_connect(std::string host, int port, std::string password);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);

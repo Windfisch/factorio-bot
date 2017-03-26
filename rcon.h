@@ -4,14 +4,17 @@
 class Rcon
 {
 	private:
-		int sockfd;
+		int sockfd = -1;
 		uint32_t curr_id = 0;
 	
 	public:
 		static const int MAXLEN = 4096;
 		
-		Rcon(std::string host, int port);
-		Rcon(std::string host, int port, std::string password);
+		Rcon() {}
+		Rcon(std::string host, int port) { connect(host, port); }
+		Rcon(std::string host, int port, std::string password) { connect(host, port, password); }
+
+		bool connected() { return sockfd!=-1; }
 		
 		enum pkgtype
 		{
@@ -32,6 +35,9 @@ class Rcon
 
 			void dump();
 		};
+
+		void connect(std::string host, int port);
+		void connect(std::string host, int port, std::string password);
 
 		void send(uint32_t id, pkgtype type, const std::string& data);
 		Packet recv();
