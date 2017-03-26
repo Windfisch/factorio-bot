@@ -1,3 +1,56 @@
+#!/bin/bash
+
+CONF=botconfig.conf
+
+set -e
+
+if [ ! $# -eq 2 ]; then
+	echo "Usage:"
+	echo "    $0 path/to/factorio_alpha_x64_0.14.22.tar.gz /installation/path"
+	echo ""
+	echo "This tool will install factorio to /installation/path/, prepare the mod and"
+	echo "generate a config file into the current directory"
+	exit 0
+fi
+
+if [ -e $CONF ]; then
+	echo "Error: $CONF already exists, refusing to prepare anything."
+	exit 1
+fi
+
+FACTORIO_TGZ="$1"
+INSTALLPATH="$2"
+
+mkdir -p "$INSTALLPATH"
+
+
+# unpack factorio
+mkdir -p "$INSTALLPATH"
+tar -x -v -C "$INSTALLPATH" -f "$FACTORIO_TGZ"
+
+# install the mod
+mkdir -p "$INSTALLPATH/factorio/mods"
+ln -sr "./luamod/Windfisch_0.0.1" "$INSTALLPATH/factorio/mods/"
+cat > "$INSTALLPATH/factorio/mods/mod-list.json" << EOF
+{
+    "mods": [
+        {
+            "name": "base",
+            "enabled": "true"
+        },
+        {
+            "name": "Windfisch",
+            "enabled": "true"
+        }
+    ]
+}
+EOF
+
+
+# server installation
+mv "$INSTALLPATH/factorio" "$INSTALLPATH/server"
+
+cat > "$INSTALLPATH/server-settings.json" << EOF
 {
   "name": "Bot Test Game",
   "description": "A game for testing the bot",
@@ -58,3 +111,33 @@
   "_comment_admins": "List of case insensitive usernames, that will be promoted immediately",
   "admins": []
 }
+EOF
+
+# the client directories are just hardlinked copies to save disk space
+# create a config for them with a different name
+for client in Nayru Farore; do
+	cp -rl "$INSTALLPATH/server" "$INSTALLPATH/$client"
+	cat > "$INSTALLPATH/$client/player-data.json" << EOF
+{
+    "latest-multiplayer-connections": [
+        {
+            "address": "localhost"
+        }
+    ],
+    "service-username": "$client",
+    "service-token": ""
+}
+EOF
+done
+
+cat > $CONF << EOF
+INSTALLPATH='$INSTALLPATH'
+RCON_PORT=1234
+RCON_PASS=rcon123
+MAP=FIXME
+EOF
+
+echo
+echo
+echo "installed factorio to '$INSTALLPATH/'."
+echo "created config file '$CONF'."

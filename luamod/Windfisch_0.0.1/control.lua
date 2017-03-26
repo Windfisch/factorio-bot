@@ -3,7 +3,7 @@ require "math"
 
 local my_client_id = nil
 
-hass = nil
+client_local_data = nil -- DO NOT USE, will cause desyncs
 
 outfile="output1.txt"
 
@@ -49,25 +49,30 @@ function writeout_prototypes()
 	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
 end
 
-function on_tick(event)
-	if (hass == nil) then
-		global.firsttick=event.tick
-
-		hass = 123
+function on_whoami()
+	if client_local_data.whoami == "server" then
 		writeout_prototypes()
 		-- FIXME: chart all chunks
 		
-		global.initial_discovery={}
-		global.initial_discovery.chunks = {}
+		client_local_data.initial_discovery={}
+		client_local_data.initial_discovery.chunks = {}
 		for chunk in game.surfaces[1].get_chunks() do
-			table.insert(global.initial_discovery.chunks, chunk)
+			table.insert(client_local_data.initial_discovery.chunks, chunk)
 		end
-		global.initial_discovery.n = #global.initial_discovery.chunks
-		global.initial_discovery.idx = 1
+		client_local_data.initial_discovery.n = #client_local_data.initial_discovery.chunks
+		client_local_data.initial_discovery.idx = 1
+	end
+end
+
+function on_tick(event)
+	if (client_local_data == nil) then
+		client_local_data = {}
+		client_local_data.whoami = nil
+		game.write_file("players_connected.txt", "server\n", true, 0) -- only on server
 	end
 
-	if global.initial_discovery then
-		local id = global.initial_discovery
+	if client_local_data.initial_discovery then
+		local id = client_local_data.initial_discovery
 		local maxi = id.idx + 1 -1
 		if maxi > id.n then maxi = id.n end
 		
@@ -78,7 +83,7 @@ function on_tick(event)
 		end
 
 		id.idx = maxi+1
-		if id.idx > id.n then global.initial_discovery = nil end
+		if id.idx > id.n then client_local_data.initial_discovery = nil end
 	end
 		
 	for idx, player in pairs(game.players) do
@@ -133,12 +138,10 @@ function on_tick(event)
 		end
 	end
 
-	if event.tick - global.firsttick == 600 then
-		--dump_map("map.ppm")
-	end
-
 	if event.tick % 120 == 0 then
-		print(my_client_id)
+		local who = "?"
+		if client_local_data.whoami then who = client_local_data.whoami end
+		print(my_client_id.."."..who)
 	end
 end
 
@@ -652,6 +655,8 @@ end
 
 function on_player_joined_game(event)
 	print("player '"..game.players[event.player_index].name.."' joined")
+		
+	game.write_file("players_connected.txt", game.players[event.player_index].name..'\n', true, 0) -- only on server
 	
 	global.n_clients = global.n_clients + 1
 end
@@ -675,7 +680,15 @@ function rcon_set_waypoints(waypoints) -- e.g. waypoints= { {0,0}, {3,3}, {42,13
 	global.p[1].walking = {idx=1, waypoints=tmp}
 end
 
+function rcon_whoami(who)
+	if client_local_data.whoami == nil then
+		client_local_data.whoami = who
+		on_whoami()
+	end
+end
+
 remote.add_interface("windfisch", {
 	test=rcon_test,
-	set_waypoints=rcon_set_waypoints
+	set_waypoints=rcon_set_waypoints,
+	whoami=rcon_whoami
 })
