@@ -5,3 +5,4 @@ depend
 test
 core
 gmon.out
+rcon-client

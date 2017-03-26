@@ -48,7 +48,7 @@ MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 # Pseudotargets
 .PHONY: all clean run info mod help
 
-all: $(EXE)
+all: $(EXE) rcon-client
 
 clean:
 	rm -f $(EXE) $(OBJECTS) $(OBJECTS:.o=.d) depend
@@ -135,6 +135,9 @@ gui/%.o: gui/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(EXE): $(OBJECTS)
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
+
+rcon-client: rcon-client.o rcon.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
 
 
