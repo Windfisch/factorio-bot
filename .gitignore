@@ -7,3 +7,5 @@ core
 gmon.out
 rcon-client
 botconfig.conf
+*.swp
+config.mk
