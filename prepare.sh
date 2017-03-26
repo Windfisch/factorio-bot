@@ -135,6 +135,8 @@ INSTALLPATH='$INSTALLPATH'
 RCON_PORT=1234
 RCON_PASS=rcon123
 MAP=FIXME
+
+# MAP is either an absolute path, or relative to INSTALLPATH
 EOF
 
 echo

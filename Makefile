@@ -1,7 +1,10 @@
 # possible values: GCC, clang
-COMPILER=clang
+include config.mk
+
 EXE=test
-OBJECTS=factorio_io.o rcon.o area.o pathfinding.o gui/gui.o
+OBJECTS=factorio_io.o rcon.o area.o pathfinding.o gui/gui.o # objects used for $(EXE)
+
+ALLOBJECTS=$(OBJECTS) rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
 DEBUG=1
 
 
@@ -42,7 +45,6 @@ CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags`
 LINK=$(CXX)
 LINKFLAGS=$(CXXFLAGS) `fltk-config --ldflags`
 
-include config.mk
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
 # Pseudotargets
@@ -51,7 +53,7 @@ MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 all: $(EXE) rcon-client
 
 clean:
-	rm -f $(EXE) $(OBJECTS) $(OBJECTS:.o=.d) depend
+	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend
 
 help:
 	@echo "Targets:"
@@ -108,6 +110,7 @@ $(DATAFILE): $(MODDESTS) $(SAVEGAME) $(SERVERSETTINGS)
 
 config.mk:
 	echo 'FACTORIODIR=/path/to/factorio' > $@
+	echo 'COMPILER=GCC  # possible values: GCC, clang' >> $@
 
 $(FACTORIODIR)/mods/$(MODNAME)/%: luamod/$(MODNAME)/%
 	mkdir -p $(dir $@)
@@ -117,7 +120,7 @@ $(FACTORIODIR)/mods/$(MODNAME)/%: luamod/$(MODNAME)/%
 
 include depend
 
-depend: $(OBJECTS:.o=.d)
+depend: $(ALLOBJECTS:.o=.d)
 	cat $^ > $@
 
 %.d: %.cpp
@@ -143,7 +146,7 @@ rcon-client: rcon-client.o rcon.o
 
 -include .dummy.mk
 
-.dummy.mk: Makefile
+.dummy.mk: Makefile config.mk
 	@echo Makefile changed, cleaning to rebuild
 	@echo "# used to let all targets depend on Makefile" > $@
 	make -s clean
