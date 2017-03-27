@@ -63,7 +63,7 @@ PIDFILE="$INSTALLPATH/$TARGET.pid"
 JOINFILE="$INSTALLPATH/server/script-output/players_connected.txt"
 
 if [ $ACTION == --start ]; then
-	if [ -e $PIDFILE ]; then
+	if [ -e "$PIDFILE" ]; then
 		if kill -0 `cat "$PIDFILE"` 2>/dev/null; then
 			echo "ERROR: pidfile '$PIDFILE' already exists. refusing to start."
 			echo "       if you are sure, that $TARGET isn't running already, you can remove it"
@@ -80,12 +80,14 @@ if [ $ACTION == --start ]; then
 
 	if [ $TARGET == server ]; then
 		./bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "../server-settings.json" &
-		echo $! > "$PIDFILE"
+		PID=$!
 	else
 		./bin/x64/factorio --mp-connect localhost &
-		echo $! > "$PIDFILE"
+		PID=$!
 	fi
 	popd
+	
+	echo $PID > "$PIDFILE"
 
 	# wait for $JOINFILE to appear and call whoami($TARGET)
 	TIMEOUT=90
@@ -114,7 +116,7 @@ if [ $ACTION == --start ]; then
 		exit 1
 	fi
 elif [ $ACTION == --stop ]; then
-	if [ ! -e $PIDFILE ]; then
+	if [ ! -e "$PIDFILE" ]; then
 		echo "ERROR: pidfile '$PIDFILE' does not exist. can not stop anything"
 		exit 1
 	fi
