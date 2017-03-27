@@ -79,6 +79,7 @@ if [ $ACTION == --start ]; then
 	pushd "$INSTALLPATH/$TARGET/"
 
 	if [ $TARGET == server ]; then
+		rm -f script-output/*.txt
 		./bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "../server-settings.json" &
 		PID=$!
 	else
