@@ -23,7 +23,7 @@ function on_init()
 
 	global.n_clients = 1
 
-	game.write_file(outfile, "SNIP", false)
+	game.write_file(outfile, "", false)
 end
 
 function pos_str(pos)
