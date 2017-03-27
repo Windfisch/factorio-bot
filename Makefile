@@ -43,7 +43,8 @@ FLAGS += $(WARNFLAGS)
 CFLAGS = $(CFLAGS_BASE) $(FLAGS) `fltk-config --cflags`
 CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags`
 LINK=$(CXX)
-LINKFLAGS=$(CXXFLAGS) `fltk-config --ldflags`
+LINKFLAGS=$(CXXFLAGS)
+LIBS=`fltk-config --ldflags`
 
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
@@ -138,10 +139,10 @@ gui/%.o: gui/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(EXE): $(OBJECTS)
-	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 rcon-client: rcon-client.o rcon.o
-	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ -o $@
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 
 -include .dummy.mk
