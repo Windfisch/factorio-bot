@@ -91,6 +91,8 @@ SAVEGAME=$(FACTORIODIR)/factorio-bot.zip
 SERVERSETTINGS=luamod/server-settings.json
 
 datafile: $(DATAFILE)
+	echo 'made target $(DATAFILE)'
+
 rm_datafile:
 	rm -f $(DATAFILE)
 savegame: $(SAVEGAME)
@@ -103,7 +105,8 @@ $(SAVEGAME):
 $(DATAFILE): $(MODDESTS) $(SAVEGAME) $(SERVERSETTINGS)
 	rm -f $(DATAFILE)
 	cp $(SAVEGAME) $(SAVEGAME:.zip=.tmp.zip)
-	-$(FACTORIODIR)/bin/x64/factorio --start-server $(SAVEGAME:.zip=.tmp.zip) --server-settings $(SERVERSETTINGS)
+	( sleep 5; ./rcon-client localhost 1234 trivial_password '/c remote.call("windfisch","whoami","server")'; sleep 1; ./rcon-client localhost 1234 trivial_password '/c remote.call("windfisch","whoami","server")' ) &
+	-$(FACTORIODIR)/bin/x64/factorio --start-server $(SAVEGAME:.zip=.tmp.zip) --server-settings $(SERVERSETTINGS) --rcon-port 1234 --rcon-password trivial_password
 	echo
 	echo made $(DATAFILE)
 
