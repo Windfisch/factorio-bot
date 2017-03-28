@@ -106,6 +106,12 @@ if [ $ACTION == --start ]; then
 			echo ""
 			echo Client `cat "$JOINFILE"` "has joined while launching target '$TARGET'"
 			sleep 3
+			if [ "$TARGET" == server ]; then
+				# Execute a dummy command to silence the warning about "using commands will
+				# disable achievements". If we don't do this, the first command will be lost
+				./rcon-client localhost "$RCON_PORT" "$RCON_PASS" "/silent-command print('')"
+				sleep 0.5
+			fi
 			./rcon-client localhost "$RCON_PORT" "$RCON_PASS" "/c remote.call('windfisch','whoami','$TARGET')"
 			break
 		fi
