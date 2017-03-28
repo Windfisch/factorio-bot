@@ -76,17 +76,15 @@ if [ $ACTION == --start ]; then
 
 	echo "launching target '$TARGET'"
 	rm -f "$JOINFILE"
-	pushd "$INSTALLPATH/$TARGET/"
 
 	if [ $TARGET == server ]; then
-		rm -f script-output/*.txt
-		./bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "../server-settings.json" &
+		rm -f "$INSTALLPATH/$TARGET/script-output"/*.txt
+		"$INSTALLPATH/$TARGET"/bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "$INSTALLPATH/server-settings.json" &
 		PID=$!
 	else
-		./bin/x64/factorio --mp-connect localhost &
+		"$INSTALLPATH/$TARGET"/bin/x64/factorio --mp-connect localhost &
 		PID=$!
 	fi
-	popd
 	
 	echo $PID > "$PIDFILE"
 
