@@ -143,6 +143,20 @@ function on_tick(event)
 		if client_local_data.whoami then who = client_local_data.whoami end
 		print(my_client_id.."."..who)
 	end
+
+	if event.tick % 10 == 0 then
+		writeout_players()
+	end
+end
+
+function writeout_players()
+	local players={}
+	for idx, player in pairs(game.players) do
+		if player.connected and player.character then
+			table.insert(players, idx.." "..player.character.position.x.." "..player.character.position.y)
+		end
+	end
+	game.write_file(outfile, "players: "..table.concat(players, ",").."\n", true)
 end
 
 function on_sector_scanned(event)

@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include <fstream>
 #include <set>
 
@@ -102,6 +103,7 @@ class FactorioGame
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 		void parse_entity_prototypes(const std::string& data);
+		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
 
 		int next_free_resource_id = 1;
@@ -118,4 +120,11 @@ class FactorioGame
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
+		
+		struct Player
+		{
+			Pos_f position;
+			bool connected;
+		};
+		std::vector<Player> players;
 };

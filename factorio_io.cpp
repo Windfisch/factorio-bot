@@ -141,11 +141,13 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_entity_prototypes(data);
 	else if (type=="objects")
 		parse_objects(area,data);
+	else if (type=="players")
+		parse_players(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
 
-static vector<string> split (const string& data, char delim=' ')
+static vector<string> split(const string& data, char delim=' ')
 {
 	istringstream str(data);
 	string entry;
@@ -155,6 +157,29 @@ static vector<string> split (const string& data, char delim=' ')
 		result.push_back(std::move(entry));
 	
 	return result;
+}
+
+void FactorioGame::parse_players(const string& data)
+{
+	for (Player& p : players)
+		p.connected = false;
+
+	for (const string& entry : split(data,','))
+	{
+		vector<string> fields = split(entry,' ');
+
+		if (fields.size() != 3)
+			throw runtime_error("malformed players packet");
+
+		int id = stoi(fields[0]);
+		Pos_f pos = Pos_f(stod(fields[1]), stod(fields[2]));
+
+		if (id >= players.size())
+			players.resize(id + 1);
+
+		players[id].connected = true;
+		players[id].position = pos;
+	}
 }
 
 void FactorioGame::parse_entity_prototypes(const string& data)

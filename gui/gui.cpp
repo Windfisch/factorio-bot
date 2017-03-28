@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 using std::cout;
 using std::endl;
@@ -17,6 +18,8 @@ using std::vector;
 using std::floor;
 using std::sin;
 
+using std::max;
+
 static constexpr int clamp(int v, int a, int b)
 {
 	return (v<a)?a:  ( (v>b?b: v) );
@@ -24,6 +27,45 @@ static constexpr int clamp(int v, int a, int b)
 
 namespace GUI
 {
+
+struct Color {
+	int r,g,b;
+	Color() : r(0),g(0),b(0){}
+	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){ assert(r<256 && g<256 && b<256); }
+	void blend(const Color& other, float alpha)
+	{
+		this->r = clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255);
+		this->g = clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255);
+		this->b = clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255);
+	}
+};
+
+Color color_hsv(double hue, double sat, double val)
+{
+	int i = int(floor(hue));
+	double f = hue - i;
+	int p = int(255 * val * (1 - sat));
+	int q = int(255 * val * (1 - f * sat));
+	int t = int(255 * val * (1 - (1 - f) * sat));
+	int v = int(255 * val);
+
+	switch ((i%6+6)%6)
+	{
+		case 0: return Color(v,t,p);
+		case 1: return Color(q,v,p);
+		case 2: return Color(p,v,t);
+		case 3: return Color(p,q,v);
+		case 4: return Color(t,p,v);
+		case 5: return Color(v,p,q);
+		default: return Color(255,0,255); // cannot happen
+	}
+}
+
+Color get_color(int id)
+{
+	if (id==0) return Color(0,0,0);
+	return color_hsv(0.53481*id, 0.8 + 0.2*sin(id/21.324), 0.7+0.3*sin(id/2.13184));
+}
 
 class MapBox : public Fl_Box
 {
@@ -42,6 +84,8 @@ class MapBox : public Fl_Box
 
 		Pos zoom_transform(const Pos& p, int factor);
 		void give_info(const Pos& pos);
+
+		void draw_box(const Pos& center, int radius, const Color& col);
 
 		Pos last_info_pos;
 
@@ -162,45 +206,6 @@ MapBox::MapBox(FactorioGame* g, int x, int y, int w, int h, const char* l) : Fl_
 	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
 
-struct Color {
-	int r,g,b;
-	Color() : r(0),g(0),b(0){}
-	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){ assert(r<256 && g<256 && b<256); }
-	void blend(const Color& other, float alpha)
-	{
-		this->r = clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255);
-		this->g = clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255);
-		this->b = clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255);
-	}
-};
-
-Color color_hsv(double hue, double sat, double val)
-{
-	int i = int(floor(hue));
-	double f = hue - i;
-	int p = int(255 * val * (1 - sat));
-	int q = int(255 * val * (1 - f * sat));
-	int t = int(255 * val * (1 - (1 - f) * sat));
-	int v = int(255 * val);
-
-	switch ((i%6+6)%6)
-	{
-		case 0: return Color(v,t,p);
-		case 1: return Color(q,v,p);
-		case 2: return Color(p,v,t);
-		case 3: return Color(p,q,v);
-		case 4: return Color(t,p,v);
-		case 5: return Color(v,p,q);
-		default: return Color(255,0,255); // cannot happen
-	}
-}
-
-Color get_color(int id)
-{
-	if (id==0) return Color(0,0,0);
-	return color_hsv(0.53481*id, 0.8 + 0.2*sin(id/21.324), 0.7+0.3*sin(id/2.13184));
-}
-
 static MapBox* foo = 0;
 
 void MapBox::update_imgbuf()
@@ -279,13 +284,27 @@ void MapBox::update_imgbuf()
 		Color col = Color( 255*x, 255*(1-x), 196 );
 
 		Pos screenpos = zoom_transform( last_path[i], -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+		draw_box(screenpos, 1<<max(-zoom_level-1,0), col);
+	}
 
-		for (int x=-1; x<=1; x++) for (int y=-1; y<1; y++)
+	for (const auto& player : game->players) if (player.connected)
+	{
+		Pos screenpos = zoom_transform( player.position.to_int(), -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+
+		draw_box(screenpos, 2<<max(-zoom_level,0), Color(255,0,0));
+	}
+
+	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
+}
+
+void MapBox::draw_box(const Pos& center, int radius, const Color& col)
+{
+		for (int x=-radius; x<=radius; x++) for (int y=-radius; y<radius; y++)
 		{
-			Pos screenpos2 = screenpos + Pos(x,y);
-			if (Pos(0,0) <= screenpos2 && screenpos2 < Pos(imgwidth, imgheight))
+			Pos pos = center + Pos(x,y);
+			if (Pos(0,0) <= pos && pos < Pos(imgwidth, imgheight))
 			{
-				int idx = (screenpos2.y*imgwidth+screenpos2.x)*4;
+				int idx = (pos.y*imgwidth+pos.x)*4;
 
 				imgbuf[idx+0] = col.r;
 				imgbuf[idx+1] = col.g;
@@ -293,9 +312,6 @@ void MapBox::update_imgbuf()
 				imgbuf[idx+3] = 255;
 			}
 		}
-	}
-
-	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
 
 MapGui::MapGui(FactorioGame* game) : impl(new _MapGui_impl(game)) {}
