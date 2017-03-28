@@ -134,12 +134,15 @@ cat > $CONF << EOF
 INSTALLPATH='$INSTALLPATH'
 RCON_PORT=1234
 RCON_PASS=rcon123
-MAP=FIXME
+MAP=map.zip
 
 # MAP is either an absolute path, or relative to INSTALLPATH
 EOF
+
+"$INSTALLPATH/server/bin/x64/factorio" --create "$INSTALLPATH/map.zip"
 
 echo
 echo
 echo "installed factorio to '$INSTALLPATH/'."
 echo "created config file '$CONF'."
+echo "created map at '$INSTALLPATH/map.zip'."
