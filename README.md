@@ -1,7 +1,7 @@
 Factorio Bot
 ============
 
-This project project tries to be a **fair** bot/AI for the game
+This project tries to be a **fair** bot/AI for the game
 [Factorio](https://www.factorio.com) (version 0.14.22).
 
 "Fair" means that the bot only uses information that is available to a human
