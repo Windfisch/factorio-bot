@@ -116,7 +116,7 @@ EOF
 # the client directories are just hardlinked copies to save disk space
 # create a config for them with a different name
 for client in Nayru Farore; do
-	cp -rl "$INSTALLPATH/server" "$INSTALLPATH/$client"
+	cp -rl --preserve=links "$INSTALLPATH/server" "$INSTALLPATH/$client"
 	cat > "$INSTALLPATH/$client/player-data.json" << EOF
 {
     "latest-multiplayer-connections": [
