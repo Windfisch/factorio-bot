@@ -8,6 +8,7 @@
 #include <set>
 #include <deque>
 #include <algorithm>
+#include <chrono>
 
 #include "factorio_io.h"
 #include "pathfinding.hpp"
@@ -17,6 +18,9 @@
 
 using std::string;
 using std::unordered_map;
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
 
 
 using namespace std;
@@ -34,7 +38,7 @@ void FactorioGame::rcon_connect(string host, int port, string password)
 	rcon.connect(host, port, password);
 }
 
-void FactorioGame::set_waypoints(const std::vector<Pos>& waypoints)
+void FactorioGame::set_waypoints(int player_id, const std::vector<Pos>& waypoints)
 {
 	if (!rcon.connected())
 	{
@@ -55,6 +59,11 @@ void FactorioGame::set_waypoints(const std::vector<Pos>& waypoints)
 	foo = foo.substr(1);
 
 	rcon.sendrecv("/c remote.call('windfisch', 'set_waypoints', {"+foo+"})");
+}
+
+void FactorioGame::walk_to(int player_id, const Pos& dest)
+{
+	set_waypoints(player_id, a_star(players[player_id].position.to_int(), dest, walk_map, 0.4+0.1));
 }
 
 string FactorioGame::factorio_file_name()
@@ -568,7 +577,19 @@ int main(int argc, const char** argv)
 
 	
 	// quick read first part of the file before doing any GUI work. Useful for debugging, since reading in 6000 lines will take more than 6 seconds.
-	for (int i=0; i<6000; i++) factorio.parse_packet(factorio.read_packet());
+	for (int i=0; i<20000; i++) factorio.parse_packet(factorio.read_packet());
+
+	auto t1 = high_resolution_clock::now();
+
+	for (int i=0; i<20; i++)
+		cout << a_star( Pos(-584,302), Pos(306,-274), factorio.walk_map, 0.4 ).size() << endl;
+	
+	auto t2 = high_resolution_clock::now();
+
+	cout << "took " << duration_cast<milliseconds>( t2 - t1 ).count() << "ms" << endl;
+	
+	return 0;
+
 
 	while (true)
 	{

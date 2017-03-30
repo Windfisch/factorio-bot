@@ -105,7 +105,8 @@ class FactorioGame
 		void parse_entity_prototypes(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
-
+		
+		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 		int next_free_resource_id = 1;
 	
 	public:
@@ -113,9 +114,9 @@ class FactorioGame
 		void rcon_connect(std::string host, int port, std::string password);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
-		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 
-		void set_waypoints(const std::vector<Pos>& waypoints);
+		void set_waypoints(int id, const std::vector<Pos>& waypoints);
+		void walk_to(int id, const Pos& dest);
 
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;

@@ -96,6 +96,19 @@ function on_tick(event)
 			local dx = dest.x - pos.x
 			local dy = dest.y - pos.y
 
+			if (math.abs(dx) < 0.3 and math.abs(dy) < 0.3) then
+				w.idx = w.idx + 1
+				if w.idx > #w.waypoints then
+					global.p[idx].walking = nil
+					dx = 0
+					dy = 0
+				else
+					dest = w.waypoints[w.idx]
+					dx = dest.x - pos.x
+					dy = dest.y - pos.y
+				end
+			end
+
 			if math.abs(dx) > 0.3 then
 				if dx < 0 then dx = -1 else dx = 1 end
 			else
@@ -129,11 +142,6 @@ function on_tick(event)
 
 			if direction ~= "" then
 				player.walking_state = {walking=true, direction=defines.direction[direction]}
-			else
-				w.idx = w.idx + 1
-				if w.idx > #w.waypoints then
-					global.p[idx].walking = nil
-				end
 			end
 		end
 	end

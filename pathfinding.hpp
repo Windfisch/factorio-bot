@@ -36,5 +36,5 @@ namespace pathfinding
 
 }
 
-std::vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<pathfinding::walk_t>::Viewport& view, double size);
+std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double size);
 

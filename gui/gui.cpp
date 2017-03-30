@@ -152,8 +152,8 @@ int MapBox::handle(int event)
 				if (button == 2)
 				{
 					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
-					last_path = a_star( last_click[0], last_click[2], game->walk_map.view(Pos(-1000,-1000), Pos(1000,1000), Pos(0,0)), 0.4);
-					game->set_waypoints(last_path);
+					last_path = a_star( last_click[0], last_click[2], game->walk_map, 0.4);
+					game->set_waypoints(1, last_path);
 					cout << last_path.size() << endl;
 				}
 			}

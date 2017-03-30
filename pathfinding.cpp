@@ -20,8 +20,10 @@ static double heuristic(const Pos& p, const Pos& goal)
 	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y)*1.1; // FIXME overapproximation for speed
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Viewport& view, double size)
+vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
 {
+	auto view = map.dumb_view(Pos(0,0));
+
 	assert(size<=1.);
 	vector<Pos> result;
 
@@ -42,16 +44,28 @@ vector<Pos> a_star(const Pos& start, const Pos& end, const WorldMap<walk_t>::Vie
 			// found goal.
 
 			Pos p = current.pos;
+			Pos dir(0,0);
 
 			result.push_back(p);
 			
 			while (p != start)
 			{
+				Pos oldp = p;
 				p = view.at(p).predecessor;
-				cout << p.str() << endl;
 
-				result.push_back(p);
+				Pos newdir = p-oldp;
+				if (newdir == dir)
+					result.back() = p;
+				else
+					result.push_back(p);
+
+				dir = newdir;
 			}
+
+			reverse(result.begin(), result.end());
+
+			for (auto p : result) cout << p.str() << " - ";
+			cout<<endl;
 
 			goto a_star_cleanup;
 		}

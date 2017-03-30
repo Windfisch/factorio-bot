@@ -9,10 +9,10 @@ if [ ! -e $CONF ]; then
 	exit 1
 fi
 
-if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] ; then
+if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] && [ ! x$1 == x--bot-offline ]; then
 	echo "Usage:"
 	echo "    $0 --start|--stop server|clientname"
-	echo "    $0 --bot"
+	echo "    $0 --bot|--bot-offline"
 	echo ""
 	echo "The first form will start or stop a Factorio server/client."
 	echo "The second form will launch the bot."
@@ -39,6 +39,7 @@ case "$ACTION" in
 	--start) ;;
 	--stop) ;;
 	--bot) ;;
+	--bot-offline) ;;
 	*)
 		echo "ERROR: action '$ACTION' not understood. run '$0 --help'"
 		exit 1
@@ -55,6 +56,11 @@ fi
 
 if [ $ACTION == --bot ]; then
 	./test "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
+	exit 0
+fi
+
+if [ $ACTION == --bot-offline ]; then
+	./test "$INSTALLPATH/server/script-output/output"
 	exit 0
 fi
 

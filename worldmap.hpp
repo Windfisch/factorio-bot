@@ -32,6 +32,39 @@ class WorldMap
 {
 	public:
 		template <bool is_const>
+		class DumbViewport_
+		{
+			friend class WorldMap;
+			
+			private:
+				typedef typename std::conditional<is_const, const WorldMap<T>*, WorldMap<T>*>::type parenttype;
+				typedef typename std::conditional<is_const, const Chunk<T>*, Chunk<T>*>::type chunktype;
+
+				parenttype parent;
+
+				Pos origin;
+
+				DumbViewport_(parenttype parent_, const Pos& origin_) : parent(parent_), origin(origin_) {}
+
+			public:
+				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
+				
+				reftype at(int x, int y) const
+				{
+					int tilex = x+origin.x;
+					int tiley = y+origin.y;
+					int chunkx = chunkidx(tilex);
+					int chunky = chunkidx(tiley);
+					int relx = tileidx(tilex);
+					int rely = tileidx(tiley);
+
+					return (*parent->get_chunk(chunkx, chunky))[relx][rely];
+				}
+
+				reftype at(const Pos& pos) const { return at(pos.x, pos.y); }
+		};
+
+		template <bool is_const>
 		class Viewport_
 		{
 			friend class WorldMap;
@@ -93,6 +126,8 @@ class WorldMap
 		};
 
 
+		typedef DumbViewport_<true> ConstDumbViewport;
+		typedef DumbViewport_<false> DumbViewport;
 		typedef Viewport_<true> ConstViewport;
 		typedef Viewport_<false> Viewport;
 
@@ -104,6 +139,16 @@ class WorldMap
 		ConstViewport view(const Pos& lefttop, const Pos& rightbot, const Pos& origin) const
 		{
 			return ConstViewport(this, lefttop, rightbot, origin);
+		}
+
+		DumbViewport dumb_view(const Pos& origin)
+		{
+			return DumbViewport(this, origin);
+		}
+
+		ConstDumbViewport dumb_view(const Pos& origin) const
+		{
+			return ConstDumbViewport(this, origin);
 		}
 
 		Chunk<T>* get_chunk(int x, int y)
