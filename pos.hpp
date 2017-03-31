@@ -46,6 +46,7 @@ struct Pos_
 
 	static Pos_<T> tile_to_chunk(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x), chunkidx(p.y)); }
 	static Pos_<T> tile_to_chunk_ceil(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x+31), chunkidx(p.y+31)); }
+	static Pos_<T> chunk_to_tile(const Pos_<T>& p) { return Pos_<T>(p.x*32, p.y*32); }
 };
 
 template <> inline Pos_<int> Pos_<int>::operator/(int f) const { return Pos_<int>(sane_div(x,f), sane_div(y,f)); }

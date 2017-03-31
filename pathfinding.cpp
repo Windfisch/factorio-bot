@@ -10,6 +10,7 @@
 #include "worldmap.hpp"
 #include "factorio_io.h"
 #include "pos.hpp"
+#include "area.hpp"
 
 using namespace std;
 using namespace pathfinding;
@@ -22,7 +23,9 @@ static double heuristic(const Pos& p, const Pos& goal)
 
 vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
 {
-	auto view = map.dumb_view(Pos(0,0));
+	Area view_area(start, end);
+	view_area.normalize();
+	auto view = map.view(view_area.left_top, view_area.right_bottom, Pos(0,0));
 
 	assert(size<=1.);
 	vector<Pos> result;

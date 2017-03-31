@@ -106,7 +106,7 @@ class FactorioGame
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
 		
-		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
+		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 		int next_free_resource_id = 1;
 	
 	public:

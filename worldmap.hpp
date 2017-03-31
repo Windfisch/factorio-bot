@@ -85,6 +85,11 @@ class WorldMap
 					lefttop_chunk = Pos::tile_to_chunk(lefttop_tile);
 					Pos rightbot_chunk = Pos::tile_to_chunk_ceil(rightbot_tile);
 
+					// recalculate tile borders, because we can only deal with chunks. This means that
+					// the actually available area is larger than the requested area.
+					lefttop_tile = Pos::chunk_to_tile(lefttop_chunk);
+					rightbot_tile = Pos::chunk_to_tile(rightbot_chunk);
+
 					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
 					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
 
@@ -96,6 +101,48 @@ class WorldMap
 						for (int y = 0; y < ylen_chunks; y++)
 							chunkcache[x+y*xlen_chunks] = parent->get_chunk(x+lefttop_chunk.x,y+lefttop_chunk.y);
 				}
+				
+				void extend_self(const Pos& new_lefttop_tile, const Pos& new_rightbot_tile)
+				{
+					Pos old_lefttop_chunk = lefttop_chunk;
+					int old_xlen_chunks = xlen_chunks;
+					int old_ylen_chunks = ylen_chunks;
+					std::vector<chunktype> old_chunkcache = std::move(chunkcache);
+
+
+
+					lefttop_tile = new_lefttop_tile;
+					rightbot_tile = new_rightbot_tile;
+
+					lefttop_chunk = Pos::tile_to_chunk(lefttop_tile);
+					Pos rightbot_chunk = Pos::tile_to_chunk_ceil(rightbot_tile);
+					
+					// recalculate tile borders, because we can only deal with chunks. This means that
+					// the actually available area is larger than the requested area.
+					lefttop_tile = Pos::chunk_to_tile(lefttop_chunk);
+					rightbot_tile = Pos::chunk_to_tile(rightbot_chunk);
+
+					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
+					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
+
+					if (xlen_chunks <= 0 or ylen_chunks <= 0)
+						throw std::invalid_argument("invalid Viewport range");
+
+					chunkcache.resize(xlen_chunks * ylen_chunks);
+					for (int x = 0; x < xlen_chunks; x++)
+						for (int y = 0; y < ylen_chunks; y++)
+						{
+							int oldx = x + lefttop_chunk.x - old_lefttop_chunk.x;
+							int oldy = y + lefttop_chunk.y - old_lefttop_chunk.y;
+
+							if (0 <= oldx && oldx < old_xlen_chunks && 
+							    0 <= oldy && oldy < old_ylen_chunks)
+								chunkcache[x+y*xlen_chunks] = old_chunkcache[oldx+oldy*old_xlen_chunks];
+							else
+								chunkcache[x+y*xlen_chunks] = parent->get_chunk(x+lefttop_chunk.x,y+lefttop_chunk.y);
+						}
+				}
+
 			public:
 				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
 
@@ -104,12 +151,21 @@ class WorldMap
 					return Viewport_<is_const>(parent, lefttop_tile_, rightbot_tile_, origin);
 				}
 
-				reftype at(int x, int y) const
+				reftype at(int x, int y)
 				{
 					int tilex = x+origin.x;
 					int tiley = y+origin.y;
 					if (!((tilex >= lefttop_tile.x) && (tiley >= lefttop_tile.y) && (tilex < rightbot_tile.x) && (tiley < rightbot_tile.y)))
-						throw std::invalid_argument("invalid coordinate for Viewport");
+					{
+						Pos new_lefttop_tile(lefttop_tile);
+						Pos new_rightbot_tile(rightbot_tile);
+						if (tilex < lefttop_tile.x) new_lefttop_tile.x = tilex;
+						else if (tilex >= rightbot_tile.x) new_rightbot_tile.x = tilex+1;
+						if (tiley < lefttop_tile.y) new_lefttop_tile.y = tiley;
+						else if (tiley >= rightbot_tile.y) new_rightbot_tile.y = tiley+1;
+
+						extend_self(new_lefttop_tile, new_rightbot_tile);
+					}
 					int chunkx = chunkidx(tilex) - lefttop_chunk.x;
 					int chunky = chunkidx(tiley) - lefttop_chunk.y;
 					assert(chunkx >= 0);
@@ -122,7 +178,7 @@ class WorldMap
 
 					return (*chunkcache[chunkx+chunky*xlen_chunks])[relx][rely];
 				}
-				reftype at(const Pos& pos) const { return at(pos.x, pos.y); }
+				reftype at(const Pos& pos) { return at(pos.x, pos.y); }
 		};
 
 

@@ -447,7 +447,7 @@ struct ResourcePatch
 		}
 };
 
-void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
+void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
 {
 	int id = next_free_resource_id++;
 	
@@ -577,19 +577,7 @@ int main(int argc, const char** argv)
 
 	
 	// quick read first part of the file before doing any GUI work. Useful for debugging, since reading in 6000 lines will take more than 6 seconds.
-	for (int i=0; i<20000; i++) factorio.parse_packet(factorio.read_packet());
-
-	auto t1 = high_resolution_clock::now();
-
-	for (int i=0; i<20; i++)
-		cout << a_star( Pos(-584,302), Pos(306,-274), factorio.walk_map, 0.4 ).size() << endl;
-	
-	auto t2 = high_resolution_clock::now();
-
-	cout << "took " << duration_cast<milliseconds>( t2 - t1 ).count() << "ms" << endl;
-	
-	return 0;
-
+	for (int i=0; i<6000; i++) factorio.parse_packet(factorio.read_packet());
 
 	while (true)
 	{

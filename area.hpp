@@ -17,6 +17,14 @@ template<typename T> struct Area_
 	
 	std::string str() const;
 
+	void normalize()
+	{
+		if (left_top.x > right_bottom.x)
+			std::swap(left_top.x, right_bottom.x);
+		if (left_top.y > right_bottom.y)
+			std::swap(left_top.y, right_bottom.y);
+	}
+
 	bool contains(const Pos_<T>& p) const { return left_top <= p && p < right_bottom; }
 	bool contains_x(T x) const { return left_top.x <= x && x < right_bottom.x; }
 	bool contains_y(T y) const { return left_top.y <= y && y < right_bottom.y; }
