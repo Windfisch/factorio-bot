@@ -85,8 +85,8 @@ Building / Requirements
 -----------------------
 
 Most code is written in C++, using the C++14 standard. Dependencies are 
-[Boost](boost.org) and [FLTK](fltk.org) for the GUI. (On Ubuntu, run:
-`apt-get install libboost-dev libfltk1.3-dev` to get them)
+[Boost](http://boost.org) and [FLTK](http://fltk.org) for the GUI. (On Ubuntu,
+run: `apt-get install libboost-dev libfltk1.3-dev` to get them)
 
 The build system used is Make. So just type `make all` and you should™ be
 done.
@@ -99,7 +99,7 @@ This will create two executables: `rcon-client` with the obvious job, and
 Internals
 ---------
 
-Interacting with Factorio isn't too easy. Factorio is [moddable](lua-api.factorio.com)
+Interacting with Factorio isn't too easy. Factorio is [moddable](http://lua-api.factorio.com)
 with [Lua](https://www.lua.org) (good), but due to how it's working
 internally, a lot of I/O functions are disabled (bad).
 
