@@ -32,6 +32,9 @@ clients) and install the lua-part of the bot.
 `./launch.sh --start/--stop {server,Nayru,Farore}` will start/stop the
 corresponding instance.
 
+Note that you need to start/stop/start the server twice, if you just created the
+savegame. See Bugs below.
+
 `./launch.sh --bot` will start the bot.
 
 If you're not on Linux, or if stuff doesn't work, read the internals below.
@@ -65,14 +68,18 @@ Walking will appear really "jumpy" in the Factorio client which is being
 "remote-controlled". A second player, following the remote-controlled one,
 will not see anything jumpy.
 
-Path planning sometimes locks up in trees, or when water tiles meet
-diagonally.
-
 Path planning will hang for a long time if no path can be found.
 
 Once the character has reached the goal, it will continue walking to the
 last direction. Issuing any move command using W/A/S/D will stop it.
 
+When a new map has been created, starting the server and then the bot will crash
+the bot. As a workaround, start the server, stop the server, start the server
+again, and then you can start the bot. This is because on a new savegame chunks
+are generated and written out *before* the first `on_tick()` callback. This
+writes out objects with their prototype names like "tree-02" *before* the
+prototype table has been written out, causing the lookup to fail with an
+exception.
 
 Building / Requirements
 -----------------------
