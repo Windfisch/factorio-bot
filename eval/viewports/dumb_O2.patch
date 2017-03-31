@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index 6ff1b97..3a8a4b6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -13,7 +13,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
+ 
+ 
+ 
+-DEBUGFLAGS = -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
++DEBUGFLAGS = -g -O2 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+ FASTFLAGS = -O2
+ CXXFLAGS_BASE = -std=c++14
+ CFLAGS_BASE = -std=c99

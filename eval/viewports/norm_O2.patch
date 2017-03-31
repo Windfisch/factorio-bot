@@ -1,0 +1,26 @@
+diff --git a/Makefile b/Makefile
+index 6ff1b97..3a8a4b6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -13,7 +13,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
+ 
+ 
+ 
+-DEBUGFLAGS = -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
++DEBUGFLAGS = -g -O2 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+ FASTFLAGS = -O2
+ CXXFLAGS_BASE = -std=c++14
+ CFLAGS_BASE = -std=c99
+diff --git a/pathfinding.cpp b/pathfinding.cpp
+index a993100..355098a 100644
+--- a/pathfinding.cpp
++++ b/pathfinding.cpp
+@@ -22,7 +22,7 @@ static double heuristic(const Pos& p, const Pos& goal)
+ 
+ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+ {
+-	auto view = map.dumb_view(Pos(0,0));
++	auto view = map.view(Pos(-800,-500), Pos(500,500), Pos(0,0));
+ 
+ 	assert(size<=1.);
+ 	vector<Pos> result;

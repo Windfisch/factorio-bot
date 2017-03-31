@@ -1,0 +1,162 @@
+diff --git a/Makefile b/Makefile
+index 6ff1b97..3a8a4b6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -13,7 +13,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
+ 
+ 
+ 
+-DEBUGFLAGS = -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
++DEBUGFLAGS = -g -O2 -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+ FASTFLAGS = -O2
+ CXXFLAGS_BASE = -std=c++14
+ CFLAGS_BASE = -std=c99
+diff --git a/factorio_io.cpp b/factorio_io.cpp
+index ab13378..40c8840 100644
+--- a/factorio_io.cpp
++++ b/factorio_io.cpp
+@@ -447,7 +447,7 @@ struct ResourcePatch
+ 		}
+ };
+ 
+-void FactorioGame::floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
++void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
+ {
+ 	int id = next_free_resource_id++;
+ 	
+diff --git a/factorio_io.h b/factorio_io.h
+index cfe4e75..0780b6f 100644
+--- a/factorio_io.h
++++ b/factorio_io.h
+@@ -106,7 +106,7 @@ class FactorioGame
+ 		void parse_players(const std::string& data);
+ 		void parse_objects(const Area& area, const std::string& data);
+ 		
+-		void floodfill_resources(const WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
++		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
+ 		int next_free_resource_id = 1;
+ 	
+ 	public:
+diff --git a/pathfinding.cpp b/pathfinding.cpp
+index a993100..0d55e9d 100644
+--- a/pathfinding.cpp
++++ b/pathfinding.cpp
+@@ -22,7 +22,7 @@ static double heuristic(const Pos& p, const Pos& goal)
+ 
+ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+ {
+-	auto view = map.dumb_view(Pos(0,0));
++	auto view = map.view(Pos(-584,-274), Pos(306,302), Pos(0,0));
+ 
+ 	assert(size<=1.);
+ 	vector<Pos> result;
+diff --git a/pos.hpp b/pos.hpp
+index c240297..c28f0b9 100644
+--- a/pos.hpp
++++ b/pos.hpp
+@@ -46,6 +46,7 @@ struct Pos_
+ 
+ 	static Pos_<T> tile_to_chunk(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x), chunkidx(p.y)); }
+ 	static Pos_<T> tile_to_chunk_ceil(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x+31), chunkidx(p.y+31)); }
++	static Pos_<T> chunk_to_tile(const Pos_<T>& p) { return Pos_<T>(p.x*32, p.y*32); }
+ };
+ 
+ template <> inline Pos_<int> Pos_<int>::operator/(int f) const { return Pos_<int>(sane_div(x,f), sane_div(y,f)); }
+diff --git a/worldmap.hpp b/worldmap.hpp
+index 3145c32..5ed721f 100644
+--- a/worldmap.hpp
++++ b/worldmap.hpp
+@@ -85,6 +85,11 @@ class WorldMap
+ 					lefttop_chunk = Pos::tile_to_chunk(lefttop_tile);
+ 					Pos rightbot_chunk = Pos::tile_to_chunk_ceil(rightbot_tile);
+ 
++					// recalculate tile borders, because we can only deal with chunks. This means that
++					// the actually available area is larger than the requested area.
++					lefttop_tile = Pos::chunk_to_tile(lefttop_chunk);
++					rightbot_tile = Pos::chunk_to_tile(rightbot_chunk);
++
+ 					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
+ 					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
+ 
+@@ -96,6 +101,48 @@ class WorldMap
+ 						for (int y = 0; y < ylen_chunks; y++)
+ 							chunkcache[x+y*xlen_chunks] = parent->get_chunk(x+lefttop_chunk.x,y+lefttop_chunk.y);
+ 				}
++				
++				void extend_self(const Pos& new_lefttop_tile, const Pos& new_rightbot_tile)
++				{
++					Pos old_lefttop_chunk = lefttop_chunk;
++					int old_xlen_chunks = xlen_chunks;
++					int old_ylen_chunks = ylen_chunks;
++					std::vector<chunktype> old_chunkcache = std::move(chunkcache);
++
++
++
++					lefttop_tile = new_lefttop_tile;
++					rightbot_tile = new_rightbot_tile;
++
++					lefttop_chunk = Pos::tile_to_chunk(lefttop_tile);
++					Pos rightbot_chunk = Pos::tile_to_chunk_ceil(rightbot_tile);
++					
++					// recalculate tile borders, because we can only deal with chunks. This means that
++					// the actually available area is larger than the requested area.
++					lefttop_tile = Pos::chunk_to_tile(lefttop_chunk);
++					rightbot_tile = Pos::chunk_to_tile(rightbot_chunk);
++
++					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
++					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
++
++					if (xlen_chunks <= 0 or ylen_chunks <= 0)
++						throw std::invalid_argument("invalid Viewport range");
++
++					chunkcache.resize(xlen_chunks * ylen_chunks);
++					for (int x = 0; x < xlen_chunks; x++)
++						for (int y = 0; y < ylen_chunks; y++)
++						{
++							int oldx = x + lefttop_chunk.x - old_lefttop_chunk.x;
++							int oldy = y + lefttop_chunk.y - old_lefttop_chunk.y;
++
++							if (0 <= oldx && oldx < old_xlen_chunks && 
++							    0 <= oldy && oldy < old_ylen_chunks)
++								chunkcache[x+y*xlen_chunks] = old_chunkcache[oldx+oldy*old_xlen_chunks];
++							else
++								chunkcache[x+y*xlen_chunks] = parent->get_chunk(x+lefttop_chunk.x,y+lefttop_chunk.y);
++						}
++				}
++
+ 			public:
+ 				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
+ 
+@@ -104,12 +151,21 @@ class WorldMap
+ 					return Viewport_<is_const>(parent, lefttop_tile_, rightbot_tile_, origin);
+ 				}
+ 
+-				reftype at(int x, int y) const
++				reftype at(int x, int y)
+ 				{
+ 					int tilex = x+origin.x;
+ 					int tiley = y+origin.y;
+ 					if (!((tilex >= lefttop_tile.x) && (tiley >= lefttop_tile.y) && (tilex < rightbot_tile.x) && (tiley < rightbot_tile.y)))
+-						throw std::invalid_argument("invalid coordinate for Viewport");
++					{
++						Pos new_lefttop_tile(lefttop_tile);
++						Pos new_rightbot_tile(rightbot_tile);
++						if (tilex < lefttop_tile.x) new_lefttop_tile.x = tilex;
++						else if (tilex >= rightbot_tile.x) new_rightbot_tile.x = tilex+1;
++						if (tiley < lefttop_tile.y) new_lefttop_tile.y = tiley;
++						else if (tiley >= rightbot_tile.y) new_rightbot_tile.y = tiley+1;
++
++						extend_self(new_lefttop_tile, new_rightbot_tile);
++					}
+ 					int chunkx = chunkidx(tilex) - lefttop_chunk.x;
+ 					int chunky = chunkidx(tiley) - lefttop_chunk.y;
+ 					assert(chunkx >= 0);
+@@ -122,7 +178,7 @@ class WorldMap
+ 
+ 					return (*chunkcache[chunkx+chunky*xlen_chunks])[relx][rely];
+ 				}
+-				reftype at(const Pos& pos) const { return at(pos.x, pos.y); }
++				reftype at(const Pos& pos) { return at(pos.x, pos.y); }
+ 		};
+ 
+ 

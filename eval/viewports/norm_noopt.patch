@@ -1,0 +1,13 @@
+diff --git a/pathfinding.cpp b/pathfinding.cpp
+index a993100..355098a 100644
+--- a/pathfinding.cpp
++++ b/pathfinding.cpp
+@@ -22,7 +22,7 @@ static double heuristic(const Pos& p, const Pos& goal)
+ 
+ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+ {
+-	auto view = map.dumb_view(Pos(0,0));
++	auto view = map.view(Pos(-800,-500), Pos(500,500), Pos(0,0));
+ 
+ 	assert(size<=1.);
+ 	vector<Pos> result;
