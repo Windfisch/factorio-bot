@@ -91,9 +91,6 @@ class FactorioGame
 		std::ifstream factorio_file;
 		int factorio_file_id = 1;
 
-		std::string rcon_host;
-		int rcon_port;
-
 		void change_file_id(int new_id);
 		std::string factorio_file_name();
 		std::string remove_line_from_buffer();

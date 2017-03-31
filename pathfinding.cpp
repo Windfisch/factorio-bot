@@ -67,7 +67,7 @@ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, doub
 
 			reverse(result.begin(), result.end());
 
-			for (auto p : result) cout << p.str() << " - ";
+			for (auto pos : result) cout << pos.str() << " - ";
 			cout<<endl;
 
 			goto a_star_cleanup;

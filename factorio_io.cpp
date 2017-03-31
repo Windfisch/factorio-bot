@@ -180,7 +180,10 @@ void FactorioGame::parse_players(const string& data)
 		if (fields.size() != 3)
 			throw runtime_error("malformed players packet");
 
-		int id = stoi(fields[0]);
+		int id_ = stoi(fields[0]);
+		if (id_ < 0)
+			throw runtime_error("invalid player id in parse_players()");
+		unsigned id = unsigned(id_);
 		Pos_f pos = Pos_f(stod(fields[1]), stod(fields[2]));
 
 		if (id >= players.size())
@@ -571,7 +574,7 @@ int main(int argc, const char** argv)
 		factorio.rcon_connect(host, port, pass);
 	}
 
-	int i=0;
+	int frame=0;
 
 	GUI::MapGui gui(&factorio);
 
@@ -582,8 +585,8 @@ int main(int argc, const char** argv)
 	while (true)
 	{
 		factorio.parse_packet( factorio.read_packet() );
-		i++;
-		//if (i>6000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
+		frame++;
+		//if (frame>6000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
 		
 		GUI::wait(0.001);
 	}

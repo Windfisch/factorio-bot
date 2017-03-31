@@ -15,7 +15,10 @@
 
 static int connect_socket(const char* address, int port)
 {
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 	struct addrinfo hints = { 0 };
+	#pragma GCC diagnostic pop
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 

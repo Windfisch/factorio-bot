@@ -1,4 +1,3 @@
-# possible values: GCC, clang
 include config.mk
 
 EXE=test
@@ -24,11 +23,11 @@ COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
 	CC=gcc
 	CXX=g++
-	WARNFLAGS=-Wall -Wextra -Wno-missing-field-initializers
+	WARNFLAGS=-Wall -Wextra -pedantic
 else
 	CC=clang
 	CXX=clang++
-	WARNFLAGS=-Weverything -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
+	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
 endif
 
 
