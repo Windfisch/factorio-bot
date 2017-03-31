@@ -89,20 +89,20 @@ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, doub
 			{
 				auto x = current.pos.x;
 				auto y = min(current.pos.y, successor.y);
-				can_walk = (view.at(x-1, y).margins[EAST] + view.at(x, y).margins[WEST]) >= size && view.at(x-1,y).can_walk && view.at(x,y).can_walk;
+				can_walk = view.at(x-1, y).margins[EAST] >= size/2 && view.at(x, y).margins[WEST] >= size/2 && view.at(x-1,y).can_walk && view.at(x,y).can_walk;
 			}
 			else if (step.y == 0) // walking in horizontal direction
 			{
 				auto x = min(current.pos.x, successor.x);
 				auto y = current.pos.y;
-				can_walk = (view.at(x, y-1).margins[SOUTH] + view.at(x, y).margins[NORTH]) >= size && view.at(x,y-1).can_walk && view.at(x,y).can_walk;
+				can_walk = view.at(x, y-1).margins[SOUTH] >= size/2 && view.at(x, y).margins[NORTH] >= size/2 && view.at(x,y-1).can_walk && view.at(x,y).can_walk;
 			}
 			else // walking diagonally
 			{
 				auto x = min(current.pos.x, successor.x);
 				auto y = min(current.pos.y, successor.y);
 				const auto& v = view.at(x,y);
-				can_walk = (v.margins[0]>=0.5 && v.margins[1]>=0.5 && v.margins[2]>=0.5 && v.margins[3]>=0.5) && v.can_walk;
+				can_walk = (v.margins[0]>=0.5 && v.margins[1]>=0.5 && v.margins[2]>=0.5 && v.margins[3]>=0.5) && v.can_walk && (view.at(x+step.x, y).can_walk || view.at(x, y+step.y).can_walk);
 			}
 
 			if (can_walk)
