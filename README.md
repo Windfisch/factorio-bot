@@ -46,16 +46,16 @@ Usage
 Once the bot is running, you will see a map. Scroll with drag-and-drop, zoom
 with mousewheel.
 
-You can plan paths by **first** left-clicking the **destination**, then
-right-clicking the starting point. You have to figure out where the starting
-point is by visually comparing the Factorio minimap and the bot's map for now.
+You can plan paths by first left-clicking the starting point, then
+right-clicking the destination. Your character's location (which should
+be the starting point) is denoted as a red dot on the map.
 
 The path will show up in the map, and your Factorio player will start moving.
 
 Note that only `game.players[1]` will move, i.e. the **first** player that has
 ever joined the map since creation.
 
-Note that drag-and-dropping the map will count as a destination-selecting left
+Note that drag-and-dropping the map will count as a start-selecting left
 click. Also note that, when clicking a tile, you actually select its **top
 left corner** as a destination/starting point.
 
@@ -101,7 +101,7 @@ Internals
 
 Interacting with Factorio isn't too easy. Factorio is [moddable](lua-api.factorio.com)
 with [Lua](https://www.lua.org) (good), but due to how it's working
-internally, a lot of I/O functions are disabled.
+internally, a lot of I/O functions are disabled (bad).
 
 We're basically forced to do the following:
 
