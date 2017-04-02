@@ -1,3 +1,6 @@
+#pragma GCC optimize "-O2"
+
+
 #include <vector>
 #include <cmath>
 #include <algorithm>
