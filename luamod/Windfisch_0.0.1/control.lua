@@ -34,6 +34,20 @@ function aabb_str(aabb)
 	return pos_str(aabb.left_top) .. ";" .. pos_str(aabb.right_bottom)
 end
 
+function distance(a,b)
+	local x1
+	local y1
+	local x2
+	local y2
+
+	if a.x ~= nil then x1 = a.x else x1=a[0] end
+	if a.y ~= nil then y1 = a.y else y1=a[1] end
+	if b.x ~= nil then x2 = b.x else x2=b[0] end
+	if b.y ~= nil then y2 = b.y else y2=b[1] end
+
+	return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
+end
+
 function writeout_prototypes()
 	header = "entity_prototypes: "
 	lines = {}
@@ -88,60 +102,82 @@ function on_tick(event)
 		
 	for idx, player in pairs(game.players) do
 		-- if global.p[idx].walking and player.connected then
-		if global.p[idx] and global.p[idx].walking and player.connected then -- TODO FIXME
-			local w = global.p[idx].walking
-			local pos = player.character.position
-			local dest = w.waypoints[w.idx]
+		if global.p[idx] and player.connected and player.character then -- TODO FIXME
+			if global.p[idx].walking then
+				local w = global.p[idx].walking
+				local pos = player.character.position
+				local dest = w.waypoints[w.idx]
 
-			local dx = dest.x - pos.x
-			local dy = dest.y - pos.y
+				local dx = dest.x - pos.x
+				local dy = dest.y - pos.y
 
-			if (math.abs(dx) < 0.3 and math.abs(dy) < 0.3) then
-				w.idx = w.idx + 1
-				if w.idx > #w.waypoints then
-					global.p[idx].walking = nil
-					dx = 0
-					dy = 0
+				if (math.abs(dx) < 0.3 and math.abs(dy) < 0.3) then
+					w.idx = w.idx + 1
+					if w.idx > #w.waypoints then
+						global.p[idx].walking = nil
+						dx = 0
+						dy = 0
+					else
+						dest = w.waypoints[w.idx]
+						dx = dest.x - pos.x
+						dy = dest.y - pos.y
+					end
+				end
+
+				if math.abs(dx) > 0.3 then
+					if dx < 0 then dx = -1 else dx = 1 end
 				else
-					dest = w.waypoints[w.idx]
-					dx = dest.x - pos.x
-					dy = dest.y - pos.y
+					dx = 0
+				end
+
+				if math.abs(dy) > 0.3 then
+					if dy < 0 then dy = -1 else dy = 1 end
+				else
+					dy = 0
+				end
+
+				local direction
+				if dx < 0 then
+					direction = "west"
+				elseif dx == 0 then
+					direction = ""
+				elseif dx > 0 then
+					direction = "east"
+				end
+
+				if dy < 0 then
+					direction = "north"..direction
+				elseif dy == 0 then
+					direction = ""..direction
+				elseif dy > 0 then
+					direction = "south"..direction
+				end
+
+				print("waypoint "..w.idx.." of "..#w.waypoints..", pos = "..coord(pos)..", dest = "..coord(dest).. ", dx/dy="..dx.."/"..dy..", dir="..direction)
+
+				if direction ~= "" then
+					player.walking_state = {walking=true, direction=defines.direction[direction]}
 				end
 			end
 
-			if math.abs(dx) > 0.3 then
-				if dx < 0 then dx = -1 else dx = 1 end
-			else
-				dx = 0
-			end
+			if global.p[idx].mining then
+				local ent = global.p[idx].mining.entity
 
-			if math.abs(dy) > 0.3 then
-				if dy < 0 then dy = -1 else dy = 1 end
-			else
-				dy = 0
-			end
+				if ent and ent.valid then -- mining complete
+					if distance(player.position, ent.position) > 6 then
+						player.print("warning: too far too mine oO?")
+					end
+					player.update_selected_entity(ent.position)
+					local ent2 = player.selected
 
-			local direction
-			if dx < 0 then
-				direction = "west"
-			elseif dx == 0 then
-				direction = ""
-			elseif dx > 0 then
-				direction = "east"
-			end
-
-			if dy < 0 then
-				direction = "north"..direction
-			elseif dy == 0 then
-				direction = ""..direction
-			elseif dy > 0 then
-				direction = "south"..direction
-			end
-
-			print("waypoint "..w.idx.." of "..#w.waypoints..", pos = "..coord(pos)..", dest = "..coord(dest).. ", dx/dy="..dx.."/"..dy..", dir="..direction)
-
-			if direction ~= "" then
-				player.walking_state = {walking=true, direction=defines.direction[direction]}
+					if (ent.name ~= ent2.name or ent.position.x ~= ent2.position.x or ent.position.y ~= ent2.position.y) then
+						print("wtf, not mining the expected target")
+					end
+					player.mining_state = { mining=true, position=ent.position }
+				else
+					game.write_file(outfile, "complete: mining "..idx.."\n", true)
+					global.p[idx].mining = nil
+				end
 			end
 		end
 	end
@@ -702,6 +738,23 @@ function rcon_set_waypoints(waypoints) -- e.g. waypoints= { {0,0}, {3,3}, {42,13
 	global.p[1].walking = {idx=1, waypoints=tmp}
 end
 
+function rcon_set_mining_target(player_id, name, position)
+	local player = game.players[player_id]
+	local ent = nil
+
+	if name ~= nil and position ~= nil then
+		ent = player.surface.find_entity(name, position)
+	end
+
+	if ent and ent.minable then
+		global.p[player_id].mining = { entity = ent }
+	else
+		print("no entity to mine")
+		global.p[player_id].mining = nil
+	end
+end
+
+
 function rcon_whoami(who)
 	if client_local_data.whoami == nil then
 		client_local_data.whoami = who
@@ -712,5 +765,6 @@ end
 remote.add_interface("windfisch", {
 	test=rcon_test,
 	set_waypoints=rcon_set_waypoints,
+	set_mining_target=rcon_set_mining_target,
 	whoami=rcon_whoami
 })
