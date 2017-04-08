@@ -95,8 +95,11 @@ class FactorioGame
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 
+		// never use these functions directly, use player goals instead
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);
 		void set_mining_target(int action_id, int player_id, Entity target);
+		
+		[[deprecated("set player goals instead")]]
 		void walk_to(int id, const Pos& dest);
 
 		WorldMap<pathfinding::walk_t> walk_map;
@@ -107,7 +110,7 @@ class FactorioGame
 		{
 			Pos_f position;
 			bool connected;
-			std::vector< std::unique_ptr< action::PlayerGoal > > goals;
+			std::unique_ptr<action::CompoundGoal> goals;
 		};
 		std::vector<Player> players;
 };

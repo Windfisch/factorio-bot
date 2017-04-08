@@ -69,7 +69,11 @@ void FactorioGame::set_mining_target(int action_id, int player_id, Entity target
 
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
-	set_waypoints(0, player_id, a_star(players[player_id].position.to_int(), dest, walk_map, 0.4+0.1));
+	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
+	new_goals->subgoals.emplace_back(new action::WalkTo(this, player_id, dest));
+
+	players[player_id].goals = move(new_goals);
+	players[player_id].goals->start();
 }
 
 string FactorioGame::factorio_file_name()
@@ -608,6 +612,17 @@ int main(int argc, const char** argv)
 		factorio.parse_packet( factorio.read_packet() );
 		frame++;
 		//if (frame>6000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
+		
+		for (auto& player : factorio.players)
+		{
+			if (player.goals)
+			{
+				if (player.goals->is_finished())
+					player.goals = nullptr;
+				else
+					player.goals->tick();
+			}
+		}
 		
 		GUI::wait(0.001);
 	}

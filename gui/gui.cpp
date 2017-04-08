@@ -154,7 +154,8 @@ int MapBox::handle(int event)
 					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
 					last_path = a_star( last_click[0], last_click[2], game->walk_map, 0.4);
 					// FIXME hardcoded action id
-					game->set_waypoints(0, 1, last_path);
+					//game->set_waypoints(0, 1, last_path);
+					game->walk_to(1,last_click[2]);
 					cout << last_path.size() << endl;
 				}
 			}
