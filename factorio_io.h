@@ -12,6 +12,8 @@
 #include "pos.hpp"
 #include "area.hpp"
 #include "rcon.h"
+#include "entity.h"
+#include "action.hpp"
 
 enum dir4_t
 {
@@ -60,26 +62,6 @@ struct Resource
 
 };
 
-struct EntityPrototype
-{
-	bool collides_player;
-	Area_f collision_box;
-
-	EntityPrototype(bool collides_player_, const Area_f& collision_box_) : collides_player(collides_player_), collision_box(collision_box_) {}
-	EntityPrototype(const std::string& collision_str, const Area_f& collision_box_) :
-		collides_player(collision_str.find('P') != std::string::npos), collision_box(collision_box_) {}
-};
-
-struct Entity
-{
-	Pos_f pos;
-	const EntityPrototype* proto;
-
-	Area_f collision_box() const { return proto->collision_box.shift(pos); }
-
-	Entity(const Pos_f& pos_, const EntityPrototype* proto_) : pos(pos_), proto(proto_) {}
-};
-
 class FactorioGame
 {
 	private:
@@ -100,6 +82,7 @@ class FactorioGame
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 		void parse_entity_prototypes(const std::string& data);
+		void parse_action_completed(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
 		
@@ -112,7 +95,8 @@ class FactorioGame
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 
-		void set_waypoints(int id, const std::vector<Pos>& waypoints);
+		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);
+		void set_mining_target(int action_id, int player_id, Entity target);
 		void walk_to(int id, const Pos& dest);
 
 		WorldMap<pathfinding::walk_t> walk_map;
@@ -123,6 +107,7 @@ class FactorioGame
 		{
 			Pos_f position;
 			bool connected;
+			std::vector< std::unique_ptr< action::PlayerGoal > > goals;
 		};
 		std::vector<Player> players;
 };

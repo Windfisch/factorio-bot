@@ -13,6 +13,7 @@
 #include "factorio_io.h"
 #include "pathfinding.hpp"
 #include "gui/gui.h"
+#include "action.hpp"
 
 #define READ_BUFSIZE 1024
 
@@ -38,7 +39,7 @@ void FactorioGame::rcon_connect(string host, int port, string password)
 	rcon.connect(host, port, password);
 }
 
-void FactorioGame::set_waypoints(int player_id, const std::vector<Pos>& waypoints)
+void FactorioGame::set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints)
 {
 	if (!rcon.connected())
 	{
@@ -58,12 +59,17 @@ void FactorioGame::set_waypoints(int player_id, const std::vector<Pos>& waypoint
 
 	foo = foo.substr(1);
 
-	rcon.sendrecv("/c remote.call('windfisch', 'set_waypoints', {"+foo+"})");
+	rcon.sendrecv("/c remote.call('windfisch', 'set_waypoints', "+to_string(action_id)+","+to_string(player_id)+",{"+foo+"})");
 }
 
-void FactorioGame::walk_to(int player_id, const Pos& dest)
+void FactorioGame::set_mining_target(int action_id, int player_id, Entity target)
 {
-	set_waypoints(player_id, a_star(players[player_id].position.to_int(), dest, walk_map, 0.4+0.1));
+	// TODO FIXME
+}
+
+[[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
+{
+	set_waypoints(0, player_id, a_star(players[player_id].position.to_int(), dest, walk_map, 0.4+0.1));
 }
 
 string FactorioGame::factorio_file_name()
@@ -152,6 +158,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_objects(area,data);
 	else if (type=="players")
 		parse_players(data);
+	else if (type=="action_completed")
+		parse_action_completed(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
@@ -194,9 +202,21 @@ void FactorioGame::parse_players(const string& data)
 	}
 }
 
+void FactorioGame::parse_action_completed(const string& data)
+{
+	vector<string> fields = split(data,' ');
+	if (fields.size() != 2)
+		throw runtime_error("malformed action_completed packet");
+	
+	if (fields[0] != "ok" && fields[0] != "fail")
+		throw runtime_error("malformed action_completed packet, expected 'ok' or 'fail'");
+	
+	int action_id = stoi(fields[1]);
+	action::PrimitiveAction::mark_finished(action_id);
+}
+
 void FactorioGame::parse_entity_prototypes(const string& data)
 {
-	cout << data << endl;
 	istringstream str(data);
 	string entry;
 
@@ -204,14 +224,15 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 	{
 		vector<string> fields = split(entry);
 
-		if (fields.size() != 3)
+		if (fields.size() != 4)
 			throw runtime_error("malformed parse_entity_prototypes packet");
 
 		const string& name = fields[0];
 		const string& collision = fields[1];
 		Area_f collision_box = Area_f(fields[2]);
+		bool mineable = stoi(fields[3]);
 
-		entity_prototypes[name] = new EntityPrototype(collision, collision_box); // no automatic memory management, because prototypes never change.
+		entity_prototypes[name] = new EntityPrototype(collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
 	}
 }
 

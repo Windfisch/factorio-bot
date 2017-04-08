@@ -1,7 +1,7 @@
 include config.mk
 
 EXE=test
-OBJECTS=factorio_io.o rcon.o area.o pathfinding.o gui/gui.o # objects used for $(EXE)
+OBJECTS=factorio_io.o rcon.o area.o pathfinding.o action.o gui/gui.o # objects used for $(EXE)
 
 ALLOBJECTS=$(OBJECTS) rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
 DEBUG=1

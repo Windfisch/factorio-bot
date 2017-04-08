@@ -16,7 +16,6 @@ function on_init()
 	global.map_area = {x1=0, y1=0, x2=0, y2=0} -- a bounding box of all charted map chunks
 
 	global.p = {[1]={}} -- player-private data
-	global.p[1].walking = {idx=1, waypoints={[1]={x=4,y=3},[2]={x=-3, y=2}, [3]={x=0, y=-4}, [4]={x=2,y=-2}}}
 
 	global.pathfinding = {}
 	global.pathfinding.map = {}
@@ -52,13 +51,12 @@ function writeout_prototypes()
 	header = "entity_prototypes: "
 	lines = {}
 	for name, prot in pairs(game.entity_prototypes) do
-		coll = ""
-		if prot.collision_mask['player-layer'] then
-			coll=coll.."P"
-		else
-			coll=coll.."p"
-		end
-		table.insert(lines, prot.name.." "..coll.." "..aabb_str(prot.collision_box))
+		local coll = ""
+		local mineable = ""
+		if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
+		if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
+		if prot.mineable_properties.mineable then mineable = "1" else mineable = "0" end
+		table.insert(lines, prot.name.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
 	end
 	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
 end
@@ -114,6 +112,8 @@ function on_tick(event)
 				if (math.abs(dx) < 0.3 and math.abs(dy) < 0.3) then
 					w.idx = w.idx + 1
 					if w.idx > #w.waypoints then
+						player.walking_state = {walking=false}
+						action_completed(w.action_id)
 						global.p[idx].walking = nil
 						dx = 0
 						dy = 0
@@ -176,6 +176,7 @@ function on_tick(event)
 					player.mining_state = { mining=true, position=ent.position }
 				else
 					game.write_file(outfile, "complete: mining "..idx.."\n", true)
+					action_completed(global.p[idx].mining.action_id)
 					global.p[idx].mining = nil
 				end
 			end
@@ -719,6 +720,14 @@ function on_player_joined_game(event)
 	global.n_clients = global.n_clients + 1
 end
 
+function action_completed(action_id)
+	game.write_file(outfile, "action_completed: ok "..action_id.."\n", true)
+end
+
+function action_completed(action_id)
+	game.write_file(outfile, "action_completed: fail "..action_id.."\n", true)
+end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_event(defines.events.on_tick, on_tick)
@@ -730,15 +739,15 @@ function rcon_test(foo)
 	print("rcon_test("..foo..")")
 end
 
-function rcon_set_waypoints(waypoints) -- e.g. waypoints= { {0,0}, {3,3}, {42,1337} }
+function rcon_set_waypoints(action_id, player_id, waypoints) -- e.g. waypoints= { {0,0}, {3,3}, {42,1337} }
 	tmp = {}
 	for i = 1, #waypoints do
 		tmp[i] = {x=waypoints[i][1], y=waypoints[i][2]}
 	end
-	global.p[1].walking = {idx=1, waypoints=tmp}
+	global.p[player_id].walking = {idx=1, waypoints=tmp, action_id=action_id}
 end
 
-function rcon_set_mining_target(player_id, name, position)
+function rcon_set_mining_target(action_id, player_id, name, position)
 	local player = game.players[player_id]
 	local ent = nil
 
@@ -747,10 +756,11 @@ function rcon_set_mining_target(player_id, name, position)
 	end
 
 	if ent and ent.minable then
-		global.p[player_id].mining = { entity = ent }
+		global.p[player_id].mining = { entity = ent, action_id = action_id}
 	else
 		print("no entity to mine")
 		global.p[player_id].mining = nil
+		action_failed(action_id)
 	end
 end
 
