@@ -40,10 +40,12 @@ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, doub
 	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
 	needs_cleanup.push_back(&view.at(start));
 
+	int n_iterations = 0;
 	while(!openlist.empty())
 	{
 		auto current = openlist.top();
 		openlist.pop();
+		n_iterations++;
 
 		if (current.pos == end)
 		{
@@ -144,6 +146,8 @@ a_star_cleanup:
 		w->openlist_handle = pathfinding::openlist_handle_t();
 		w->in_closedlist = false;
 	}
+
+	cout << "took " << n_iterations << " iterations or " << (n_iterations / (start-end).len()) << " it/dist" << endl;
 
 	return result;
 }

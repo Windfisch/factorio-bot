@@ -40,6 +40,8 @@ struct Pos_
 	bool operator> (const Pos_<T>& that) const { return this->x >  that.x && this->y >  that.y; }
 	bool operator>=(const Pos_<T>& that) const { return this->x >= that.x && this->y >= that.y; }
 
+	double len() const { return std::sqrt(x*x+y*y); }
+
 	std::string str() const { return std::to_string(x) + "," + std::to_string(y); }
 
 	Pos_<int> to_int() const { return Pos_<int>(int(std::round(x)), int(std::round(y))); }
