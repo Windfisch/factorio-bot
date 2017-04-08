@@ -17,17 +17,19 @@ FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++14
 CFLAGS_BASE = -std=c99
 
-GUIFLAGS = -w -O2 # disable all warnings
+GUIFLAGS = -O2 # disable all warnings
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
 	CC=gcc
 	CXX=g++
 	WARNFLAGS=-Wall -Wextra -pedantic
+	GUIFLAGS += 
 else
 	CC=clang
 	CXX=clang++
 	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
+	GUIFLAGS += 
 endif
 
 
