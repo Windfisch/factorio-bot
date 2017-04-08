@@ -50,14 +50,21 @@ You can plan paths by first left-clicking the starting point, then
 right-clicking the destination. Your character's location (which should
 be the starting point) is denoted as a red dot on the map.
 
-The path will show up in the map, and your Factorio player will start moving.
+A path will show up in the map, and your Factorio player will start moving.
 
+<details>
+<summary>Some caveats</summary>
 Note that only `game.players[1]` will move, i.e. the **first** player that has
 ever joined the map since creation.
 
 Note that drag-and-dropping the map will count as a start-selecting left
 click. Also note that, when clicking a tile, you actually select its **top
 left corner** as a destination/starting point.
+
+Also note that the path shown is no longer the path the player actually walks.
+This is because walking now creates a `WalkTo` goal, which internally plans
+its own path, starting from the player's current position.
+</details>
 
 
 
