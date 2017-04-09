@@ -77,9 +77,6 @@ will not see anything jumpy.
 
 Path planning will hang for a long time if no path can be found.
 
-Once the character has reached the goal, it will continue walking to the
-last direction. Issuing any move command using W/A/S/D will stop it.
-
 When a new map has been created, starting the server and then the bot will crash
 the bot. As a workaround, start the server, stop the server, start the server
 again, and then you can start the bot. This is because on a new savegame chunks
