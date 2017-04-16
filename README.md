@@ -144,3 +144,9 @@ The start up procedure is as follows:
 Note that the bot actually accepts the file **prefix**, i.e.
 `script-output/output`. (This is because, in a later version, we will rotate
 through multiple output files, in order to limit file size.)
+
+
+See also
+========
+
+Related to this is my [production flow optimizer project](https://github.com/Windfisch/production-flow).
