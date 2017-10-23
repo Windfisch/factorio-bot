@@ -47,7 +47,7 @@ case "$ACTION" in
 esac
 
 
-if [ ! -d "$INSTALLPATH/$TARGET" ]; then
+if ( [ $ACTION == --start ] || [ $ACTION == --stop ] ) && [ ! -d "$INSTALLPATH/$TARGET" ]; then
 	echo "ERROR: target '$TARGET' does not exist."
 	echo -n '      available targets are '; ( cd "$INSTALLPATH" && echo */ | sed 's./..g'; )
 	exit 1
@@ -55,12 +55,14 @@ fi
 
 
 if [ $ACTION == --bot ]; then
-	./test "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
+	DEBUGPREFIX="$2"
+	$DEBUGPREFIX ./test "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
 	exit 0
 fi
 
 if [ $ACTION == --bot-offline ]; then
-	./test "$INSTALLPATH/server/script-output/output"
+	DEBUGPREFIX="$2"
+	$DEBUGPREFIX ./test "$INSTALLPATH/server/script-output/output"
 	exit 0
 fi
 
@@ -88,7 +90,7 @@ if [ $ACTION == --start ]; then
 		"$INSTALLPATH/$TARGET"/bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "$INSTALLPATH/server-settings.json" &
 		PID=$!
 	else
-		"$INSTALLPATH/$TARGET"/bin/x64/factorio --mp-connect localhost &
+		"$INSTALLPATH/$TARGET"/bin/x64/factorio --mp-connect localhost --disable-audio &
 		PID=$!
 	fi
 	
