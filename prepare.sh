@@ -19,10 +19,9 @@ if [ -e $CONF ]; then
 fi
 
 FACTORIO_TGZ="$1"
-INSTALLPATH="$2"
+INSTALLPATH="`realpath "$2"`"
 
 mkdir -p "$INSTALLPATH"
-
 
 # unpack factorio
 mkdir -p "$INSTALLPATH"
@@ -116,7 +115,7 @@ EOF
 # the client directories are just hardlinked copies to save disk space
 # create a config for them with a different name
 for client in Nayru Farore; do
-	cp -rl --preserve=links "$INSTALLPATH/server" "$INSTALLPATH/$client"
+	cp -rlP --preserve=links "$INSTALLPATH/server" "$INSTALLPATH/$client"
 	cat > "$INSTALLPATH/$client/player-data.json" << EOF
 {
     "latest-multiplayer-connections": [

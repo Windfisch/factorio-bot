@@ -53,8 +53,10 @@ function writeout_prototypes()
 	for name, prot in pairs(game.entity_prototypes) do
 		local coll = ""
 		local mineable = ""
-		if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
-		if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
+		if prot.collision_mask ~= nil then
+			if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
+			if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
+		end
 		if prot.mineable_properties.mineable then mineable = "1" else mineable = "0" end
 		table.insert(lines, prot.name.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
 	end
@@ -186,7 +188,7 @@ function on_tick(event)
 	if event.tick % 120 == 0 then
 		local who = "?"
 		if client_local_data.whoami then who = client_local_data.whoami end
-		print(my_client_id.."."..who)
+		if my_client_id ~= nil then print(my_client_id.."."..who) end
 	end
 
 	if event.tick % 10 == 0 then
