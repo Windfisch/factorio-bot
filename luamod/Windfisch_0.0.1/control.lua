@@ -302,7 +302,7 @@ function writeout_objects(surface, area)
 	line = ''
 	lines={}
 	for idx, ent in pairs(surface.find_entities(area)) do
-		if ent.prototype.collision_mask['player-layer'] then
+		if ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
 			line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y
 			if idx % 100 == 0 then
 				table.insert(lines,line)
@@ -360,7 +360,7 @@ function chart_chunk_for_pathfinding(surface, area)
 
 	local other = surface.find_entities_filtered{area=area}
 	for _, ent in pairs(other) do
-		if ent.type ~= "tree" and ent.prototype.collision_mask['player-layer'] then
+		if ent.type ~= "tree" and ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
 			local x1,x2,y1,y2,x1f,x2c,y1f,y2c
 			local pos = ent.position
 			local bb = ent.prototype.collision_box
