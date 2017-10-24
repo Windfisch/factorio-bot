@@ -11,10 +11,12 @@ fi
 
 if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] && [ ! x$1 == x--bot-offline ]; then
 	echo "Usage:"
-	echo "    $0 --start|--stop server|clientname"
+	echo "    $0 --start|--stop|--run server|clientname"
 	echo "    $0 --bot|--bot-offline"
 	echo ""
 	echo "The first form will start or stop a Factorio server/client."
+	echo "--start will not block and you must --stop manually."
+	echo "--run will block, and upon pressing ^C it will automatically stop."
 	echo "The second form will launch the bot."
 	echo "Usually, you want to do:"
 	echo "  - $0 --start server"
@@ -38,6 +40,7 @@ echo "MAP='$MAP'"
 case "$ACTION" in
 	--start) ;;
 	--stop) ;;
+	--run) ;;
 	--bot) ;;
 	--bot-offline) ;;
 	*)
@@ -47,7 +50,7 @@ case "$ACTION" in
 esac
 
 
-if ( [ $ACTION == --start ] || [ $ACTION == --stop ] ) && [ ! -d "$INSTALLPATH/$TARGET" ]; then
+if ( [ $ACTION == --start ] || [ $ACTION == --stop ] || [ $ACTION == --run ] ) && [ ! -d "$INSTALLPATH/$TARGET" ]; then
 	echo "ERROR: target '$TARGET' does not exist."
 	echo -n '      available targets are '; ( cd "$INSTALLPATH" && echo */ | sed 's./..g'; )
 	exit 1
@@ -70,7 +73,7 @@ fi
 PIDFILE="$INSTALLPATH/$TARGET.pid"
 JOINFILE="$INSTALLPATH/server/script-output/players_connected.txt"
 
-if [ $ACTION == --start ]; then
+if [ $ACTION == --start ] || [ $ACTION == --run ]; then
 	if [ -e "$PIDFILE" ]; then
 		if kill -0 `cat "$PIDFILE"` 2>/dev/null; then
 			echo "ERROR: pidfile '$PIDFILE' already exists. refusing to start."
@@ -127,6 +130,22 @@ if [ $ACTION == --start ]; then
 	if [ $i == $TIMEOUT ]; then
 		echo "ERROR: timeouted"
 		exit 1
+	fi
+
+	if [ $ACTION == --run ]; then
+		trap '' SIGINT # don't let CTRL+C kill this script, but let it kill the wait
+		wait $PID
+		if kill -s SIGINT $PID &>/dev/null; then
+			echo
+			echo '******** SIGINT ********'
+			echo
+			wait $PID
+			echo
+			echo 'Factorio has been stopped'
+		else
+			echo
+			echo 'Factorio exited'
+		fi
 	fi
 elif [ $ACTION == --stop ]; then
 	if [ ! -e "$PIDFILE" ]; then
