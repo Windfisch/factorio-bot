@@ -22,4 +22,9 @@ namespace action {
 	{
 		game->set_waypoints(id, player, waypoints);
 	}
+
+	void MineObject::execute_impl()
+	{
+		game->set_mining_target(id, player, obj);
+	}
 }

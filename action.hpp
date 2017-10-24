@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include "pos.hpp"
+#include "entity.h"
 
 class FactorioGame;
 
@@ -105,11 +106,11 @@ namespace action
 		private: void execute_impl();
 	};
 	
-	/*struct MineObject : public PrimitiveAction
+	struct MineObject : public PrimitiveAction
 	{
-		MineObject(FactorioGame* game, int player, Entity obj_) : PrimitiveAction(game,player), obj(obj_);
+		MineObject(FactorioGame* game, int player, Entity obj_) : PrimitiveAction(game,player), obj(obj_) {}
 		Entity obj;
 
-		//private: void execute_impl()
-	};*/
+		private: void execute_impl();
+	};
 } // namespace action
