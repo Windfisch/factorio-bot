@@ -419,17 +419,21 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			throw runtime_error("malformed resource entry");
 		assert(p1!=p2);
 		
+		string type_str;
 		Resource::type_t type;
 		try
 		{
-			type = Resource::types.at( entry.substr(0,p1) );
+			type_str = entry.substr(0,p1);
+			type = Resource::types.at(type_str);
 		}
 		catch (const out_of_range& unused)
 		{
 			throw std::runtime_error("resource type '"+entry.substr(0,p1)+"' is not known in Resource::types[] (definition at the top of factorio_io.cpp");
 		}
-		int x = int(floor(stod( entry.substr(p1+1, p2-(p1+1)) )));
-		int y = int(floor(stod( entry.substr(p2+1) )));
+		double xx = stod( entry.substr(p1+1, p2-(p1+1)) );
+		double yy = stod( entry.substr(p2+1) );
+		int x = int(floor(xx));
+		int y = int(floor(yy));
 
 		if (!area.contains(Pos(x,y)))
 		{
@@ -438,7 +442,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			break;
 		}
 
-		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED);
+		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str)));
 	}
 
 	// group them together

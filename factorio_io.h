@@ -57,9 +57,10 @@ struct Resource
 	type_t type;
 	int patch_id;
 	std::weak_ptr<ResourcePatch> resource_patch;
+	Entity entity;
 
-	Resource(type_t t, int parent) : type(t), patch_id(parent) {}
-	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED) {}
+	Resource(type_t t, int parent, Entity e) : type(t), patch_id(parent), entity(e) {}
+	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED), entity(Pos_f(0,0), nullptr) {}
 
 };
 
@@ -117,4 +118,6 @@ class FactorioGame
 			std::unique_ptr<action::CompoundGoal> goals;
 		};
 		std::vector<Player> players;
+
+		const EntityPrototype& get_entity_prototype(std::string name) const { return *entity_prototypes.at(name); }
 };
