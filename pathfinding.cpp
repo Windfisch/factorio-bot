@@ -24,7 +24,28 @@ static double heuristic(const Pos& p, const Pos& goal)
 	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y)*1.1; // FIXME overapproximation for speed
 }
 
+vector<Pos> cleanup_path(const vector<Pos>& path)
+{
+	vector<Pos> result;
+
+	Pos dir(0,0);
+	for (size_t i=0; i<path.size()-1; i++)
+	{
+		Pos newdir = path[i] - path[i+1];
+		if (newdir != dir)
+			result.push_back(path[i]);
+	}
+	result.push_back(*path.back());
+
+	return result;
+}
+
 vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+{
+	return cleanup_path(a_star_raw(start, end, map, size));
+}
+
+vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
 {
 	Area view_area(start, end);
 	view_area.normalize();
@@ -52,22 +73,13 @@ vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, doub
 			// found goal.
 
 			Pos p = current.pos;
-			Pos dir(0,0);
 
 			result.push_back(p);
 			
 			while (p != start)
 			{
-				Pos oldp = p;
 				p = view.at(p).predecessor;
-
-				Pos newdir = p-oldp;
-				if (newdir == dir)
-					result.back() = p;
-				else
-					result.push_back(p);
-
-				dir = newdir;
+				result.push_back(p);
 			}
 
 			reverse(result.begin(), result.end());
