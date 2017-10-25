@@ -648,24 +648,39 @@ int main(int argc, const char** argv)
 
 		if (frame == 1000)
 		{
-			// search closest coal patch and mine some coal
-			
-			auto& patches = factorio.resource_patches; // shorthand
-
-			auto closest_coal_patch = min_element_if(
-				patches,
-				[](auto patch) { return patch->type == Resource::COAL; } ,
-				[&factorio](auto a, auto b) {
-					return (a->bounding_box.center().to_double() - factorio.players[0].position).len()
-						< (b->bounding_box.center().to_double() - factorio.players[0].position).len(); }
-			);
-			if (closest_coal_patch != patches.end())
+			for (auto& player : factorio.players) if (player.connected)
 			{
-				factorio.walk_to(1, (*closest_coal_patch)->bounding_box.center());
+				// search closest coal patch and mine some coal
+				
+				auto& patches = factorio.resource_patches; // shorthand
+
+				auto closest_coal_patch = min_element_if(
+					patches,
+					[](auto patch) { return patch->type == Resource::COAL; } ,
+					[&player](auto a, auto b) {
+						return (a->bounding_box.center().to_double() - player.position).len()
+							< (b->bounding_box.center().to_double() - player.position).len(); }
+				);
+				if (closest_coal_patch == patches.end())
+				{
+					cout << "could not find a coal patch :(" << endl;
+					continue;
+				}
+
 				cout << "WALKING"<< endl;
+				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
+				player.goals->subgoals.emplace_back( make_unique<action::WalkTo>(
+					&factorio, player.id, (*closest_coal_patch)->bounding_box.center())
+				);
+
+				cout <<
+				factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity.pos.str() <<
+				factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity.proto << endl;
+
+				player.goals->subgoals.emplace_back( make_unique<action::MineObject>(
+					&factorio, player.id, factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity )
+				);
 			}
-			else
-				cout << "NOT WALKING" << endl;
 		}
 		
 		GUI::wait(0.001);
