@@ -225,6 +225,27 @@ class WorldMap
 				return &dummy_chunk;
 			}
 		}
+		
+		const T& at(int x, int y) const
+		{
+			int chunkx = chunkidx(x);
+			int chunky = chunkidx(y);
+			int relx = tileidx(x);
+			int rely = tileidx(y);
+
+			return (*get_chunk(chunkx, chunky))[relx][rely];
+		}
+		T& at(int x, int y)
+		{
+			int chunkx = chunkidx(x);
+			int chunky = chunkidx(y);
+			int relx = tileidx(x);
+			int rely = tileidx(y);
+
+			return (*get_chunk(chunkx, chunky))[relx][rely];
+		}
+		const T& at(const Pos& pos) const { return at(pos.x, pos.y); }
+		T& at(const Pos& pos) { return at(pos.x, pos.y); }
 
 	private:
 		std::unordered_map< Pos, Chunk<T> > storage;
