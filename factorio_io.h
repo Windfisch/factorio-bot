@@ -111,6 +111,7 @@ class FactorioGame
 		
 		struct Player
 		{
+			size_t id; // TODO this should be a string (the player's name) probably?
 			Pos_f position;
 			bool connected;
 			std::unique_ptr<action::CompoundGoal> goals;

@@ -213,6 +213,7 @@ void FactorioGame::parse_players(const string& data)
 
 		players[id].connected = true;
 		players[id].position = pos;
+		players[id].id = id;
 	}
 }
 
