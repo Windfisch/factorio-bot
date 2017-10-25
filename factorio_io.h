@@ -93,6 +93,8 @@ class FactorioGame
 	public:
 		FactorioGame(std::string prefix);
 		void rcon_connect(std::string host, int port, std::string password);
+		void rcon_call(std::string func, std::string args);
+		void rcon_call(std::string func, int action_id, int player_id, std::string args);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 

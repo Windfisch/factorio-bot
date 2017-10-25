@@ -25,6 +25,8 @@ template<typename T> struct Area_
 			std::swap(left_top.y, right_bottom.y);
 	}
 
+	Pos_<T> center() const { return (left_top + right_bottom) / 2; }
+
 	bool contains(const Pos_<T>& p) const { return left_top <= p && p < right_bottom; }
 	bool contains_x(T x) const { return left_top.x <= x && x < right_bottom.x; }
 	bool contains_y(T y) const { return left_top.y <= y && y < right_bottom.y; }

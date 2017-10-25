@@ -39,14 +39,24 @@ void FactorioGame::rcon_connect(string host, int port, string password)
 	rcon.connect(host, port, password);
 }
 
-void FactorioGame::set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints)
+void FactorioGame::rcon_call(string func, string args)
 {
 	if (!rcon.connected())
 	{
-		cout << "set_waypoints(): not connected, ignoring" << endl;
+		cout << "rcon_call(): not connected, ignoring" << endl;
 		return;
 	}
 
+	rcon.sendrecv("/c remote.call('windfisch','"+func+"',"+args+")");
+}
+
+void FactorioGame::rcon_call(string func, int action_id, int player_id, string args)
+{
+	rcon_call(func, to_string(action_id)+","+to_string(player_id)+","+args);
+}
+
+void FactorioGame::set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints)
+{
 	if (waypoints.size() < 1)
 	{
 		cout << "ignoring zero-size path" << endl;
@@ -59,12 +69,12 @@ void FactorioGame::set_waypoints(int action_id, int player_id, const std::vector
 
 	foo = foo.substr(1);
 
-	rcon.sendrecv("/c remote.call('windfisch', 'set_waypoints', "+to_string(action_id)+","+to_string(player_id)+",{"+foo+"})");
+	rcon_call("set_waypoints", action_id, player_id, "{"+foo+"}");
 }
 
 void FactorioGame::set_mining_target(int action_id, int player_id, Entity target)
 {
-	// TODO FIXME
+	rcon_call("set_mining_target", action_id, player_id, "'"+target.proto->name+"',{"+target.pos.str()+"}");
 }
 
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
@@ -236,7 +246,7 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 		Area_f collision_box = Area_f(fields[2]);
 		bool mineable = stoi(fields[3]);
 
-		entity_prototypes[name] = new EntityPrototype(collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+		entity_prototypes[name] = new EntityPrototype(name, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
 	}
 }
 
@@ -584,7 +594,6 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	cout << "we now have " << resource_patches.size() << " patches" << endl;
 }
 
-
 int main(int argc, const char** argv)
 {
 	if (argc != 2 && argc != 5)
@@ -630,6 +639,28 @@ int main(int argc, const char** argv)
 				else
 					player.goals->tick();
 			}
+		}
+
+		if (frame == 1000)
+		{
+			// search closest coal patch and mine some coal
+			
+			auto& patches = factorio.resource_patches; // shorthand
+
+			auto closest_coal_patch = min_element_if(
+				patches,
+				[](auto patch) { return patch->type == Resource::COAL; } ,
+				[&factorio](auto a, auto b) {
+					return (a->bounding_box.center().to_double() - factorio.players[0].position).len()
+						< (b->bounding_box.center().to_double() - factorio.players[0].position).len(); }
+			);
+			if (closest_coal_patch != patches.end())
+			{
+				factorio.walk_to(1, (*closest_coal_patch)->bounding_box.center());
+				cout << "WALKING"<< endl;
+			}
+			else
+				cout << "NOT WALKING" << endl;
 		}
 		
 		GUI::wait(0.001);

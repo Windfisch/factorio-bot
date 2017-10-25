@@ -5,12 +5,14 @@
 
 struct EntityPrototype
 {
+	std::string name;
 	bool collides_player;
 	bool collides_object;
 	Area_f collision_box;
 	bool mineable;
 
-	EntityPrototype(const std::string& collision_str, const Area_f& collision_box_, bool mineable_) :
+	EntityPrototype(const std::string& name_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_) :
+		name(name_),
 		collides_player(collision_str.find('P') != std::string::npos),
 		collides_object(collision_str.find('O') != std::string::npos),
 		collision_box(collision_box_),

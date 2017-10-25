@@ -45,6 +45,7 @@ struct Pos_
 	std::string str() const { return std::to_string(x) + "," + std::to_string(y); }
 
 	Pos_<int> to_int() const { return Pos_<int>(int(std::round(x)), int(std::round(y))); }
+	Pos_<double> to_double() const { return Pos_<double>(x,y); }
 
 	static Pos_<T> tile_to_chunk(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x), chunkidx(p.y)); }
 	static Pos_<T> tile_to_chunk_ceil(const Pos_<T>& p) { return Pos_<T>(chunkidx(p.x+31), chunkidx(p.y+31)); }
