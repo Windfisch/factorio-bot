@@ -6,6 +6,7 @@
 #include <memory>
 #include "pos.hpp"
 #include "entity.h"
+#include "resource.hpp"
 
 class FactorioGame;
 

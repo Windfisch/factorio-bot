@@ -9,6 +9,7 @@
 #include <deque>
 #include <algorithm>
 #include <chrono>
+#include <cassert>
 
 #include "factorio_io.h"
 #include "pathfinding.hpp"
@@ -453,50 +454,6 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 				floodfill_resources(view, area, x,y, view.at(x,y).type == Resource::OIL ? 30 : 5 );
 		}
 }
-
-struct ResourcePatch
-{
-	vector<Pos> positions;
-	Resource::type_t type;
-	int patch_id;
-	Area bounding_box;
-
-	ResourcePatch(const vector<Pos>& positions_, Resource::type_t t, int id) : positions(std::move(positions_)), type(t), patch_id(id)
-	{
-		recalc_bounding_box();
-	}
-
-	void merge_into(ResourcePatch& other)
-	{
-		assert(this->type == other.type);
-		other.extend(this->positions);
-	}
-
-	void extend(const vector<Pos>& newstuff)
-	{
-		positions.insert(positions.end(), newstuff.begin(), newstuff.end());
-		recalc_bounding_box();
-	}
-
-	private:
-		void recalc_bounding_box()
-		{
-			bool first = true;
-			for (const Pos& p : positions)
-			{
-				if (p.x < bounding_box.left_top.x || first)
-					bounding_box.left_top.x = p.x;
-				if (p.x >= bounding_box.right_bottom.x || first)
-					bounding_box.right_bottom.x = p.x+1;
-				if (p.y < bounding_box.left_top.y || first)
-					bounding_box.left_top.y = p.y;
-				if (p.y >= bounding_box.right_bottom.y || first)
-					bounding_box.right_bottom.y = p.y+1;
-
-				first = false;
-			}
-		}
-};
 
 void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
 {

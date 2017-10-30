@@ -12,7 +12,7 @@
 #include "pos.hpp"
 #include "area.hpp"
 #include "rcon.h"
-#include "entity.h"
+#include "resource.hpp"
 #include "action.hpp"
 
 enum dir4_t
@@ -26,42 +26,6 @@ enum dir4_t
 	RIGHT=EAST,
 	BOTTOM=SOUTH,
 	LEFT=WEST
-};
-
-constexpr int NOT_YET_ASSIGNED = 0; // TODO FIXME
-
-struct ResourcePatch;
-
-struct Resource
-{
-	enum type_t
-	{
-		NONE,
-		COAL,
-		IRON,
-		COPPER,
-		STONE,
-		OIL,
-		URANIUM
-	};
-	static const std::unordered_map<std::string, Resource::type_t> types;
-
-	enum floodfill_flag_t
-	{
-		FLOODFILL_NONE,
-		FLOODFILL_QUEUED
-	};
-
-	floodfill_flag_t floodfill_flag = FLOODFILL_NONE;
-	
-	type_t type;
-	int patch_id;
-	std::weak_ptr<ResourcePatch> resource_patch;
-	Entity entity;
-
-	Resource(type_t t, int parent, Entity e) : type(t), patch_id(parent), entity(e) {}
-	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED), entity(Pos_f(0,0), nullptr) {}
-
 };
 
 class FactorioGame

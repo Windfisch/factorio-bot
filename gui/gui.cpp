@@ -1,4 +1,5 @@
 #include <vector>
+#include <cassert>
 
 #pragma GCC diagnostic push
 #ifdef __clang__

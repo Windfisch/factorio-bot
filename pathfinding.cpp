@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include <boost/heap/binomial_heap.hpp>
+#include <cassert>
 
 #include "pathfinding.hpp"
 #include "worldmap.hpp"
@@ -35,7 +36,7 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 		if (newdir != dir)
 			result.push_back(path[i]);
 	}
-	result.push_back(*path.back());
+	result.push_back(path.back());
 
 	return result;
 }
