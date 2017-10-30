@@ -626,6 +626,10 @@ int main(int argc, const char** argv)
 
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
+				player.goals->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
+					&factorio, player.id, *closest_coal_patch) );
+				
+				/*
 				player.goals->subgoals.emplace_back( make_unique<action::WalkTo>(
 					&factorio, player.id, (*closest_coal_patch)->bounding_box.center())
 				);
@@ -637,6 +641,9 @@ int main(int argc, const char** argv)
 				player.goals->subgoals.emplace_back( make_unique<action::MineObject>(
 					&factorio, player.id, factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity )
 				);
+				*/
+
+				player.goals->start();
 			}
 		}
 		

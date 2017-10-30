@@ -114,4 +114,14 @@ namespace action
 
 		private: void execute_impl();
 	};
+
+	struct WalkAndMineResource : public CompoundGoal
+	{
+		std::shared_ptr<ResourcePatch> patch;
+
+		WalkAndMineResource(FactorioGame* game, int player, std::shared_ptr<ResourcePatch> patch_)
+			: CompoundGoal(game,player), patch(patch_) {}
+
+		void start();
+	};
 } // namespace action
