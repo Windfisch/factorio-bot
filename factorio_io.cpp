@@ -78,6 +78,11 @@ void FactorioGame::set_mining_target(int action_id, int player_id, Entity target
 	rcon_call("set_mining_target", action_id, player_id, "'"+target.proto->name+"',{"+target.pos.str()+"}");
 }
 
+void FactorioGame::unset_mining_target(int player_id)
+{
+	rcon_call("set_mining_target", 0, player_id, "'stop',nil");
+}
+
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
 	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
@@ -175,6 +180,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_players(data);
 	else if (type=="action_completed")
 		parse_action_completed(data);
+	else if (type=="mined_item")
+		parse_mined_item(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
@@ -189,6 +196,25 @@ static vector<string> split(const string& data, char delim=' ')
 		result.push_back(std::move(entry));
 	
 	return result;
+}
+
+void FactorioGame::parse_mined_item(const string& data)
+{
+	vector<string> fields = split(data, ' ');
+
+	if (fields.size() != 3)
+		throw runtime_error("malformed mined_item packet");
+	
+	int id_ = stoi(fields[0]);
+	if (id_ < 0 || size_t(id_) >= players.size())
+		throw runtime_error("invalid player id in parse_mined_item()");
+	unsigned id = unsigned(id_);
+
+	string itemname = fields[1];
+	int amount = stoi(fields[2]);
+
+	if (players[id].goals)
+		players[id].goals->on_mined_item(itemname, amount);
 }
 
 void FactorioGame::parse_players(const string& data)
@@ -627,22 +653,8 @@ int main(int argc, const char** argv)
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
 				player.goals->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
-					&factorio, player.id, *closest_coal_patch) );
+					&factorio, player.id, *closest_coal_patch, 5) );
 				
-				/*
-				player.goals->subgoals.emplace_back( make_unique<action::WalkTo>(
-					&factorio, player.id, (*closest_coal_patch)->bounding_box.center())
-				);
-
-				cout <<
-				factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity.pos.str() <<
-				factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity.proto << endl;
-
-				player.goals->subgoals.emplace_back( make_unique<action::MineObject>(
-					&factorio, player.id, factorio.resource_map.at((*closest_coal_patch)->positions[0]).entity )
-				);
-				*/
-
 				player.goals->start();
 			}
 		}

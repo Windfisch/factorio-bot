@@ -722,6 +722,18 @@ function on_player_joined_game(event)
 	global.n_clients = global.n_clients + 1
 end
 
+function on_player_mined_item(event)
+	name = event.item_stack.name
+	count = event.item_stack.count
+	if count == nil then
+		print("count was nil")
+		count = 1
+	end
+
+	game.write_file(outfile, "mined_item: "..event.player_index.." "..name.." "..count.."\n", true)
+end
+
+
 function action_completed(action_id)
 	game.write_file(outfile, "action_completed: ok "..action_id.."\n", true)
 end
@@ -736,6 +748,7 @@ script.on_event(defines.events.on_tick, on_tick)
 script.on_event(defines.events.on_player_joined_game, on_player_joined_game)
 script.on_event(defines.events.on_sector_scanned, on_sector_scanned)
 script.on_event(defines.events.on_chunk_generated, on_chunk_generated)
+script.on_event(defines.events.on_player_mined_item, on_player_mined_item)
 
 function rcon_test(foo)
 	print("rcon_test("..foo..")")
@@ -759,10 +772,12 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 
 	if ent and ent.minable then
 		global.p[player_id].mining = { entity = ent, action_id = action_id}
+	elseif name == "stop" then
+		global.p[player_id].mining = nil
 	else
 		print("no entity to mine")
 		global.p[player_id].mining = nil
-		action_failed(action_id)
+		action_failed(action_id) -- FIXME implement this
 	end
 end
 

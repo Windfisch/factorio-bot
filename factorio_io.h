@@ -51,6 +51,7 @@ class FactorioGame
 		void parse_action_completed(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
+		void parse_mined_item(const std::string& data);
 		
 		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 		int next_free_resource_id = 1;
@@ -66,6 +67,7 @@ class FactorioGame
 		// never use these functions directly, use player goals instead
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);
 		void set_mining_target(int action_id, int player_id, Entity target);
+		void unset_mining_target(int player_id);
 		
 		[[deprecated("set player goals instead")]]
 		void walk_to(int id, const Pos& dest);

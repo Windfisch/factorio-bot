@@ -31,6 +31,12 @@ namespace action {
 		game->set_mining_target(id, player, obj);
 	}
 
+	void MineObject::abort()
+	{
+		game->unset_mining_target(player);
+		mark_finished(id);
+	}
+
 	void WalkAndMineResource::start()
 	{
 		// plan a path to the centroid of the resource patch
@@ -61,5 +67,31 @@ namespace action {
 		subgoals.push_back(make_unique<MineObject>(game,player, tile.entity));
 
 		subgoals[0]->start();
+	}
+
+	void WalkAndMineResource::tick()
+	{
+		if (amount <= 0)
+		{
+			assert(dynamic_cast<MineObject*>(subgoals[current_subgoal].get()));
+			subgoals[current_subgoal]->abort();
+		}
+
+		CompoundGoal::tick();
+	}
+
+	void WalkAndMineResource::on_mined_item(string type, int amount)
+	{
+		auto it = Resource::types.find(type);
+		if (it == Resource::types.end())
+			return;
+
+		Resource::type_t type_id = it->second;
+
+		if (type_id == patch->type)
+		{
+			this->amount -= amount;
+			cout << "mining " << type << ", remaining: " << this->amount << endl;
+		}
 	}
 }

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <stdexcept>
 #include "pos.hpp"
 #include "entity.h"
 #include "resource.hpp"
@@ -21,6 +22,8 @@ namespace action
 		virtual bool is_finished() = 0;
 		virtual void start() = 0;
 		virtual void tick() = 0;
+		virtual void abort() { throw std::runtime_error("abort() not implemented for this action"); }
+		virtual void on_mined_item(std::string type, int count) {}
 		virtual ~PlayerGoal() = default;
 	};
 
@@ -56,6 +59,13 @@ namespace action
 		{
 			if (!subgoals.empty())
 				subgoals[0]->start();
+		}
+
+		// dispatch events
+		void on_mined_item(std::string type, int count)
+		{
+			for (auto& subgoal : subgoals)
+				subgoal->on_mined_item(type, count);
 		}
 	};
 
@@ -113,15 +123,19 @@ namespace action
 		Entity obj;
 
 		private: void execute_impl();
+		private: void abort();
 	};
 
 	struct WalkAndMineResource : public CompoundGoal
 	{
 		std::shared_ptr<ResourcePatch> patch;
+		int amount;
 
-		WalkAndMineResource(FactorioGame* game, int player, std::shared_ptr<ResourcePatch> patch_)
-			: CompoundGoal(game,player), patch(patch_) {}
+		WalkAndMineResource(FactorioGame* game, int player, std::shared_ptr<ResourcePatch> patch_, int amount_)
+			: CompoundGoal(game,player), patch(patch_), amount(amount_) { assert(amount>0); }
 
 		void start();
+		void tick();
+		void on_mined_item(std::string type, int amount);
 	};
 } // namespace action
