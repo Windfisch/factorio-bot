@@ -7,6 +7,11 @@ client_local_data = nil -- DO NOT USE, will cause desyncs
 
 outfile="output1.txt"
 
+function complain(text)
+	print(text)
+	game.forces["player"].print(text)
+end
+
 function on_init()
 	print("on init")
 	global.resources = {}
@@ -447,6 +452,33 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 	end
 end
 
+function rcon_place_entity(player_id, item_name, entity_position, direction)
+	local entproto = game.item_prototypes[item_name].place_result
+	local player = game.players[player_id]
+	local surface = game.players[player_id].surface
+
+	if entproto == nil then
+		complain("cannot place item '"..item_name.."' because place_result is nil")
+		return
+	end
+
+	if player.get_item_count(item_name) <= 0 then
+		complain("cannot place item '"..item_name.."' because the player '"..player.name.."' does not have any")
+		return
+	end
+	
+	if not surface.can_place_entity{name=entproto.name, position=entity_position, direction=direction, force=player.force} then
+		complain("cannot place item '"..item_name.."' because surface.can_place_entity said 'no'")
+		return
+	end
+
+	player.remove_item({name=item_name,count=1})
+	result = surface.create_entity{name=entproto.name,position=entity_position,direction=direction,force=player.force, fast_replace=true, player=player, spill=true}
+
+	if result == nil then
+		complain("placing item '"..item_name.."' failed, surface.create_entity returned nil :(")
+	end
+end
 
 function rcon_whoami(who)
 	if client_local_data.whoami == nil then
@@ -459,5 +491,6 @@ remote.add_interface("windfisch", {
 	test=rcon_test,
 	set_waypoints=rcon_set_waypoints,
 	set_mining_target=rcon_set_mining_target,
+	place_entity=rcon_place_entity,
 	whoami=rcon_whoami
 })
