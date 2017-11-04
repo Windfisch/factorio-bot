@@ -174,6 +174,10 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_resources(area, data);
 	else if (type=="entity_prototypes")
 		parse_entity_prototypes(data);
+	else if (type=="item_prototypes")
+		parse_item_prototypes(data);
+	else if (type=="recipes")
+		parse_recipes(data);
 	else if (type=="objects")
 		parse_objects(area,data);
 	else if (type=="players")
@@ -275,6 +279,80 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 		bool mineable = stoi(fields[3]);
 
 		entity_prototypes[name] = new EntityPrototype(name, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+	}
+}
+
+void FactorioGame::parse_item_prototypes(const string& data)
+{
+	istringstream str(data);
+	string entry;
+
+	while (getline(str, entry, '$')) if (entry!="")
+	{
+		vector<string> fields = split(entry);
+
+		if (fields.size() != 7)
+			throw runtime_error("malformed parse_item_prototypes packet");
+
+		const string& name = fields[0];
+		const string& type = fields[1];
+		const string& place_result_str = fields[2];
+		int stack_size = stoi(fields[3]);
+		double fuel_value = stoi(fields[4]);
+		double speed = stoi(fields[5]);
+		double durability = stoi(fields[6]);
+
+		const EntityPrototype* place_result;
+		if (place_result_str != "nil")
+			place_result = entity_prototypes.at(place_result_str);
+		else
+			place_result = NULL;
+
+		item_prototypes[name] = new ItemPrototype(name, type, place_result, stack_size, fuel_value, speed, durability); // no automatic memory management, because prototypes never change.
+	}
+}
+
+void FactorioGame::parse_recipes(const string& data)
+{
+	for (string recipestr : split(data,'$'))
+	{
+		Recipe* recipe = new Recipe(); // no automatic memory management, because prototypes never change.
+
+		vector<string> fields = split(recipestr,' ');
+		if (fields.size() != 5)
+			throw runtime_error("malformed parse_recipes packet");
+
+		recipe->name = fields[0];
+		recipe->enabled = bool(stoi(fields[1]));
+		recipe->energy = stod(fields[2]);
+		const string& ingredients = fields[3];
+		const string& products = fields[4];
+
+		for (string ingstr : split(ingredients, ','))
+		{
+			vector<string> fields = split(ingstr, '*');
+			if (fields.size() != 2)
+				throw runtime_error("malformed ingredient string in parse_recipes packet");
+
+			const string& ingredient = fields[0];
+			int amount = stoi(fields[1]);
+
+			recipe->ingredients.emplace_back(item_prototypes.at(ingredient), amount);
+		}
+
+		for (string prodstr : split(products, ','))
+		{
+			vector<string> fields = split(prodstr, '*');
+			if (fields.size() != 2)
+				throw runtime_error("malformed product string in parse_recipes packet");
+
+			const string& product = fields[0];
+			double amount = stod(fields[1]);
+
+			recipe->products.emplace_back(item_prototypes.at(product), amount);
+		}
+
+		recipes[recipe->name] = recipe;
 	}
 }
 

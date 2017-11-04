@@ -47,7 +47,13 @@ function distance(a,b)
 	return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
 end
 
-function writeout_prototypes()
+function writeout_initial_stuff()
+	writeout_entity_prototypes()
+	writeout_item_prototypes()
+	writeout_recipes()
+end
+
+function writeout_entity_prototypes()
 	header = "entity_prototypes: "
 	lines = {}
 	for name, prot in pairs(game.entity_prototypes) do
@@ -63,10 +69,49 @@ function writeout_prototypes()
 	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
 end
 
+function writeout_item_prototypes()
+	header = "item_prototypes: "
+	lines = {}
+	for name, prot in pairs(game.item_prototypes) do
+		table.insert(lines, prot.name.." "..prot.type.." "..(prot.place_result and prot.place_result.name or "nil").." "..prot.stack_size.." "..(prot.fuel_value or 0).." "..(prot.speed or 0).." "..(prot.durability or 0))
+	end
+
+	-- FIXME this is a hack
+	for name, prot in pairs(game.fluid_prototypes) do
+		table.insert(lines, prot.name.." FLUID nil 0 0 0 0")
+	end
+
+	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+end
+
+function writeout_recipes()
+	-- FIXME: this assumes that there is only one player force
+	header = "recipes: "
+	lines = {}
+	for name, rec in pairs(game.forces["player"].recipes) do
+		ingredients = {}
+		products = {}
+		for _,ing in ipairs(rec.ingredients) do
+			table.insert(ingredients, ing.name.."*"..ing.amount)
+		end
+
+		for _,prod in ipairs(rec.products) do
+			if prod.amount ~= nil then
+				amount = prod.amount
+			else
+				amount = (prod.amount_min + prod.amount_max) / 2 * prod.probability
+			end
+			table.insert(products, prod.name.."*"..prod.amount)
+		end
+
+		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
+	end
+	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+end
+
 function on_whoami()
 	if client_local_data.whoami == "server" then
-		writeout_prototypes()
-		-- FIXME: chart all chunks
+		writeout_initial_stuff()
 		
 		client_local_data.initial_discovery={}
 		client_local_data.initial_discovery.chunks = {}
