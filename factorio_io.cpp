@@ -298,9 +298,9 @@ void FactorioGame::parse_item_prototypes(const string& data)
 		const string& type = fields[1];
 		const string& place_result_str = fields[2];
 		int stack_size = stoi(fields[3]);
-		double fuel_value = stoi(fields[4]);
-		double speed = stoi(fields[5]);
-		double durability = stoi(fields[6]);
+		double fuel_value = stod(fields[4]);
+		double speed = stod(fields[5]);
+		double durability = stod(fields[6]);
 
 		const EntityPrototype* place_result;
 		if (place_result_str != "nil")

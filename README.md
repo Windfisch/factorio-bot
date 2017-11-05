@@ -2,7 +2,7 @@ Factorio Bot
 ============
 
 This project tries to be a **fair** bot/AI for the game
-[Factorio](https://www.factorio.com) (version 0.14.22).
+[Factorio](https://www.factorio.com) (version 0.15.37).
 
 "Fair" means that the bot only uses information that is available to a human
 player. Better planning algorithms or map memory is fine, but being able to
@@ -17,6 +17,8 @@ Features right now:
   * we can read out the map / buildings on the map
   * we can plan walking paths
   * we can actually walk :)
+  * place entities
+  * mine entities
 
 
 

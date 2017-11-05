@@ -106,7 +106,7 @@ function writeout_recipes()
 			else
 				amount = (prod.amount_min + prod.amount_max) / 2 * prod.probability
 			end
-			table.insert(products, prod.name.."*"..prod.amount)
+			table.insert(products, prod.name.."*"..amount)
 		end
 
 		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
