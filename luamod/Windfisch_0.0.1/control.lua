@@ -97,7 +97,7 @@ function writeout_item_prototypes()
 		table.insert(lines, prot.name.." FLUID nil 0 0 0 0")
 	end
 
-	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+	write_file(header..table.concat(lines, "$").."\n")
 end
 
 function writeout_recipes()
@@ -122,7 +122,7 @@ function writeout_recipes()
 
 		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
 	end
-	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+	write_file(header..table.concat(lines, "$").."\n")
 end
 
 function on_whoami()
