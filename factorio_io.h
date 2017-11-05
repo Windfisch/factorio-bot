@@ -13,6 +13,9 @@
 #include "area.hpp"
 #include "rcon.h"
 #include "resource.hpp"
+#include "entity.h"
+#include "item.h"
+#include "recipe.h"
 #include "action.hpp"
 
 enum dir4_t
@@ -44,10 +47,14 @@ class FactorioGame
 		std::string remove_line_from_buffer();
 
 		std::unordered_map< std::string, const EntityPrototype* > entity_prototypes;
+		std::unordered_map< std::string, const ItemPrototype* > item_prototypes;
+		std::unordered_map< std::string, const Recipe* > recipes;
 
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 		void parse_entity_prototypes(const std::string& data);
+		void parse_item_prototypes(const std::string& data);
+		void parse_recipes(const std::string& data);
 		void parse_action_completed(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);

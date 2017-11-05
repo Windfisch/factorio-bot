@@ -132,11 +132,9 @@ depend: $(ALLOBJECTS:.o=.d)
 	$(CXX) $(CXXFLAGS) -MM -MT $(@:.d=.o) $< -o $@
 
 gui/%.d: gui/%.cpp
-	echo foo
 	$(CXX) $(CXXFLAGS) -MM -MT $(@:.d=.o) $(GUIFLAGS) $< -o $@
 
 gui/%.o: gui/%.cpp
-	echo foo
 	$(CXX) $(CXXFLAGS) $(GUIFLAGS) -c $< -o $@
 
 %.o: %.cpp

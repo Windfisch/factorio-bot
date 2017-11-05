@@ -6,7 +6,12 @@ local my_client_id = nil
 client_local_data = nil -- DO NOT USE, will cause desyncs
 
 outfile="output1.txt"
-must_write_prototypes = true
+must_write_initstuff = true
+
+function complain(text)
+	print(text)
+	game.forces["player"].print(text)
+end
 
 function on_init()
 	print("on init")
@@ -27,9 +32,9 @@ function on_init()
 end
 
 function write_file(data)
-	if must_write_prototypes then
-		must_write_prototypes = false
-		writeout_prototypes()
+	if must_write_initstuff then
+		must_write_initstuff = false
+		writeout_initial_stuff()
 	end
 
 	game.write_file(outfile, data, true)
@@ -58,7 +63,13 @@ function distance(a,b)
 	return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
 end
 
-function writeout_prototypes()
+function writeout_initial_stuff()
+	writeout_entity_prototypes()
+	writeout_item_prototypes()
+	writeout_recipes()
+end
+
+function writeout_entity_prototypes()
 	header = "entity_prototypes: "
 	lines = {}
 	for name, prot in pairs(game.entity_prototypes) do
@@ -74,10 +85,48 @@ function writeout_prototypes()
 	write_file(header..table.concat(lines, "$").."\n")
 end
 
+function writeout_item_prototypes()
+	header = "item_prototypes: "
+	lines = {}
+	for name, prot in pairs(game.item_prototypes) do
+		table.insert(lines, prot.name.." "..prot.type.." "..(prot.place_result and prot.place_result.name or "nil").." "..prot.stack_size.." "..(prot.fuel_value or 0).." "..(prot.speed or 0).." "..(prot.durability or 0))
+	end
+
+	-- FIXME this is a hack
+	for name, prot in pairs(game.fluid_prototypes) do
+		table.insert(lines, prot.name.." FLUID nil 0 0 0 0")
+	end
+
+	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+end
+
+function writeout_recipes()
+	-- FIXME: this assumes that there is only one player force
+	header = "recipes: "
+	lines = {}
+	for name, rec in pairs(game.forces["player"].recipes) do
+		ingredients = {}
+		products = {}
+		for _,ing in ipairs(rec.ingredients) do
+			table.insert(ingredients, ing.name.."*"..ing.amount)
+		end
+
+		for _,prod in ipairs(rec.products) do
+			if prod.amount ~= nil then
+				amount = prod.amount
+			else
+				amount = (prod.amount_min + prod.amount_max) / 2 * prod.probability
+			end
+			table.insert(products, prod.name.."*"..prod.amount)
+		end
+
+		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
+	end
+	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+end
+
 function on_whoami()
 	if client_local_data.whoami == "server" then
-		-- FIXME: chart all chunks
-		
 		client_local_data.initial_discovery={}
 		client_local_data.initial_discovery.chunks = {}
 		for chunk in game.surfaces[1].get_chunks() do
@@ -412,6 +461,33 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 	end
 end
 
+function rcon_place_entity(player_id, item_name, entity_position, direction)
+	local entproto = game.item_prototypes[item_name].place_result
+	local player = game.players[player_id]
+	local surface = game.players[player_id].surface
+
+	if entproto == nil then
+		complain("cannot place item '"..item_name.."' because place_result is nil")
+		return
+	end
+
+	if player.get_item_count(item_name) <= 0 then
+		complain("cannot place item '"..item_name.."' because the player '"..player.name.."' does not have any")
+		return
+	end
+	
+	if not surface.can_place_entity{name=entproto.name, position=entity_position, direction=direction, force=player.force} then
+		complain("cannot place item '"..item_name.."' because surface.can_place_entity said 'no'")
+		return
+	end
+
+	player.remove_item({name=item_name,count=1})
+	result = surface.create_entity{name=entproto.name,position=entity_position,direction=direction,force=player.force, fast_replace=true, player=player, spill=true}
+
+	if result == nil then
+		complain("placing item '"..item_name.."' failed, surface.create_entity returned nil :(")
+	end
+end
 
 function rcon_whoami(who)
 	if client_local_data.whoami == nil then
@@ -424,5 +500,6 @@ remote.add_interface("windfisch", {
 	test=rcon_test,
 	set_waypoints=rcon_set_waypoints,
 	set_mining_target=rcon_set_mining_target,
+	place_entity=rcon_place_entity,
 	whoami=rcon_whoami
 })
