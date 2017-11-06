@@ -413,6 +413,26 @@ function action_completed(action_id)
 	game.write_file(outfile, "action_completed: fail "..action_id.."\n", true)
 end
 
+function on_some_entity_created(event)
+	local ent = event.entity or event.created_entity or nil
+	if ent == nil then
+		complain("wtf, on_some_entity_created has nil entity")
+		return
+	end
+
+	complain("on_some_entity_created: "..ent.name.." at "..ent.position.x..","..ent.position.y)
+end
+
+function on_some_entity_deleted(event)
+	local ent = event.entity
+	if ent == nil then
+		complain("wtf, on_some_entity_created has nil entity")
+		return
+	end
+
+	complain("on_some_entity_deleted: "..ent.name.." at "..ent.position.x..","..ent.position.y)
+end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_event(defines.events.on_tick, on_tick)
@@ -420,6 +440,17 @@ script.on_event(defines.events.on_player_joined_game, on_player_joined_game)
 script.on_event(defines.events.on_sector_scanned, on_sector_scanned)
 script.on_event(defines.events.on_chunk_generated, on_chunk_generated)
 script.on_event(defines.events.on_player_mined_item, on_player_mined_item)
+
+script.on_event(defines.events.on_biter_base_built, on_some_entity_created) --entity
+script.on_event(defines.events.on_built_entity, on_some_entity_created) --created_entity
+script.on_event(defines.events.on_robot_built_entity, on_some_entity_created) --created_entity
+
+script.on_event(defines.events.on_entity_died, on_some_entity_deleted) --entity
+script.on_event(defines.events.on_player_mined_entity, on_some_entity_deleted) --entity
+script.on_event(defines.events.on_robot_mined_entity, on_some_entity_deleted) --entity
+script.on_event(defines.events.on_resource_depleted, on_some_entity_deleted) --entity
+
+
 
 function rcon_test(foo)
 	print("rcon_test("..foo..")")
