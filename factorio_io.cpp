@@ -279,6 +279,7 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 		bool mineable = stoi(fields[3]);
 
 		entity_prototypes[name] = new EntityPrototype(name, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+		max_entity_radius = max(max_entity_radius, collision_box.radius());
 	}
 }
 
@@ -377,16 +378,36 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	istringstream str(data);
 	string entry;
 
-	auto view = walk_map.view(area.left_top, area.right_bottom, Pos(0,0));
+	// left_top_chunk and right_bot_chunk are both inclusive.
+	Pos left_top_chunk( chunkidx(area.left_top.x), chunkidx(area.left_top.y) );
+	Pos right_bot_chunk( chunkidx(area.right_bottom.x-1), chunkidx(area.right_bottom.y-1) );
 
+	// move all entities in the area from actual_entities to the temporary pending_entities list.
+	vector<shared_ptr<Entity>> pending_entities;
+	for (auto chunkx = left_top_chunk.x; chunkx <= right_bot_chunk.x; chunkx++)
+		for (auto chunky = left_top_chunk.y; chunky <= right_bot_chunk.y; chunky++)
+		{
+			auto& list = actual_entities[Pos(chunkx,chunky)];
 
-	// clear margins
-	for (int x = area.left_top.x; x < area.right_bottom.x; x++)
-		for (int y = area.left_top.y; y < area.right_bottom.y; y++)
-			for (int i=0; i<4; i++)
-				view.at(x,y).margins[i] = 1.;
+			for (auto i=0; i<list.size();)
+			{
+				if (area.contains(list[i]->pos.to_int_floor()))
+				{
+					// place in pending_entities.
+					pending_entities.push_back(list[i]);
 
-	
+					// remove from list
+					swap(list[i],list.back());
+					list.resize(list.size()-1);
+				}
+				else
+					i++;
+			}
+		}
+
+	struct { int reused=0; int created=0; } stats; // DEBUG only
+
+	// parse the packet's list of objects
 	while(getline(str, entry, ',')) if (entry!="")
 	{
 		vector<string> fields = split(entry);
@@ -400,108 +421,176 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 
 		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name));
 
-		// TODO FIXME: insert this in some list, and decouple the following code from this function
-		
-		// update walk_t information
-		if (ent.proto->collides_player)
+		if (!area.contains(ent.pos.to_int_floor()))
 		{
-			Area_f box = ent.collision_box();
-			Area outer = box.outer();
-			Area inner = Area( outer.left_top+Pos(1,1), outer.right_bottom-Pos(1,1) );
-			Area relevant_outer = outer.intersect(area);
-			Area relevant_inner = inner.intersect(area);
+			cout << "FIXME: parse_objects packet contained an object (at "<<ent.pos.str()<<") that does not belong to area (" << area.str() << "). ignoring" << endl;
+			continue;
+		}
 
-			// calculate margins
-			double rightmargin_of_lefttile = box.left_top.x - outer.left_top.x;
-			double leftmargin_of_righttile = outer.right_bottom.x - box.right_bottom.x;
-			double bottommargin_of_toptile = box.left_top.y - outer.left_top.y;
-			double topmargin_of_bottomtile = outer.right_bottom.y - box.right_bottom.y;
-
-			if (area.contains_y(outer.left_top.y))
+		// try to find ent in pending_entities
+		shared_ptr<Entity> ent_ptr;
+		for (auto i=0; i<pending_entities.size(); i++)
+		{
+			if (*pending_entities[i] == ent) // found
 			{
-				for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
-				{
-					auto& tile = view.at(x, outer.left_top.y);
-					double& margin = tile.margins[TOP];
+				// re-use pending_entities[i], ignoring `ent`
+				ent_ptr = pending_entities[i];
 
-					if (margin > bottommargin_of_toptile)
-						margin = bottommargin_of_toptile;
+				// remove the entry from pending_entities
+				swap(pending_entities[i], pending_entities.back());
+				pending_entities.resize(pending_entities.size()-1);
 
-					if (outer.right_bottom.y-1 != outer.left_top.y)
-						tile.margins[BOTTOM] = 0.;
-				}
+				stats.reused++;
 
-				for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
-				{
-					auto& tile = view.at(x, outer.left_top.y);
-					tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
-				}
+				break;
 			}
+		}
+		
+		if (!ent_ptr) // not found, this seems to be a new entity
+		{
+			ent_ptr = make_shared<Entity>(ent); // make a new Entity pointer by copying ent.
+			stats.created++;
+		}
 
-			if (area.contains_y(outer.right_bottom.y-1))
+		// now place ent_ptr in the appropriate list.
+		actual_entities[Pos( chunkidx(floor(ent_ptr->pos.x)), chunkidx(floor(ent_ptr->pos.y)) )].push_back(ent_ptr);
+	}
+
+	cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << stats.created << " and deleted " << pending_entities.size() << endl; // DEBUG
+	if (stats.reused > 0)
+	{
+		for (volatile int i=0; i<100; i++); //DEBUG
+	}
+	
+	// all entities that are still in pending_entities ought to be deleted now.
+	for (const auto& ptr : pending_entities)
+		assert(ptr.unique());
+
+	// finally, update the walkmap; because our entities have a certain size, we must update a larger portion
+	update_walkmap(area.expand(int(ceil(max_entity_radius))));
+}
+
+void FactorioGame::update_walkmap(const Area& area)
+{
+	auto view = walk_map.view(area.left_top, area.right_bottom, Pos(0,0));
+	//cout << "update_walkmap("<<area.str()<<")"<<endl; // DEBUG
+
+	// clear margins
+	for (int x = area.left_top.x; x < area.right_bottom.x; x++)
+		for (int y = area.left_top.y; y < area.right_bottom.y; y++)
+			for (int i=0; i<4; i++)
+				view.at(x,y).margins[i] = 1.;
+
+	// iterate through all relevant chunks' entity lists
+	Pos left_top_chunk( chunkidx(area.left_top.x), chunkidx(area.left_top.y) ); // left_top_chunk and right_bot_chunk are both inclusive.
+	Pos right_bot_chunk( chunkidx(area.right_bottom.x-1), chunkidx(area.right_bottom.y-1) );
+	for (auto chunkx = left_top_chunk.x; chunkx <= right_bot_chunk.x; chunkx++)
+		for (auto chunky = left_top_chunk.y; chunky <= right_bot_chunk.y; chunky++)
+		{
+			// cout << "\t" << Pos(chunkx,chunky).str() << ": " << actual_entities[Pos(chunkx,chunky)].size() << endl; // DEBUG
+			for (const auto& ent : actual_entities[Pos(chunkx,chunky)])
 			{
-				for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
+				// update walk_t information
+				if (ent->proto->collides_player)
 				{
-					auto& tile = view.at(x, outer.right_bottom.y-1);
-					double& margin = tile.margins[BOTTOM];
+					Area_f box = ent->collision_box();
+					Area outer = box.outer();
+					Area inner = Area( outer.left_top+Pos(1,1), outer.right_bottom-Pos(1,1) );
+					Area relevant_outer = outer.intersect(area);
+					Area relevant_inner = inner.intersect(area);
 
-					if (margin > topmargin_of_bottomtile)
-						margin = topmargin_of_bottomtile;
+					// calculate margins
+					double rightmargin_of_lefttile = box.left_top.x - outer.left_top.x;
+					double leftmargin_of_righttile = outer.right_bottom.x - box.right_bottom.x;
+					double bottommargin_of_toptile = box.left_top.y - outer.left_top.y;
+					double topmargin_of_bottomtile = outer.right_bottom.y - box.right_bottom.y;
 
-					if (outer.right_bottom.y-1 != outer.left_top.y)
-						tile.margins[TOP] = 0.;
-				}
-				
-				for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
-				{
-					auto& tile = view.at(x, outer.right_bottom.y-1);
-					tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
-				}
-			}
+					if (area.contains_y(outer.left_top.y))
+					{
+						for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
+						{
+							auto& tile = view.at(x, outer.left_top.y);
+							double& margin = tile.margins[TOP];
 
-			if (area.contains_x(outer.left_top.x))
-			{
-				for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
-				{
-					auto& tile = view.at(outer.left_top.x, y);
-					double& margin = tile.margins[LEFT];
+							if (margin > bottommargin_of_toptile)
+								margin = bottommargin_of_toptile;
 
-					if (margin > rightmargin_of_lefttile)
-						margin = rightmargin_of_lefttile;
+							if (outer.right_bottom.y-1 != outer.left_top.y)
+								tile.margins[BOTTOM] = 0.;
+						}
 
-					if (outer.right_bottom.x-1 != outer.left_top.x)
-						tile.margins[RIGHT] = 0.;
-				}
-				
-				for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
-				{
-					auto& tile = view.at(outer.left_top.x, y);
-					tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
-				}
-			}
+						for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
+						{
+							auto& tile = view.at(x, outer.left_top.y);
+							tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
+						}
+					}
 
-			if (area.contains_x(outer.right_bottom.x-1))
-			{
-				for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
-				{
-					auto& tile = view.at(outer.right_bottom.x-1, y);
-					double& margin = tile.margins[RIGHT];
+					if (area.contains_y(outer.right_bottom.y-1))
+					{
+						for (int x = relevant_outer.left_top.x; x < relevant_outer.right_bottom.x; x++)
+						{
+							auto& tile = view.at(x, outer.right_bottom.y-1);
+							double& margin = tile.margins[BOTTOM];
 
-					if (margin > leftmargin_of_righttile)
-						margin = leftmargin_of_righttile;
+							if (margin > topmargin_of_bottomtile)
+								margin = topmargin_of_bottomtile;
 
-					if (outer.right_bottom.x-1 != outer.left_top.x)
-						tile.margins[LEFT] = 0.;
-				}
-				
-				for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
-				{
-					auto& tile = view.at(outer.right_bottom.x-1, y);
-					tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
+							if (outer.right_bottom.y-1 != outer.left_top.y)
+								tile.margins[TOP] = 0.;
+						}
+						
+						for (int x = relevant_inner.left_top.x; x < relevant_inner.right_bottom.x; x++)
+						{
+							auto& tile = view.at(x, outer.right_bottom.y-1);
+							tile.margins[LEFT] = tile.margins[RIGHT] = 0.;
+						}
+					}
+
+					if (area.contains_x(outer.left_top.x))
+					{
+						for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
+						{
+							auto& tile = view.at(outer.left_top.x, y);
+							double& margin = tile.margins[LEFT];
+
+							if (margin > rightmargin_of_lefttile)
+								margin = rightmargin_of_lefttile;
+
+							if (outer.right_bottom.x-1 != outer.left_top.x)
+								tile.margins[RIGHT] = 0.;
+						}
+						
+						for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
+						{
+							auto& tile = view.at(outer.left_top.x, y);
+							tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
+						}
+					}
+
+					if (area.contains_x(outer.right_bottom.x-1))
+					{
+						for (int y = relevant_outer.left_top.y; y < relevant_outer.right_bottom.y; y++)
+						{
+							auto& tile = view.at(outer.right_bottom.x-1, y);
+							double& margin = tile.margins[RIGHT];
+
+							if (margin > leftmargin_of_righttile)
+								margin = leftmargin_of_righttile;
+
+							if (outer.right_bottom.x-1 != outer.left_top.x)
+								tile.margins[LEFT] = 0.;
+						}
+						
+						for (int y = relevant_inner.left_top.y; y < relevant_inner.right_bottom.y; y++)
+						{
+							auto& tile = view.at(outer.right_bottom.x-1, y);
+							tile.margins[TOP] = tile.margins[BOTTOM] = 0.;
+						}
+					}
 				}
 			}
 		}
-	}
 }
 
 

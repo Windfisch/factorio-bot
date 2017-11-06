@@ -46,9 +46,22 @@ class FactorioGame
 		std::string factorio_file_name();
 		std::string remove_line_from_buffer();
 
+		double max_entity_radius = 0.;
 		std::unordered_map< std::string, const EntityPrototype* > entity_prototypes;
 		std::unordered_map< std::string, const ItemPrototype* > item_prototypes;
 		std::unordered_map< std::string, const Recipe* > recipes;
+
+		std::unordered_map< Pos, std::vector< std::shared_ptr<Entity> > > actual_entities; // list of entities that are actually there per chunk
+		std::unordered_map< Pos, std::vector< std::shared_ptr<DesiredEntity> > > desired_entities; // list of entities that we expect to be there per chunk
+
+		/* desired_entities and actual_entities deviate because of the following reasons:
+		 *   - trees are irrelevant for desired_entities and thus omitted
+		 *   - an entity was scheduled to be built, but is still awaiting its construction
+		 *     (walking there takes some time)
+		 *   - an entity was destroyed by a biter attack
+		 *   - an entity was reconfigured by another player
+		 */
+
 
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
@@ -58,6 +71,7 @@ class FactorioGame
 		void parse_action_completed(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
+		void update_walkmap(const Area& area);
 		void parse_mined_item(const std::string& data);
 		
 		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);

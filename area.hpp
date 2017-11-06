@@ -39,6 +39,8 @@ template<typename T> struct Area_
 	}
 
 	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
+	Area_<T> expand(T radius) const { return Area_<T>(left_top-Pos_<T>(radius,radius), right_bottom+Pos_<T>(radius,radius)); }
+	T radius() const { return std::max( std::max( left_top.x, left_top.y), std::max( right_bottom.x, right_bottom.y) ); }
 	Area_<T> intersect(Area_<T> other) const
 	{
 		return Area_<T>(

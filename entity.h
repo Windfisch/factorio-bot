@@ -2,6 +2,7 @@
 #include "area.hpp"
 #include "pos.hpp"
 #include <string>
+#include <memory>
 
 struct EntityPrototype
 {
@@ -25,7 +26,15 @@ struct Entity
 	Pos_f pos;
 	const EntityPrototype* proto;
 
+	bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto; }
+
 	Area_f collision_box() const { return proto->collision_box.shift(pos); }
 
 	Entity(const Pos_f& pos_, const EntityPrototype* proto_) : pos(pos_), proto(proto_) {}
+};
+
+struct DesiredEntity : public Entity
+{
+	std::weak_ptr<Entity> corresponding_actual_entity;
+	std::shared_ptr<Entity> get_actual();
 };
