@@ -6,6 +6,7 @@ local my_client_id = nil
 client_local_data = nil -- DO NOT USE, will cause desyncs
 
 outfile="output1.txt"
+must_write_initstuff = true
 
 function complain(text)
 	print(text)
@@ -29,6 +30,16 @@ function on_init()
 
 	game.write_file(outfile, "", false)
 end
+
+function write_file(data)
+	if must_write_initstuff then
+		must_write_initstuff = false
+		writeout_initial_stuff()
+	end
+
+	game.write_file(outfile, data, true)
+end
+
 
 function pos_str(pos)
 	return pos.x .. "," .. pos.y
@@ -71,7 +82,7 @@ function writeout_entity_prototypes()
 		if prot.mineable_properties.mineable then mineable = "1" else mineable = "0" end
 		table.insert(lines, prot.name.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
 	end
-	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+	write_file(header..table.concat(lines, "$").."\n")
 end
 
 function writeout_item_prototypes()
@@ -86,7 +97,7 @@ function writeout_item_prototypes()
 		table.insert(lines, prot.name.." FLUID nil 0 0 0 0")
 	end
 
-	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+	write_file(header..table.concat(lines, "$").."\n")
 end
 
 function writeout_recipes()
@@ -111,13 +122,11 @@ function writeout_recipes()
 
 		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
 	end
-	game.write_file(outfile, header..table.concat(lines, "$").."\n", true)
+	write_file(header..table.concat(lines, "$").."\n")
 end
 
 function on_whoami()
 	if client_local_data.whoami == "server" then
-		writeout_initial_stuff()
-		
 		client_local_data.initial_discovery={}
 		client_local_data.initial_discovery.chunks = {}
 		for chunk in game.surfaces[1].get_chunks() do
@@ -239,7 +248,7 @@ function on_tick(event)
 						player.mining_state = { mining=true, position=ent.position }
 					end
 				else
-					game.write_file(outfile, "complete: mining "..idx.."\n", true)
+					write_file("complete: mining "..idx.."\n")
 					action_completed(global.p[idx].mining.action_id)
 					global.p[idx].mining = nil
 				end
@@ -265,7 +274,7 @@ function writeout_players()
 			table.insert(players, idx.." "..player.character.position.x.." "..player.character.position.y)
 		end
 	end
-	game.write_file(outfile, "players: "..table.concat(players, ",").."\n", true)
+	write_file("players: "..table.concat(players, ",").."\n")
 end
 
 function on_sector_scanned(event)
@@ -329,7 +338,7 @@ function writeout_tiles(surface, area) -- SLOW! beastie can do ~2.8 per tick
 		end
 	end
 
-	game.write_file(outfile, header..table.concat(line, ",").."\n", true)
+	write_file(header..table.concat(line, ",").."\n")
 end
 
 function writeout_resources(surface, area) -- quite fast. beastie can do > 40, up to 75 per tick
@@ -345,7 +354,7 @@ function writeout_resources(surface, area) -- quite fast. beastie can do > 40, u
 		end
 	end
 	table.insert(lines,line)
-	game.write_file(outfile, header..table.concat(lines,"").."\n", true)
+	write_file(header..table.concat(lines,"").."\n")
 
 	line=nil
 end
@@ -365,7 +374,7 @@ function writeout_objects(surface, area)
 		end
 	end
 	table.insert(lines,line)
-	game.write_file(outfile, header..table.concat(lines,"").."\n", true)
+	write_file(header..table.concat(lines,"").."\n")
 
 	line=nil
 end
@@ -401,16 +410,16 @@ function on_player_mined_item(event)
 		count = 1
 	end
 
-	game.write_file(outfile, "mined_item: "..event.player_index.." "..name.." "..count.."\n", true)
+	write_file("mined_item: "..event.player_index.." "..name.." "..count.."\n")
 end
 
 
 function action_completed(action_id)
-	game.write_file(outfile, "action_completed: ok "..action_id.."\n", true)
+	write_file("action_completed: ok "..action_id.."\n")
 end
 
 function action_completed(action_id)
-	game.write_file(outfile, "action_completed: fail "..action_id.."\n", true)
+	write_file("action_completed: fail "..action_id.."\n")
 end
 
 function on_some_entity_created(event)
