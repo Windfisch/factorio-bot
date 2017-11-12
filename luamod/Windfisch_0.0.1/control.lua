@@ -268,6 +268,19 @@ function on_tick(event)
 		writeout_players()
 	end
 
+	-- periodically update the objects around the player to ensure that nothing is missed
+	-- This is merely a safety net and SHOULD be unnecessary, if all other updates don't miss anything
+	if event.tick % 300 == 0 then
+		for idx, player in pairs(game.players) do
+			if player.connected and player.character then
+				local x = math.floor(player.character.position.x)
+				local y = math.floor(player.character.position.x)
+
+				writeout_objects(player.surface, {left_top={x=x-100,y=y-100}, right_bottom={x=x+100,y=y+100}})
+			end
+		end
+	end
+
 	if #todo_next_tick > 0 then
 		print("on_tick executing "..#todo_next_tick.." stored callbacks")
 		for _,func in ipairs(todo_next_tick) do
