@@ -8,6 +8,8 @@ client_local_data = nil -- DO NOT USE, will cause desyncs
 outfile="output1.txt"
 must_write_initstuff = true
 
+local todo_next_tick = {}
+
 function complain(text)
 	print(text)
 	game.forces["player"].print(text)
@@ -265,6 +267,14 @@ function on_tick(event)
 	if event.tick % 10 == 0 then
 		writeout_players()
 	end
+
+	if #todo_next_tick > 0 then
+		print("on_tick executing "..#todo_next_tick.." stored callbacks")
+		for _,func in ipairs(todo_next_tick) do
+			func()
+		end
+		todo_next_tick = {}
+	end
 end
 
 function writeout_players()
@@ -431,6 +441,8 @@ function on_some_entity_created(event)
 		return
 	end
 
+	writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}})
+
 	complain("on_some_entity_created: "..ent.name.." at "..ent.position.x..","..ent.position.y)
 end
 
@@ -441,6 +453,13 @@ function on_some_entity_deleted(event)
 		return
 	end
 
+	-- we can't do this now, because the entity still exists at this point. instead, we schedule the writeout for the next tick
+	
+	local surface = ent.surface
+	local area = {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}}
+
+	table.insert(todo_next_tick, function () writeout_objects(surface, area ) end)
+	
 	complain("on_some_entity_deleted: "..ent.name.." at "..ent.position.x..","..ent.position.y)
 end
 
