@@ -365,11 +365,13 @@ function writeout_objects(surface, area)
 	line = ''
 	lines={}
 	for idx, ent in pairs(surface.find_entities(area)) do
-		if ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
-			line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y
-			if idx % 100 == 0 then
-				table.insert(lines,line)
-				line=''
+		if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
+			if ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
+				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y
+				if idx % 100 == 0 then
+					table.insert(lines,line)
+					line=''
+				end
 			end
 		end
 	end

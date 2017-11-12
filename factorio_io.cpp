@@ -456,11 +456,8 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		actual_entities[Pos( chunkidx(floor(ent_ptr->pos.x)), chunkidx(floor(ent_ptr->pos.y)) )].push_back(ent_ptr);
 	}
 
-	cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << stats.created << " and deleted " << pending_entities.size() << endl; // DEBUG
-	if (stats.reused > 0)
-	{
-		for (volatile int i=0; i<100; i++); //DEBUG
-	}
+	if (pending_entities.size() > 0)
+		cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << stats.created << " and deleted " << pending_entities.size() << endl; // DEBUG
 	
 	// all entities that are still in pending_entities ought to be deleted now.
 	for (const auto& ptr : pending_entities)
