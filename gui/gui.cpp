@@ -26,6 +26,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 using std::cout;
 using std::endl;
@@ -35,6 +36,19 @@ using std::floor;
 using std::sin;
 
 using std::max;
+
+using std::string;
+
+static const string ANSI_CLEAR_LINE = "\033[2K";
+static const string ANSI_CURSOR_UP = "\033[A";
+
+static string ANSI_ERASE(int n)
+{
+	string result="";
+	for (int i=0; i<n; i++)
+		result+=ANSI_CURSOR_UP+ANSI_CLEAR_LINE+"\r";
+	return result;
+}
 
 static constexpr int clamp(int v, int a, int b)
 {
@@ -142,13 +156,16 @@ void MapBox::give_info(const Pos& pos)
 		return;
 	last_info_pos = pos;
 
-	const pathfinding::walk_t& info = game->walk_map.view(pos, pos+Pos(1,1), pos).at(Pos(0,0));
+	const pathfinding::walk_t& info = game->walk_map.at(pos);
+	const Resource& res = game->resource_map.at(pos);
 
-	cout << pos.str() << ": can_walk = " << info.can_walk << "; north/east/south/west margins = " <<
+	cout << ANSI_ERASE(2)
+	     << strpad(pos.str()+":",8) << "\tcan_walk = " << info.can_walk << "; north/east/south/west margins = " <<
 		info.margins[NORTH] << "," <<
 		info.margins[EAST] << "," <<
 		info.margins[SOUTH] << "," <<
-		info.margins[WEST] << ";" << endl;
+		info.margins[WEST] << ";" << endl
+	     << "\t\t" << "restype = " << Resource::typestr[res.type] << "; patch = " << res.resource_patch.lock().get() << endl;
 }
 
 int MapBox::handle(int event)

@@ -28,6 +28,16 @@ using std::chrono::milliseconds;
 using namespace std;
 
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL}, {"uranium-ore", URANIUM} };
+	
+const string Resource::typestr[] = {
+		"NONE",
+		"COAL",
+		"IRON",
+		"COPPER",
+		"STONE",
+		"OIL",
+		"URANIUM"
+	};
 
 
 FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnected rcon
@@ -423,6 +433,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 
 		if (!area.contains(ent.pos.to_int_floor()))
 		{
+			// this indicates a bug in the lua mod
 			cout << "FIXME: parse_objects packet contained an object (at "<<ent.pos.str()<<") that does not belong to area (" << area.str() << "). ignoring" << endl;
 			continue;
 		}

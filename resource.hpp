@@ -27,6 +27,7 @@ struct Resource
 		URANIUM
 	};
 	static const std::unordered_map<std::string, Resource::type_t> types;
+	static const std::string typestr[];
 
 	enum floodfill_flag_t
 	{
