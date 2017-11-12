@@ -29,15 +29,7 @@ using namespace std;
 
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL}, {"uranium-ore", URANIUM} };
 	
-const string Resource::typestr[] = {
-		"NONE",
-		"COAL",
-		"IRON",
-		"COPPER",
-		"STONE",
-		"OIL",
-		"URANIUM"
-	};
+const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM" };
 
 
 FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnected rcon
