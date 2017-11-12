@@ -423,6 +423,10 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 
 		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name));
 
+		// ignore various ever-moving entities that need to be handled specially
+		if (name == "player")
+			continue;
+
 		if (!area.contains(ent.pos.to_int_floor()))
 		{
 			// this indicates a bug in the lua mod
