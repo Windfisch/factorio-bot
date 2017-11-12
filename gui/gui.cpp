@@ -259,32 +259,32 @@ void MapBox::update_imgbuf()
 			Pos tmp = Pos(x-imgwidth/2,y-imgwidth/2)-canvas_center;
 			int tile_width_px = 1<< (-zoom_level); // drawing width of one tile
 			Pos tile_inner_pos = Pos(sane_mod(tmp.x, tile_width_px), sane_mod(tmp.y, tile_width_px));
-			
-			if (zoom_level < -1)
+		
+			// draw the margins caused by objects on the tile
+			if (w.known)
 			{
-				// draw margins
-				double inner_x = tile_inner_pos.x / double(tile_width_px);
-				double inner_y = tile_inner_pos.y / double(tile_width_px);
+				if (zoom_level < -1)
+				{
+					// draw margins
+					double inner_x = tile_inner_pos.x / double(tile_width_px);
+					double inner_y = tile_inner_pos.y / double(tile_width_px);
 
-				if ( (w.margins[NORTH] <= inner_y && inner_y < 1.-w.margins[SOUTH]) &&
-				     (w.margins[WEST] <= inner_x && inner_x < 1.-w.margins[EAST]) )
-					col.blend(Color(255, 127, 0), 0.4);
-			}
-			else
-			{
-				if (w.margins[NORTH] < 1 || w.margins[SOUTH] < 1 || w.margins[EAST] < 1 || w.margins[WEST] < 1)
-					col.blend(Color(255, 127, 0), 0.4);
+					if ( (w.margins[NORTH] <= inner_y && inner_y < 1.-w.margins[SOUTH]) &&
+					     (w.margins[WEST] <= inner_x && inner_x < 1.-w.margins[EAST]) )
+						col.blend(Color(255, 127, 0), 0.4);
+				}
+				else
+				{
+					if (w.margins[NORTH] < 1 || w.margins[SOUTH] < 1 || w.margins[EAST] < 1 || w.margins[WEST] < 1)
+						col.blend(Color(255, 127, 0), 0.4);
+				}
 			}
 
+			// draw lines around the tiles
 			if (zoom_level < -2)
 			{
 				if (tile_inner_pos.x == 0 || tile_inner_pos.y == 0)
-				{
-					//col.r=255-col.r;
-					//col.g=255-col.g;
-					//col.b=255-col.b;
 					col.blend(Color(127,127,127), zoom_level==-3 ? 0.7 : 0.5);
-				}
 			}
 
 			if (resview.at(mappos).patch_id)
