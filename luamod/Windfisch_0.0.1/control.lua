@@ -9,6 +9,7 @@ outfile="output1.txt"
 must_write_initstuff = true
 
 local todo_next_tick = {}
+local crafting_queue = {} -- array of lists. crafting_queue[player_idx] is a list
 
 function complain(text)
 	print(text)
@@ -443,7 +444,7 @@ function action_completed(action_id)
 	write_file("action_completed: ok "..action_id.."\n")
 end
 
-function action_completed(action_id)
+function action_failed(action_id)
 	write_file("action_completed: fail "..action_id.."\n")
 end
 
@@ -476,6 +477,29 @@ function on_some_entity_deleted(event)
 	complain("on_some_entity_deleted: "..ent.name.." at "..ent.position.x..","..ent.position.y)
 end
 
+function on_player_crafted_item(event)
+	queue = crafting_queue[event.player_index]
+	if queue == nil then
+		complain("player "..game.players[event.player_index].name.." unexpectedly crafted "..event.recipe.name)
+	else
+		if queue[1].recipe == event.recipe.name then
+			if queue[1].id == nil then
+				complain("player "..game.players[event.player_index].name.." has crafted "..queue[1].recipe..", but that's not all")
+			else
+				complain("player "..game.players[event.player_index].name.." has finished crafting "..queue[1].recipe.." with id "..queue[1].id)
+				action_completed(queue[1].id)
+			end
+			table.remove(queue,1)
+			if #queue == 0 then
+				complain("done crafting")
+				crafting_queue[event.player_index] = nil
+			end
+		else
+			complain("player "..game.players[event.player_index].name.." crafted "..event.recipe.name.." which is probably an intermediate product")
+		end
+	end
+end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_event(defines.events.on_tick, on_tick)
@@ -492,6 +516,8 @@ script.on_event(defines.events.on_entity_died, on_some_entity_deleted) --entity
 script.on_event(defines.events.on_player_mined_entity, on_some_entity_deleted) --entity
 script.on_event(defines.events.on_robot_mined_entity, on_some_entity_deleted) --entity
 script.on_event(defines.events.on_resource_depleted, on_some_entity_deleted) --entity
+
+script.on_event(defines.events.on_player_crafted_item, on_player_crafted_item)
 
 
 
@@ -522,7 +548,7 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 	else
 		print("no entity to mine")
 		global.p[player_id].mining = nil
-		action_failed(action_id) -- FIXME implement this
+		action_failed(action_id)
 	end
 end
 
@@ -561,10 +587,26 @@ function rcon_whoami(who)
 	end
 end
 
+function rcon_start_crafting(action_id, player_id, recipe, count)
+	local player = game.players[player_id]
+	local ret = player.begin_crafting{count=count, recipe=recipe}
+	if ret ~= count then
+		complain("could not have player "..player.name.." craft "..count.." "..recipe.." (but only "..ret..")")
+	end
+
+	for i = 1,count do
+		local aid = nil
+		if i == count then aid = action_id end
+		if crafting_queue[player_id] == nil then crafting_queue[player_id] = {} end
+		table.insert(crafting_queue[player_id], {recipe=recipe, id=aid})
+	end
+end
+
 remote.add_interface("windfisch", {
 	test=rcon_test,
 	set_waypoints=rcon_set_waypoints,
 	set_mining_target=rcon_set_mining_target,
 	place_entity=rcon_place_entity,
+	start_crafting=rcon_start_crafting,
 	whoami=rcon_whoami
 })

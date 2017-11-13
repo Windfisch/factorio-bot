@@ -138,4 +138,14 @@ namespace action
 		void tick();
 		void on_mined_item(std::string type, int amount);
 	};
+
+	struct CraftRecipe : public PrimitiveAction
+	{
+		CraftRecipe(FactorioGame* game, int player, std::string recipe_, int count_=1) : PrimitiveAction(game,player), recipe(recipe_), count(count_) {}
+
+		std::string recipe;
+		int count;
+
+		private: void execute_impl();
+	};
 } // namespace action

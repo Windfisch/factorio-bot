@@ -89,6 +89,7 @@ class FactorioGame
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);
 		void set_mining_target(int action_id, int player_id, Entity target);
 		void unset_mining_target(int player_id);
+		void start_crafting(int action_id, int player_id, std::string recipe, int count=1);
 		
 		[[deprecated("set player goals instead")]]
 		void walk_to(int id, const Pos& dest);

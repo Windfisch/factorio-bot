@@ -85,6 +85,11 @@ void FactorioGame::unset_mining_target(int player_id)
 	rcon_call("set_mining_target", 0, player_id, "'stop',nil");
 }
 
+void FactorioGame::start_crafting(int action_id, int player_id, string recipe, int count)
+{
+	rcon_call("start_crafting", action_id, player_id, "'"+recipe+"',"+to_string(count));
+}
+
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
 	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
@@ -823,6 +828,8 @@ int main(int argc, const char** argv)
 
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
+				player.goals->subgoals.emplace_back( make_unique<action::CraftRecipe>(
+					&factorio, player.id, "iron-axe", 2) );
 				player.goals->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
 					&factorio, player.id, *closest_coal_patch, 5) );
 				

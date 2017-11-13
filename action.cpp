@@ -94,4 +94,9 @@ namespace action {
 			cout << "mining " << type << ", remaining: " << this->amount << endl;
 		}
 	}
+
+	void CraftRecipe::execute_impl()
+	{
+		game->start_crafting(id, player, recipe, count);
+	}
 }
