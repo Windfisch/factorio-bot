@@ -19,6 +19,7 @@ Features right now:
   * we can actually walk :)
   * place entities
   * mine entities
+  * craft recipes
 
 
 
@@ -31,8 +32,8 @@ helper scripts for you:
 `./prepare.sh` will unpack three factorio installations (server and two
 clients) and install the lua-part of the bot.
 
-`./launch.sh --start/--stop {server,Nayru,Farore}` will start/stop the
-corresponding instance.
+`./launch.sh --start/--stop/--run {server,Nayru,Farore}` will start/stop the
+corresponding instance. `--run` will start, wait for `^C` and then stop.
 
 `./launch.sh --bot` will start the bot.
 
