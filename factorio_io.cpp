@@ -338,24 +338,24 @@ void FactorioGame::parse_recipes(const string& data)
 
 		for (string ingstr : split(ingredients, ','))
 		{
-			vector<string> fields = split(ingstr, '*');
-			if (fields.size() != 2)
+			vector<string> fields2 = split(ingstr, '*');
+			if (fields2.size() != 2)
 				throw runtime_error("malformed ingredient string in parse_recipes packet");
 
-			const string& ingredient = fields[0];
-			int amount = stoi(fields[1]);
+			const string& ingredient = fields2[0];
+			int amount = stoi(fields2[1]);
 
 			recipe->ingredients.emplace_back(item_prototypes.at(ingredient), amount);
 		}
 
 		for (string prodstr : split(products, ','))
 		{
-			vector<string> fields = split(prodstr, '*');
-			if (fields.size() != 2)
+			vector<string> fields2 = split(prodstr, '*');
+			if (fields2.size() != 2)
 				throw runtime_error("malformed product string in parse_recipes packet");
 
-			const string& product = fields[0];
-			double amount = stod(fields[1]);
+			const string& product = fields2[0];
+			double amount = stod(fields2[1]);
 
 			recipe->products.emplace_back(item_prototypes.at(product), amount);
 		}
@@ -396,7 +396,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		{
 			auto& list = actual_entities[Pos(chunkx,chunky)];
 
-			for (auto i=0; i<list.size();)
+			for (size_t i=0; i<list.size();)
 			{
 				if (area.contains(list[i]->pos.to_int_floor()))
 				{
@@ -441,7 +441,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 
 		// try to find ent in pending_entities
 		shared_ptr<Entity> ent_ptr;
-		for (auto i=0; i<pending_entities.size(); i++)
+		for (size_t i=0; i<pending_entities.size(); i++)
 		{
 			if (*pending_entities[i] == ent) // found
 			{
@@ -465,7 +465,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		}
 
 		// now place ent_ptr in the appropriate list.
-		actual_entities[Pos( chunkidx(floor(ent_ptr->pos.x)), chunkidx(floor(ent_ptr->pos.y)) )].push_back(ent_ptr);
+		actual_entities[Pos( chunkidx(int(floor(ent_ptr->pos.x))), chunkidx(int(floor(ent_ptr->pos.y))) )].push_back(ent_ptr);
 	}
 
 	if (pending_entities.size() > 0)
@@ -629,7 +629,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			type_str = entry.substr(0,p1);
 			type = Resource::types.at(type_str);
 		}
-		catch (const out_of_range& unused)
+		catch (const out_of_range&)
 		{
 			throw std::runtime_error("resource type '"+entry.substr(0,p1)+"' is not known in Resource::types[] (definition at the top of factorio_io.cpp");
 		}

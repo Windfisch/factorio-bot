@@ -44,7 +44,7 @@ namespace action {
 			patch->bounding_box.center(), game->walk_map, 0.4+0.1);
 
 		// find the first point where we enter the patch
-		ssize_t i;
+		size_t i;
 		for (i=0; i<waypoints.size(); i++)
 		{
 			auto& tile = game->resource_map.at(waypoints[i]);
@@ -57,7 +57,7 @@ namespace action {
 		assert(tile.type == patch->type && tile.resource_patch.lock() == patch);
 
 		// because we have a certain mining distance, we can stop walking a bit before arriving.
-		i = max(i - MINING_DISTANCE, ssize_t(0));
+		i = max(ssize_t(i - MINING_DISTANCE), ssize_t(0));
 		waypoints.resize(i+1);
 
 		// we need to cleanup the path, because it came from astar_raw(), not astar().
@@ -80,7 +80,7 @@ namespace action {
 		CompoundGoal::tick();
 	}
 
-	void WalkAndMineResource::on_mined_item(string type, int amount)
+	void WalkAndMineResource::on_mined_item(string type, int amount_mined)
 	{
 		auto it = Resource::types.find(type);
 		if (it == Resource::types.end())
@@ -90,7 +90,7 @@ namespace action {
 
 		if (type_id == patch->type)
 		{
-			this->amount -= amount;
+			amount -= amount_mined;
 			cout << "mining " << type << ", remaining: " << this->amount << endl;
 		}
 	}

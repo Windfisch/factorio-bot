@@ -30,7 +30,10 @@ struct Pos_
 
 	bool operator==(const Pos_<T> that) const
 	{
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wfloat-equal"
 		return this->x == that.x && this->y == that.y;
+		#pragma GCC diagnostic pop
 	}
 
 	bool operator!=(const Pos_<T> that) const { return !operator==(that); }

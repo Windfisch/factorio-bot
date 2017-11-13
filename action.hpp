@@ -8,6 +8,7 @@
 #include "pos.hpp"
 #include "entity.h"
 #include "resource.hpp"
+#include "unused.h"
 
 class FactorioGame;
 
@@ -23,7 +24,7 @@ namespace action
 		virtual void start() = 0;
 		virtual void tick() = 0;
 		virtual void abort() { throw std::runtime_error("abort() not implemented for this action"); }
-		virtual void on_mined_item(std::string type, int count) {}
+		virtual void on_mined_item(std::string type, int count) { UNUSED(type); UNUSED(count); }
 		virtual ~PlayerGoal() = default;
 	};
 

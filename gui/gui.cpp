@@ -2,6 +2,9 @@
 #include <cassert>
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
+#pragma GCC diagnostic push
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdocumentation-deprecated-sync"
@@ -50,7 +53,7 @@ static string ANSI_ERASE(int n)
 	return result;
 }
 
-static constexpr int clamp(int v, int a, int b)
+template<typename T> static constexpr T clamp(T v, T a, T b)
 {
 	return (v<a)?a:  ( (v>b?b: v) );
 }
@@ -59,14 +62,14 @@ namespace GUI
 {
 
 struct Color {
-	int r,g,b;
+	uint8_t r,g,b;
 	Color() : r(0),g(0),b(0){}
-	Color(int rr,int gg,int bb):r(rr),g(gg),b(bb){ assert(r<256 && g<256 && b<256); }
+	Color(int rr,int gg,int bb):r(uint8_t(rr)),g(uint8_t(gg)),b(uint8_t(bb)){ assert(rr<256 && gg<256 && bb<256); }
 	void blend(const Color& other, float alpha)
 	{
-		this->r = clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255);
-		this->g = clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255);
-		this->b = clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255);
+		this->r = clamp(uint8_t(alpha*this->r + (1.f-alpha)*other.r), uint8_t(0), uint8_t(255));
+		this->g = clamp(uint8_t(alpha*this->g + (1.f-alpha)*other.g), uint8_t(0), uint8_t(255));
+		this->b = clamp(uint8_t(alpha*this->b + (1.f-alpha)*other.b), uint8_t(0), uint8_t(255));
 	}
 };
 
@@ -288,12 +291,12 @@ void MapBox::update_imgbuf()
 
 					if ( (w.margins[NORTH] <= inner_y && inner_y < 1.-w.margins[SOUTH]) &&
 					     (w.margins[WEST] <= inner_x && inner_x < 1.-w.margins[EAST]) )
-						col.blend(Color(255, 127, 0), 0.4);
+						col.blend(Color(255, 127, 0), 0.4f);
 				}
 				else
 				{
 					if (w.margins[NORTH] < 1 || w.margins[SOUTH] < 1 || w.margins[EAST] < 1 || w.margins[WEST] < 1)
-						col.blend(Color(255, 127, 0), 0.4);
+						col.blend(Color(255, 127, 0), 0.4f);
 				}
 			}
 
@@ -301,11 +304,11 @@ void MapBox::update_imgbuf()
 			if (zoom_level < -2)
 			{
 				if (tile_inner_pos.x == 0 || tile_inner_pos.y == 0)
-					col.blend(Color(127,127,127), zoom_level==-3 ? 0.7 : 0.5);
+					col.blend(Color(127,127,127), zoom_level==-3 ? 0.7f : 0.5f);
 			}
 
 			if (resview.at(mappos).patch_id)
-				col.blend(get_color(resview.at(mappos).patch_id), .5);
+				col.blend(get_color(resview.at(mappos).patch_id), .5f);
 			
 			imgbuf[idx+0] = col.r;
 			imgbuf[idx+1] = col.g;
@@ -313,10 +316,10 @@ void MapBox::update_imgbuf()
 			imgbuf[idx+3] = 255;
 		}
 
-	for (int i=0; i<last_path.size(); i++)
+	for (size_t i=0; i<last_path.size(); i++)
 	{
 		float x = i / float(last_path.size());
-		Color col = Color( 255*x, 255*(1-x), 196 );
+		Color col = Color( int(255*x), int(255*(1-x)), 196 );
 
 		Pos screenpos = zoom_transform( last_path[i], -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
 		draw_box(screenpos, 1<<max(-zoom_level-1,0), col);
@@ -376,3 +379,5 @@ double wait(double t)
 }
 
 } // namespace GUI
+
+#pragma GCC diagnostic pop

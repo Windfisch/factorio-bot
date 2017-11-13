@@ -28,7 +28,7 @@ ifeq ($(COMPILER),GCC)
 else
 	CC=clang
 	CXX=clang++
-	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
+	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-weak-vtables
 	GUIFLAGS += 
 endif
 
