@@ -67,9 +67,9 @@ struct Color {
 	Color(int rr,int gg,int bb):r(uint8_t(rr)),g(uint8_t(gg)),b(uint8_t(bb)){ assert(rr<256 && gg<256 && bb<256); }
 	void blend(const Color& other, float alpha)
 	{
-		this->r = clamp(uint8_t(alpha*this->r + (1.f-alpha)*other.r), uint8_t(0), uint8_t(255));
-		this->g = clamp(uint8_t(alpha*this->g + (1.f-alpha)*other.g), uint8_t(0), uint8_t(255));
-		this->b = clamp(uint8_t(alpha*this->b + (1.f-alpha)*other.b), uint8_t(0), uint8_t(255));
+		this->r = uint8_t(clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255));
+		this->g = uint8_t(clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255));
+		this->b = uint8_t(clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255));
 	}
 };
 
