@@ -2,7 +2,6 @@
 depend
 *.d
 *.o
-test
 core
 gmon.out
 rcon-client

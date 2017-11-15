@@ -17,6 +17,8 @@ template<typename T> struct Area_
 	
 	std::string str() const;
 
+	bool operator==(const Area_<T>& other) const { return this->left_top==other.left_top && this->right_bottom==other.right_bottom; }
+
 	void normalize()
 	{
 		if (left_top.x > right_bottom.x)

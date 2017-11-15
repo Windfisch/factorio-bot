@@ -11,20 +11,6 @@
 
 #include "pos.hpp"
 
-namespace std {
-	template <> struct hash<Pos>
-	{
-		typedef Pos argument_type;
-		typedef std::size_t result_type;
-		result_type operator()(argument_type const& p) const
-		{
-			result_type const h1( std::hash<int>{}(p.x) );
-			result_type const h2( std::hash<int>{}(p.y) );
-			return h1 ^ (h2 << 1);
-		}
-	};
-}
-
 template <class T> using Chunk = std::array< std::array< T, 32 >, 32 >;
 
 template <class T>

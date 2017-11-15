@@ -1,6 +1,6 @@
 include config.mk
 
-EXE=test
+EXE=bot
 OBJECTS=factorio_io.o rcon.o area.o pathfinding.o action.o gui/gui.o # objects used for $(EXE)
 
 ALLOBJECTS=$(OBJECTS) rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
@@ -50,12 +50,15 @@ LIBS=`fltk-config --ldflags`
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
 # Pseudotargets
-.PHONY: all clean run info mod help
+.PHONY: all clean run info mod help test
 
 all: $(EXE) rcon-client
 
 clean:
 	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend
+
+test:
+	make -C test all
 
 help:
 	@echo "Targets:"

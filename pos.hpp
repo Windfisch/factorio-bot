@@ -61,3 +61,18 @@ template <> inline Pos_<double> Pos_<double>::operator/(double f) const { return
 
 typedef Pos_<int> Pos;
 typedef Pos_<double> Pos_f;
+
+namespace std {
+	template <> struct hash<Pos>
+	{
+		typedef Pos argument_type;
+		typedef std::size_t result_type;
+		result_type operator()(argument_type const& p) const
+		{
+			result_type const h1( std::hash<int>{}(p.x) );
+			result_type const h2( std::hash<int>{}(p.y) );
+			return h1 ^ (h2 << 1);
+		}
+	};
+}
+
