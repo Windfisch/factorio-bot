@@ -9,10 +9,11 @@ if [ ! -e $CONF ]; then
 	exit 1
 fi
 
-if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] && [ ! x$1 == x--bot-offline ]; then
+if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] && [ ! x$1 == x--bot-offline ] && [ ! x$1 == x--newmap ] && [ ! x$1 == x--restoremap ]; then
 	echo "Usage:"
 	echo "    $0 --start|--stop|--run server|clientname"
 	echo "    $0 --bot|--bot-offline"
+	echo "    $0 --newmap|--restoremap"
 	echo ""
 	echo "The first form will start or stop a Factorio server/client."
 	echo "--start will not block and you must --stop manually."
@@ -22,6 +23,8 @@ if [ ! $# -eq 2 ] && [ ! x$1 == x--bot ] && [ ! x$1 == x--bot-offline ]; then
 	echo "  - $0 --start server"
 	echo "  - ($0 --start client)"
 	echo "  - $0 --start bot"
+	echo "The third form will create a new map (overwriting both the current map"
+	echo "and its backup), or will restore that backup respectively"
 	exit 0
 fi
 
@@ -43,6 +46,8 @@ case "$ACTION" in
 	--run) ;;
 	--bot) ;;
 	--bot-offline) ;;
+	--newmap) ;;
+	--restoremap) ;;
 	*)
 		echo "ERROR: action '$ACTION' not understood. run '$0 --help'"
 		exit 1
@@ -54,6 +59,15 @@ if ( [ $ACTION == --start ] || [ $ACTION == --stop ] || [ $ACTION == --run ] ) &
 	echo "ERROR: target '$TARGET' does not exist."
 	echo -n '      available targets are '; ( cd "$INSTALLPATH" && echo */ | sed 's./..g'; )
 	exit 1
+fi
+
+if [ $ACTION == --newmap ]; then
+	"$INSTALLPATH/server/bin/x64/factorio" --create "$INSTALLPATH/map.zip"
+	cp "$INSTALLPATH/map.zip" "$INSTALLPATH/map.zip.orig"
+fi
+
+if [ $ACTION == --restoremap ]; then
+	cp "$INSTALLPATH/map.zip.orig" "$INSTALLPATH/map.zip"
 fi
 
 
