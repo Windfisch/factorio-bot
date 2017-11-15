@@ -65,6 +65,42 @@ namespace action
 		// dispatch events
 		void on_mined_item(std::string type, int count)
 		{
+			// FIXME shouldn't this be subgoal[current_subgoal] only?
+			for (auto& subgoal : subgoals)
+				subgoal->on_mined_item(type, count);
+		}
+	};
+
+	struct ParallelGoal : public PlayerGoal
+	{
+		std::vector< std::unique_ptr<PlayerGoal> > subgoals;
+
+		ParallelGoal(FactorioGame* game, int player) : PlayerGoal(game, player) {}
+
+		void tick()
+		{
+			for (auto& subgoal : subgoals)
+				if (!subgoal->is_finished())
+					subgoal->tick();
+		}
+
+		void start()
+		{
+			for (auto& subgoal : subgoals)
+				subgoal->start();
+		}
+
+		bool is_finished()
+		{
+			bool all_done = true;
+			for (auto& subgoal : subgoals)
+				all_done = all_done && subgoal->is_finished();
+			return all_done;
+		}
+		
+		// dispatch events
+		void on_mined_item(std::string type, int count)
+		{
 			for (auto& subgoal : subgoals)
 				subgoal->on_mined_item(type, count);
 		}

@@ -828,10 +828,17 @@ int main(int argc, const char** argv)
 
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
-				player.goals->subgoals.emplace_back( make_unique<action::CraftRecipe>(
+				
+				{
+				auto parallel = make_unique<action::ParallelGoal>(&factorio, player.id);
+				
+				parallel->subgoals.emplace_back( make_unique<action::CraftRecipe>(
 					&factorio, player.id, "iron-axe", 2) );
-				player.goals->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
+				parallel->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
 					&factorio, player.id, *closest_coal_patch, 5) );
+
+				player.goals->subgoals.emplace_back(move(parallel));
+				}
 				
 				player.goals->start();
 			}
