@@ -15,6 +15,7 @@ typedef WorldList<propagate_const<unique_ptr<Entity>>> WL;
 static void show(const WL& l);
 static void test_erase(WL l, size_t i);
 static void test_sorted(WL l, Pos_f center);
+static void test_sorted_erase(WL l, Pos_f center, size_t idx);
 static WL makeWL();
 
 static void show(const WL& l)
@@ -58,6 +59,23 @@ static void test_sorted(WL l, Pos_f center)
 	cout << "\tthat's " << i << " objects" << endl;
 }
 
+static void test_sorted_erase(WL l, Pos_f center, size_t idx)
+{
+	WL::Sorted s = l.sorted(center);
+
+	int i=0;
+	cout << "erasing "<<idx<<"-closest item to " << center.str() << endl;
+	
+	WL::Sorted::iterator iter_erase = s.begin();
+	advance(iter_erase, idx);
+	l.erase(iter_erase);
+	
+	for (WL::Sorted::iterator it = s.begin(); it != s.end(); it++, i++)
+		cout << "\t" << (*it)->pos.str() << "\t(dist = " << ((*it)->pos-center).len() << ")" << endl;
+	
+	cout << "\tthat's " << i << " objects" << endl;
+}
+
 static WL makeWL()
 {
 	WL l;
@@ -93,4 +111,6 @@ int main()
 	test_sorted(makeWL(), Pos_f(0.,0.));
 	test_sorted(makeWL(), Pos_f(70.,35.));
 	test_sorted(makeWL(), Pos_f(0.,-9999.));
+
+	test_sorted_erase(makeWL(), Pos_f(0.,0.), 2);
 }

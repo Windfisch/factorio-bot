@@ -417,7 +417,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						outer_radius = inner_radius * 2. + 32; // FIXME more sophisticated strategy for selecting the new outer_radius
 
 						prepare_worklist();
-						worklist_iterator = worklist.begin(); // FIXME endless loop if we're going past the very last element!
+						worklist_iterator = worklist.begin();
 
 						if (worklist.empty()) // empty worklist. let's check whether increasing the outer_radius further can get more entities
 						{
@@ -440,7 +440,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					while (worklist_iterator == worklist.begin())
 					{
 						outer_radius = inner_radius;
-						inner_radius = std::max(0, (outer_radius - 32 ) / 2.); // FIXME more sophisticated strategy, see above
+						inner_radius = std::max(0., (outer_radius - 32. ) / 2.); // FIXME more sophisticated strategy, see above
 						if (inner_radius <= 0.) inner_radius = 0.;
 
 						prepare_worklist();
@@ -512,9 +512,29 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 			(*this)[Pos::tile_to_chunk(thing->pos.to_int())].emplace_back(std::move(thing));
 		}
 
-		/** erases the thing pointed to by `iter` from the WorldList, returning an iterator to the next thing.
-		  * iterators pointing to earlier items as well as iterators pointing to items in different chunks
-		  * remain valid, while iterators after `iter` in the same chunk get invalidated */
+		/** erases the thing pointed to by `iter` from the WorldList, returning a Range::iterator to the next thing.
+		  * Range::iterators pointing to earlier items as well as Range::iterators pointing to items in different chunks
+		  * remain valid, while Range::iterators after `iter` in the same chunk get invalidated.
+		  * Sorted::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
+		  * while those who are in a different ring remain valid.
+		  */
+		void erase(typename Sorted::iterator iter)
+		{
+			assert(iter.parent == this);
+			assert(!iter.worklist.empty());
+			assert(iter.worklist_iterator != iter.worklist.end());
+			assert(iter.worklist_iterator->vector_ptr);
+			assert(iter.worklist_iterator->iterator_in_vector != iter.worklist_iterator->vector_ptr->end());
+
+			iter.worklist_iterator->vector_ptr->erase(iter.worklist_iterator->iterator_in_vector);
+		}
+
+		/** erases the thing pointed to by `iter` from the WorldList, returning a Range::iterator to the next thing.
+		  * Range::iterators pointing to earlier items as well as Range::iterators pointing to items in different chunks
+		  * remain valid, while Range::iterators after `iter` in the same chunk get invalidated.
+		  * Sorted::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
+		  * while those who are in a different ring remain valid.
+		  */
 		typename Range::iterator erase(typename Range::iterator iter)
 		{
 			assert(iter.parent == this);
