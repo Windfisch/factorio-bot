@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <map>
 #include <cassert>
 #include <array>
@@ -16,6 +17,17 @@ template <class T>
 class WorldList : public std::unordered_map< Pos, std::vector<T> >
 {
 	public:
+		double radius(Pos_f center = Pos_f(0.,0.)) const
+		{
+			double r = 0.;
+			for (const auto& iter : (*this))
+			{
+				auto chunk_midpoint = Pos_f::chunk_to_tile(iter.first.to_double() + Pos_f(0.5,0.5));
+				r = std::max(r, (chunk_midpoint - center).len() + 0.71 * 32  ); // 0.71 = sqrt(2)/2, rounded up.
+			}
+			return r;
+		}
+
 		template <bool is_const>
 		class range_iterator : public std::iterator<std::bidirectional_iterator_tag,
 			T, // value_type
@@ -246,6 +258,250 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 
 		typedef Range_<true> ConstRange;
 		typedef Range_<false> Range;
+
+
+
+		template <bool is_const>
+		class sorted_iterator : public std::iterator<std::bidirectional_iterator_tag,
+			T, // value_type
+			typename std::vector<T>::iterator::difference_type,
+			typename std::conditional<is_const, const T*, T*>::type, // pointer
+			typename std::conditional<is_const, const T&, T&>::type> // reference
+		{
+			friend class WorldList;
+
+			private:
+				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
+				typedef typename std::conditional<is_const, const T*, T*>::type ptrtype;
+				typedef std::unordered_map<Pos, std::vector<T>> maptype;
+				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type parentptr;
+
+				typedef typename std::conditional<is_const,
+					typename std::vector<T>::const_iterator,
+					typename std::vector<T>::iterator>::type
+					veciter_t;
+				typedef typename std::conditional<is_const,
+					const std::vector<T>*,
+					std::vector<T>*>::type
+					vec_t;
+
+				parentptr parent;
+				Pos_f center;
+
+				double inner_radius;
+				double outer_radius;
+
+				struct worklist_t
+				{
+					vec_t vector_ptr;
+					veciter_t iterator_in_vector;
+					double distance;
+					bool operator< (const worklist_t& other) { return this->distance < other.distance; }
+				};
+
+				typename std::vector<worklist_t> worklist;
+				typename std::vector<worklist_t>::iterator worklist_iterator;
+
+				void prepare_worklist()
+				{
+					// enumerate all items with distance from center d fulfilling: inner_radius <= d < outer_radius.
+					const double outer_len = outer_radius;
+					const Pos_f outer_shift(outer_len, outer_len);
+					const double inner_len = inner_radius / 1.414214 /* this is slightly larger than sqrt(2) */;
+					const Pos_f inner_shift(inner_len, inner_len);
+
+					Area_f outer(center-outer_shift, center+outer_shift);
+					Area_f inner(center-inner_shift, center+inner_shift);
+
+					// all relevant entities are guaranteed to be contained in outer, but not contained in inner.
+					
+					// now split that "rectangle with hole" into four rectangles (or don't split at all, if inner_len is too small)
+					Area_f ranges[4];
+					size_t n_ranges;
+					if (inner_len > 32) // will it be useful to spare the inner part
+					{
+						n_ranges = 4;
+						ranges[0] = Area_f( outer.left_top, Pos_f(outer.right_bottom.x, inner.left_top.y) );
+						ranges[1] = Area_f( outer.left_top.x, inner.left_top.y,
+						                    inner.left_top.x, inner.right_bottom.y );
+						ranges[2] = Area_f( inner.right_bottom.x, inner.left_top.y,
+						                    outer.right_bottom.x, inner.right_bottom.y );
+						ranges[3] = Area_f( Pos_f(outer.left_top.x, inner.right_bottom.y), outer.right_bottom );
+					}
+					else
+					{
+						n_ranges = 1;
+						ranges[0] = outer;
+					}
+
+					// enumerate all relevant objects and insert them into a list
+					worklist.clear();
+					for (size_t i=0; i<n_ranges; i++)
+					{
+						auto range = parent->range(ranges[i]);
+						auto end = range.end();
+						for (auto it = range.begin(); it != end; it++)
+						{
+							reftype item = *it;
+
+							double distance = (item->pos - center).len();
+							if (!(inner_radius <= distance && distance < outer_radius))
+								continue;
+
+							// if we reach this line, the item is relevant for the ring we're considering.
+							worklist.emplace_back(worklist_t{it.curr_vec, it.iter, distance});
+						}
+					}
+
+					// sort that list by distance
+					std::sort(worklist.begin(), worklist.end());
+				}
+
+			public:
+				// FIXME: i don't like this; these two ctors should be private. but how to do this?
+				sorted_iterator(parentptr parent_, const Pos_f& center_, bool give_end=false) :
+					parent(parent_), center(center_)
+				{
+					inner_radius = 0.;
+					outer_radius = 0.;
+
+					if (!give_end)
+					{
+						worklist.clear();
+						worklist.emplace_back(); // put a dummy inside the worklist
+						worklist_iterator = worklist.begin();
+						// increment worklist_iterator, which will then point to worklist.end(), leading to an expansion
+						// of the outer_radius. effectively, this will make the iterator point to the first element.
+						(*this)++;
+					}
+					else
+					{
+						worklist.clear();
+						worklist_iterator = worklist.end();
+					}
+				}
+				sorted_iterator(parentptr parent_, const Pos& center_) : sorted_iterator(parent_, Pos_f(center_.to_double())) {}
+
+				sorted_iterator() : parent(nullptr) {}
+
+				// copy-ctor
+				sorted_iterator(const sorted_iterator<is_const>&) = default;
+
+				bool operator==(sorted_iterator<is_const> other) const
+				{
+					if (!parent) return this->parent == other.parent;
+					else return this->parent == other.parent && this->center == other.center && 
+						( (this->worklist.empty() && other.worklist.empty()) || // are both pointing to the end()?
+						  (!this->worklist.empty() && !other.worklist.empty() && this->worklist_iterator->iterator_in_vector == other.worklist_iterator->iterator_in_vector) ); // if not end(), do both point to the same item?
+				}
+
+				bool operator!=(sorted_iterator<is_const> other) const { return !(*this==other); }
+
+				reftype operator*() const
+				{
+					assert(worklist_iterator != worklist.end());
+					return *worklist_iterator->iterator_in_vector;
+				}
+
+				sorted_iterator<is_const>& operator++()
+				{
+					assert(worklist_iterator != worklist.end());
+					worklist_iterator++;
+
+					double world_radius = -1.; // -1 means uninitialized
+
+					while (worklist_iterator == worklist.end())
+					{
+						// need to increase the search ring
+						inner_radius = outer_radius;
+						outer_radius = inner_radius * 2. + 32; // FIXME more sophisticated strategy for selecting the new outer_radius
+
+						prepare_worklist();
+						worklist_iterator = worklist.begin(); // FIXME endless loop if we're going past the very last element!
+
+						if (worklist.empty()) // empty worklist. let's check whether increasing the outer_radius further can get more entities
+						{
+							if (world_radius < 0.)
+								world_radius = parent->radius(center);
+							
+							if (inner_radius > world_radius) // we've reached the end-of-world. no more items exist.
+								break;
+						}
+					}
+
+					return *this;
+				}
+
+				sorted_iterator<is_const>& operator--()
+				{
+					assert(worklist_iterator != worklist.end());
+					assert(outer_radius > 0.);
+					
+					while (worklist_iterator == worklist.begin())
+					{
+						outer_radius = inner_radius;
+						inner_radius = std::max(0, (outer_radius - 32 ) / 2.); // FIXME more sophisticated strategy, see above
+						if (inner_radius <= 0.) inner_radius = 0.;
+
+						prepare_worklist();
+						worklist_iterator = worklist.end();
+					}
+					assert(!worklist.empty()); // worklist.empty() implies worklist.begin() == .end() == worklist_iterator, which
+					                           //implies that we cannot have left the while loop above. a contradiction.
+
+					worklist_iterator--;
+					return *this;
+				}
+
+				sorted_iterator<is_const> operator++(int)
+				{
+					sorted_iterator<is_const> tmp = *this;
+					++(*this);
+					return tmp;
+				}
+				sorted_iterator<is_const> operator--(int)
+				{
+					sorted_iterator<is_const> tmp = *this;
+					--(*this);
+					return tmp;
+				}
+		};
+
+		template <bool is_const>
+		class Sorted_
+		{
+			private:
+				friend class WorldList;
+				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type ptr_type;
+				ptr_type parent;
+				Pos_f center;
+				Sorted_(ptr_type parent_, Pos_f center_) : parent(parent_), center(center_) {}
+			
+			public:
+				typedef WorldList<T>::sorted_iterator<is_const> iterator;
+
+				// allows to construct a ConstSorted from a Sorted
+				Sorted_( const Sorted_<false>& other ) : parent(other.parent), center(other.center) {}
+				
+				// this could be done more nicely with even more template metaprogramming
+				// Sorted_ is not const-correct. this means, if you have a const reference
+				// of a Sorted_, you cannot do anything with it. But there's no need to
+				// pass around any references of sorteds, since they're so small. Also,
+				// Sorteds are usually used like this:
+				// for (auto& foo : mycontainer.sorted(...)) {...}, i.e. they only live as
+				// anonymous temporary variables.
+				iterator begin() { return iterator(parent, center); }
+				iterator end() { return iterator(parent, center, true); }
+		};
+
+		typedef Sorted_<true> ConstSorted;
+		typedef Sorted_<false> Sorted;
+
+
+
+
+		ConstSorted sorted(const Pos_f& center) const { return ConstSorted(this, center); }
+		Sorted sorted(const Pos_f& center) { return Sorted(this, center); }
 
 		ConstRange range(const Area_f& area) const { return ConstRange(this, area); }
 		Range range(const Area_f& area) { return Range(this, area); }

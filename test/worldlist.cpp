@@ -14,6 +14,7 @@ typedef WorldList<propagate_const<unique_ptr<Entity>>> WL;
 
 static void show(const WL& l);
 static void test_erase(WL l, size_t i);
+static void test_sorted(WL l, Pos_f center);
 static WL makeWL();
 
 static void show(const WL& l)
@@ -43,6 +44,18 @@ static void test_erase(WL l, size_t i)
 
 	show(l);
 	cout << endl;
+}
+
+static void test_sorted(WL l, Pos_f center)
+{
+	WL::Sorted s = l.sorted(center);
+
+	int i=0;
+	cout << "sorting around " << center.str() << endl;
+	for (WL::Sorted::iterator it = s.begin(); it != s.end(); it++, i++)
+		cout << "\t" << (*it)->pos.str() << "\t(dist = " << ((*it)->pos-center).len() << ")" << endl;
+	
+	cout << "\tthat's " << i << " objects" << endl;
 }
 
 static WL makeWL()
@@ -76,4 +89,8 @@ int main()
 
 	for (size_t i=0; i<11; i++)
 		test_erase(makeWL(), i);
+
+	test_sorted(makeWL(), Pos_f(0.,0.));
+	test_sorted(makeWL(), Pos_f(70.,35.));
+	test_sorted(makeWL(), Pos_f(0.,-9999.));
 }
