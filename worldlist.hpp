@@ -17,6 +17,7 @@ template <class T>
 class WorldList : public std::unordered_map< Pos, std::vector<T> >
 {
 	public:
+		/** returns an upper bound of the radius of the circle around center that contains the whole map */
 		double radius(Pos_f center = Pos_f(0.,0.)) const
 		{
 			double r = 0.;
@@ -149,8 +150,6 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					} while (!range.contains((*iter)->pos));
 				}
 
-			public:
-				// FIXME: i don't like this; these two ctors should be private. but how to do this?
 				range_iterator(parentptr parent_, const Area_f& range_, bool give_end=false) :
 					parent(parent_), range(range_),
 					left_top(Pos::tile_to_chunk(range_.left_top.to_int_floor())),
@@ -183,6 +182,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				}
 				range_iterator(parentptr parent_, const Area& range_) : range_iterator(parent_, Area_f(range_.left_top.to_double(), range_.right_bottom.to_double())) {}
 
+			public:
 				range_iterator() : parent(nullptr) {}
 
 				// copy-ctor
@@ -262,7 +262,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 
 
 		template <bool is_const>
-		class sorted_iterator : public std::iterator<std::bidirectional_iterator_tag,
+		class around_iterator : public std::iterator<std::bidirectional_iterator_tag,
 			T, // value_type
 			typename std::vector<T>::iterator::difference_type,
 			typename std::conditional<is_const, const T*, T*>::type, // pointer
@@ -357,9 +357,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					std::sort(worklist.begin(), worklist.end());
 				}
 
-			public:
-				// FIXME: i don't like this; these two ctors should be private. but how to do this?
-				sorted_iterator(parentptr parent_, const Pos_f& center_, bool give_end=false) :
+				around_iterator(parentptr parent_, const Pos_f& center_, bool give_end=false) :
 					parent(parent_), center(center_)
 				{
 					inner_radius = 0.;
@@ -380,14 +378,15 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						worklist_iterator = worklist.end();
 					}
 				}
-				sorted_iterator(parentptr parent_, const Pos& center_) : sorted_iterator(parent_, Pos_f(center_.to_double())) {}
+				around_iterator(parentptr parent_, const Pos& center_) : around_iterator(parent_, Pos_f(center_.to_double())) {}
 
-				sorted_iterator() : parent(nullptr) {}
+			public:
+				around_iterator() : parent(nullptr) {}
 
 				// copy-ctor
-				sorted_iterator(const sorted_iterator<is_const>&) = default;
+				around_iterator(const around_iterator<is_const>&) = default;
 
-				bool operator==(sorted_iterator<is_const> other) const
+				bool operator==(around_iterator<is_const> other) const
 				{
 					if (!parent) return this->parent == other.parent;
 					else return this->parent == other.parent && this->center == other.center && 
@@ -395,7 +394,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						  (!this->worklist.empty() && !other.worklist.empty() && this->worklist_iterator->iterator_in_vector == other.worklist_iterator->iterator_in_vector) ); // if not end(), do both point to the same item?
 				}
 
-				bool operator!=(sorted_iterator<is_const> other) const { return !(*this==other); }
+				bool operator!=(around_iterator<is_const> other) const { return !(*this==other); }
 
 				reftype operator*() const
 				{
@@ -403,7 +402,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					return *worklist_iterator->iterator_in_vector;
 				}
 
-				sorted_iterator<is_const>& operator++()
+				around_iterator<is_const>& operator++()
 				{
 					assert(worklist_iterator != worklist.end());
 					worklist_iterator++;
@@ -432,7 +431,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					return *this;
 				}
 
-				sorted_iterator<is_const>& operator--()
+				around_iterator<is_const>& operator--()
 				{
 					assert(worklist_iterator != worklist.end());
 					assert(outer_radius > 0.);
@@ -453,57 +452,60 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					return *this;
 				}
 
-				sorted_iterator<is_const> operator++(int)
+				around_iterator<is_const> operator++(int)
 				{
-					sorted_iterator<is_const> tmp = *this;
+					around_iterator<is_const> tmp = *this;
 					++(*this);
 					return tmp;
 				}
-				sorted_iterator<is_const> operator--(int)
+				around_iterator<is_const> operator--(int)
 				{
-					sorted_iterator<is_const> tmp = *this;
+					around_iterator<is_const> tmp = *this;
 					--(*this);
 					return tmp;
 				}
 		};
 
 		template <bool is_const>
-		class Sorted_
+		class Around_
 		{
 			private:
 				friend class WorldList;
 				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type ptr_type;
 				ptr_type parent;
 				Pos_f center;
-				Sorted_(ptr_type parent_, Pos_f center_) : parent(parent_), center(center_) {}
+				Around_(ptr_type parent_, Pos_f center_) : parent(parent_), center(center_) {}
 			
 			public:
-				typedef WorldList<T>::sorted_iterator<is_const> iterator;
+				typedef WorldList<T>::around_iterator<is_const> iterator;
 
-				// allows to construct a ConstSorted from a Sorted
-				Sorted_( const Sorted_<false>& other ) : parent(other.parent), center(other.center) {}
+				// allows to construct a ConstAround from a Around
+				Around_( const Around_<false>& other ) : parent(other.parent), center(other.center) {}
 				
 				// this could be done more nicely with even more template metaprogramming
-				// Sorted_ is not const-correct. this means, if you have a const reference
-				// of a Sorted_, you cannot do anything with it. But there's no need to
-				// pass around any references of sorteds, since they're so small. Also,
-				// Sorteds are usually used like this:
-				// for (auto& foo : mycontainer.sorted(...)) {...}, i.e. they only live as
+				// Around_ is not const-correct. this means, if you have a const reference
+				// of a Around_, you cannot do anything with it. But there's no need to
+				// pass around any references of arounds, since they're so small. Also,
+				// Arounds are usually used like this:
+				// for (auto& foo : mycontainer.around(...)) {...}, i.e. they only live as
 				// anonymous temporary variables.
 				iterator begin() { return iterator(parent, center); }
 				iterator end() { return iterator(parent, center, true); }
 		};
 
-		typedef Sorted_<true> ConstSorted;
-		typedef Sorted_<false> Sorted;
+		typedef Around_<true> ConstAround;
+		typedef Around_<false> Around;
 
 
 
+		/** returns an iterable wrapper that enumerates all items sorted by their distance to `center` */
+		ConstAround around(const Pos_f& center) const { return ConstAround(this, center); }
+		/** returns an iterable wrapper that enumerates all items sorted by their distance to `center` */
+		Around around(const Pos_f& center) { return Around(this, center); }
 
-		ConstSorted sorted(const Pos_f& center) const { return ConstSorted(this, center); }
-		Sorted sorted(const Pos_f& center) { return Sorted(this, center); }
-
+		/** returns an iterable wrapper that enumerates all items contained in `area` in arbitrary order */
 		ConstRange range(const Area_f& area) const { return ConstRange(this, area); }
+		/** returns an iterable wrapper that enumerates all items contained in `area` in arbitrary order */
 		Range range(const Area_f& area) { return Range(this, area); }
 		
 		/** inserts `thing` to the WorldList */
@@ -512,13 +514,13 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 			(*this)[Pos::tile_to_chunk(thing->pos.to_int())].emplace_back(std::move(thing));
 		}
 
-		/** erases the thing pointed to by `iter` from the WorldList, returning a Range::iterator to the next thing.
+		/** erases the thing pointed to by `iter` from the WorldList. Invalidates `iter`.
 		  * Range::iterators pointing to earlier items as well as Range::iterators pointing to items in different chunks
 		  * remain valid, while Range::iterators after `iter` in the same chunk get invalidated.
-		  * Sorted::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
+		  * Around::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
 		  * while those who are in a different ring remain valid.
 		  */
-		void erase(typename Sorted::iterator iter)
+		void erase(typename Around::iterator iter)
 		{
 			assert(iter.parent == this);
 			assert(!iter.worklist.empty());
@@ -532,7 +534,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		/** erases the thing pointed to by `iter` from the WorldList, returning a Range::iterator to the next thing.
 		  * Range::iterators pointing to earlier items as well as Range::iterators pointing to items in different chunks
 		  * remain valid, while Range::iterators after `iter` in the same chunk get invalidated.
-		  * Sorted::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
+		  * Around::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
 		  * while those who are in a different ring remain valid.
 		  */
 		typename Range::iterator erase(typename Range::iterator iter)

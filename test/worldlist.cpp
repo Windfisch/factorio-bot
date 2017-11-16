@@ -14,8 +14,8 @@ typedef WorldList<propagate_const<unique_ptr<Entity>>> WL;
 
 static void show(const WL& l);
 static void test_erase(WL l, size_t i);
-static void test_sorted(WL l, Pos_f center);
-static void test_sorted_erase(WL l, Pos_f center, size_t idx);
+static void test_around(WL l, Pos_f center);
+static void test_around_erase(WL l, Pos_f center, size_t idx);
 static WL makeWL();
 
 static void show(const WL& l)
@@ -47,30 +47,30 @@ static void test_erase(WL l, size_t i)
 	cout << endl;
 }
 
-static void test_sorted(WL l, Pos_f center)
+static void test_around(WL l, Pos_f center)
 {
-	WL::Sorted s = l.sorted(center);
+	WL::Around s = l.around(center);
 
 	int i=0;
 	cout << "sorting around " << center.str() << endl;
-	for (WL::Sorted::iterator it = s.begin(); it != s.end(); it++, i++)
+	for (WL::Around::iterator it = s.begin(); it != s.end(); it++, i++)
 		cout << "\t" << (*it)->pos.str() << "\t(dist = " << ((*it)->pos-center).len() << ")" << endl;
 	
 	cout << "\tthat's " << i << " objects" << endl;
 }
 
-static void test_sorted_erase(WL l, Pos_f center, size_t idx)
+static void test_around_erase(WL l, Pos_f center, size_t idx)
 {
-	WL::Sorted s = l.sorted(center);
+	WL::Around s = l.around(center);
 
 	int i=0;
 	cout << "erasing "<<idx<<"-closest item to " << center.str() << endl;
 	
-	WL::Sorted::iterator iter_erase = s.begin();
+	WL::Around::iterator iter_erase = s.begin();
 	advance(iter_erase, idx);
 	l.erase(iter_erase);
 	
-	for (WL::Sorted::iterator it = s.begin(); it != s.end(); it++, i++)
+	for (WL::Around::iterator it = s.begin(); it != s.end(); it++, i++)
 		cout << "\t" << (*it)->pos.str() << "\t(dist = " << ((*it)->pos-center).len() << ")" << endl;
 	
 	cout << "\tthat's " << i << " objects" << endl;
@@ -108,9 +108,9 @@ int main()
 	for (size_t i=0; i<11; i++)
 		test_erase(makeWL(), i);
 
-	test_sorted(makeWL(), Pos_f(0.,0.));
-	test_sorted(makeWL(), Pos_f(70.,35.));
-	test_sorted(makeWL(), Pos_f(0.,-9999.));
+	test_around(makeWL(), Pos_f(0.,0.));
+	test_around(makeWL(), Pos_f(70.,35.));
+	test_around(makeWL(), Pos_f(0.,-9999.));
 
-	test_sorted_erase(makeWL(), Pos_f(0.,0.), 2);
+	test_around_erase(makeWL(), Pos_f(0.,0.), 2);
 }
