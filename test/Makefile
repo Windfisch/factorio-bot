@@ -4,11 +4,11 @@ COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
 	CC=gcc
 	CXX=g++
-	CXXFLAGS=--std=c++14 -Wall -Wextra -pedantic
+	CXXFLAGS=--std=c++14 -Wall -Wextra -pedantic -g
 else
 	CC=clang
 	CXX=clang++
-	CXXFLAGS=--std=c++14 -Weverything -pedantic -Wno-c++98-compat -Wno-padded -Wno-sign-conversion -Wno-global-constructors
+	CXXFLAGS=--std=c++14 -Weverything -pedantic -Wno-c++98-compat -Wno-padded -Wno-sign-conversion -Wno-global-constructors -g
 endif
 
 all: worldlist.test clean
