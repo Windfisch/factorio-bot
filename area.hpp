@@ -60,3 +60,8 @@ template<typename T> struct Area_
 
 typedef Area_<int> Area;
 typedef Area_<double> Area_f;
+
+template <> Area_<int>::Area_(std::string str);
+template <> Area_<double>::Area_(std::string str);
+extern template struct Area_<int>;
+extern template struct Area_<double>;
