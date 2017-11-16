@@ -58,7 +58,7 @@ clean:
 	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend
 
 test:
-	make -C test all
+	make -C test clean all
 
 help:
 	@echo "Targets:"
