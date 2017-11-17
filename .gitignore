@@ -8,3 +8,4 @@ rcon-client
 botconfig.conf
 *.swp
 config.mk
+bot
