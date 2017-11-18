@@ -54,11 +54,8 @@ namespace action {
 		cout << "WalkAndMineObject::start" << endl;
 
 		// plan a path to the object
-		std::vector<Pos> waypoints = a_star_raw(game->players[player].position.to_int(),
+		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
 			obj.pos, game->walk_map, 0.4+0.1, 2.);
-
-		// we need to cleanup the path, because it came from astar_raw(), not astar().
-		waypoints = cleanup_path(waypoints);
 
 		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
 		subgoals.push_back(make_unique<MineObject>(game,player, obj));
