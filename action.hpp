@@ -163,6 +163,14 @@ namespace action
 		private: void abort();
 	};
 
+	struct WalkAndMineObject : public CompoundGoal
+	{
+		WalkAndMineObject(FactorioGame* game, int player, Entity obj_) : CompoundGoal(game,player), obj(obj_) {}
+		Entity obj;
+
+		void start();
+	};
+
 	struct WalkAndMineResource : public CompoundGoal
 	{
 		std::shared_ptr<ResourcePatch> patch;

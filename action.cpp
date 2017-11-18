@@ -23,6 +23,7 @@ namespace action {
 
 	void WalkWaypoints::execute_impl()
 	{
+		cout << "WalkWaypoints from " << waypoints[0].str() << " to " << waypoints.back().str() << endl;
 		game->set_waypoints(id, player, waypoints);
 	}
 

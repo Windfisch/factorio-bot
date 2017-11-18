@@ -785,6 +785,20 @@ int main(int argc, const char** argv)
 					continue;
 				}
 
+				vector<Entity> nearby_trees;
+				for (const auto& closest_tree : factorio.actual_entities.around(player.position))
+					if (closest_tree.proto->name.substr(0,4) == "tree")
+					{
+						for (const auto& tree : factorio.actual_entities.around(closest_tree.pos))
+							if (tree.proto->name.substr(0,4) == "tree")
+							{
+								nearby_trees.push_back(tree);
+								if (nearby_trees.size() >= 5)
+									break;
+							}
+						break;
+					}
+
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
 				
@@ -793,8 +807,17 @@ int main(int argc, const char** argv)
 				
 				parallel->subgoals.emplace_back( make_unique<action::CraftRecipe>(
 					&factorio, player.id, "iron-axe", 2) );
-				parallel->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
+				
+				auto seq = make_unique<action::CompoundGoal>(&factorio, player.id);
+
+				for (const auto& tree : nearby_trees)
+					seq->subgoals.emplace_back( make_unique<action::WalkAndMineObject>(
+						&factorio, player.id, tree) );
+
+				seq->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
 					&factorio, player.id, *closest_coal_patch, 5) );
+
+				parallel->subgoals.push_back(move(seq));
 
 				player.goals->subgoals.emplace_back(move(parallel));
 				}

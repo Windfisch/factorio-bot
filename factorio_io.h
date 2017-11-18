@@ -51,10 +51,12 @@ class FactorioGame
 		std::unordered_map< std::string, const EntityPrototype* > entity_prototypes;
 		std::unordered_map< std::string, const ItemPrototype* > item_prototypes;
 		std::unordered_map< std::string, const Recipe* > recipes;
-
+	
+	public:
 		WorldList<Entity> actual_entities; // list of entities that are actually there per chunk
 		WorldList<DesiredEntity> desired_entities; // list of entities that we expect to be there per chunk
 
+	private:
 		/* desired_entities and actual_entities deviate because of the following reasons:
 		 *   - trees are irrelevant for desired_entities and thus omitted
 		 *   - an entity was scheduled to be built, but is still awaiting its construction
