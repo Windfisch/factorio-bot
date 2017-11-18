@@ -18,19 +18,7 @@
 #include "recipe.h"
 #include "action.hpp"
 #include "worldlist.hpp"
-
-enum dir4_t
-{
-	NORTH=0,
-	EAST,
-	SOUTH,
-	WEST,
-
-	TOP=NORTH,
-	RIGHT=EAST,
-	BOTTOM=SOUTH,
-	LEFT=WEST
-};
+#include "defines.h"
 
 class FactorioGame
 {
@@ -84,6 +72,7 @@ class FactorioGame
 		FactorioGame(std::string prefix);
 		void rcon_connect(std::string host, int port, std::string password);
 		void rcon_call(std::string func, std::string args);
+		void rcon_call(std::string func, int player_id, std::string args);
 		void rcon_call(std::string func, int action_id, int player_id, std::string args);
 		std::string read_packet();
 		void parse_packet(const std::string& data);
@@ -93,6 +82,7 @@ class FactorioGame
 		void set_mining_target(int action_id, int player_id, Entity target);
 		void unset_mining_target(int player_id);
 		void start_crafting(int action_id, int player_id, std::string recipe, int count=1);
+		void place_entity(int player_id, std::string item_name, Pos_f pos, dir8_t direction);
 		
 		[[deprecated("set player goals instead")]]
 		void walk_to(int id, const Pos& dest);

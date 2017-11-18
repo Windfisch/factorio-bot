@@ -1,0 +1,27 @@
+#pragma once
+
+enum dir4_t
+{
+	NORTH=0,
+	EAST,
+	SOUTH,
+	WEST,
+
+	TOP=NORTH,
+	RIGHT=EAST,
+	BOTTOM=SOUTH,
+	LEFT=WEST
+};
+
+enum dir8_t
+{
+	d8_NORTH=0,
+	d8_NORTHEAST,
+	d8_EAST,
+	d8_SOUTHEAST,
+	d8_SOUTH,
+	d8_SOUTHWEST,
+	d8_WEST,
+	d8_NORTHWEST
+};
+

@@ -38,6 +38,17 @@ namespace action {
 		mark_finished(id);
 	}
 
+	void WalkAndPlaceEntity::start()
+	{
+		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
+			pos, game->walk_map, 0.4+0.1, 3.);
+
+		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
+		subgoals.push_back(make_unique<PlaceEntity>(game,player, item, pos, direction));
+
+		subgoals[0]->start();
+	}
+
 	void WalkAndMineObject::start()
 	{
 		cout << "WalkAndMineObject::start" << endl;
@@ -116,5 +127,10 @@ namespace action {
 	void CraftRecipe::execute_impl()
 	{
 		game->start_crafting(id, player, recipe, count);
+	}
+
+	void PlaceEntity::execute_impl()
+	{
+		game->place_entity(player, item, pos, direction);
 	}
 }

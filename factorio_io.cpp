@@ -32,6 +32,16 @@ const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}
 	
 const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM" };
 
+static const string dir8[] = {
+	"defines.direction.north",
+	"defines.direction.northeast",
+	"defines.direction.east",
+	"defines.direction.southeast",
+	"defines.direction.south",
+	"defines.direction.southwest",
+	"defines.direction.west",
+	"defines.direction.northwest"
+};
 
 FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnected rcon
 {
@@ -52,6 +62,11 @@ void FactorioGame::rcon_call(string func, string args)
 	}
 
 	rcon.sendrecv("/c remote.call('windfisch','"+func+"',"+args+")");
+}
+
+void FactorioGame::rcon_call(string func, int player_id, string args)
+{
+	rcon_call(func, to_string(player_id)+","+args);
 }
 
 void FactorioGame::rcon_call(string func, int action_id, int player_id, string args)
@@ -89,6 +104,11 @@ void FactorioGame::unset_mining_target(int player_id)
 void FactorioGame::start_crafting(int action_id, int player_id, string recipe, int count)
 {
 	rcon_call("start_crafting", action_id, player_id, "'"+recipe+"',"+to_string(count));
+}
+
+void FactorioGame::place_entity(int player_id, std::string item_name, Pos_f pos, dir8_t direction)
+{
+	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir8[direction]);
 }
 
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
@@ -816,6 +836,9 @@ int main(int argc, const char** argv)
 
 				seq->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
 					&factorio, player.id, *closest_coal_patch, 5) );
+
+				seq->subgoals.emplace_back( make_unique<action::WalkAndPlaceEntity>(
+					&factorio, player.id, "stone-furnace", Pos_f(0,0)) );
 
 				parallel->subgoals.push_back(move(seq));
 

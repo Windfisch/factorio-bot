@@ -9,6 +9,7 @@
 #include "entity.h"
 #include "resource.hpp"
 #include "unused.h"
+#include "defines.h"
 
 class FactorioGame;
 
@@ -161,6 +162,28 @@ namespace action
 
 		private: void execute_impl();
 		private: void abort();
+	};
+
+	struct PlaceEntity : public PrimitiveAction
+	{
+		PlaceEntity(FactorioGame* game, int player, std::string item_, Pos_f pos_, dir8_t direction_=d8_NORTH) : PrimitiveAction(game,player), item(item_), pos(pos_), direction(direction_) {}
+		std::string item;
+		Pos_f pos;
+		dir8_t direction;
+
+		bool is_finished() { return true; }
+
+		private: void execute_impl();
+	};
+
+	struct WalkAndPlaceEntity : public CompoundGoal
+	{
+		WalkAndPlaceEntity(FactorioGame* game, int player, std::string item_, Pos_f pos_, dir8_t direction_=d8_NORTH) : CompoundGoal(game,player), item(item_), pos(pos_), direction(direction_) {}
+		std::string item;
+		Pos_f pos;
+		dir8_t direction;
+		
+		void start();
 	};
 
 	struct WalkAndMineObject : public CompoundGoal
