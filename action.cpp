@@ -6,7 +6,7 @@
 
 using namespace std;
 
-constexpr int MINING_DISTANCE = 2;
+constexpr int MINING_DISTANCE = 1;
 
 namespace action {
 	int PrimitiveAction::id_counter;
