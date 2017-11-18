@@ -554,10 +554,24 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				typename Range::iterator result = iter;
 				result++;
 				// this will move result to the begin of the next chunk (if it exists)
-				assert(result.curr_vec != iter.curr_vec);
+				
 				assert(result.curr_vec);
-
-				iter.curr_vec->erase(iter.iter);
+				if (result.curr_vec != iter.curr_vec)
+				{
+					iter.curr_vec->erase(iter.iter);
+					
+					assert(result.curr_vec != iter.curr_vec);
+					// this implies that the erasure has not invalidated result.iter
+				}
+				else
+				{
+					assert(result.iter == result.curr_vec->end());
+					assert(result.curr_vec == iter.curr_vec);
+					
+					iter.curr_vec->erase(iter.iter);
+					// this has invalidated result.iter. let's fix that
+					result.iter = result.curr_vec->end();
+				}
 
 				return result;
 			}
