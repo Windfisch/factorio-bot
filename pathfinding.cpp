@@ -41,12 +41,12 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 	return result;
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance)
 {
-	return cleanup_path(a_star_raw(start, end, map, size));
+	return cleanup_path(a_star_raw(start, end, map, size, allowed_distance));
 }
 
-vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size)
+vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance)
 {
 	Area view_area(start, end);
 	view_area.normalize();
@@ -69,7 +69,7 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 		openlist.pop();
 		n_iterations++;
 
-		if (current.pos == end)
+		if ((current.pos-end).len() <= allowed_distance)
 		{
 			// found goal.
 

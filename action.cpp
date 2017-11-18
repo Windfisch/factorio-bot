@@ -37,11 +37,28 @@ namespace action {
 		mark_finished(id);
 	}
 
+	void WalkAndMineObject::start()
+	{
+		cout << "WalkAndMineObject::start" << endl;
+
+		// plan a path to the object
+		std::vector<Pos> waypoints = a_star_raw(game->players[player].position.to_int(),
+			obj.pos, game->walk_map, 0.4+0.1, 2.);
+
+		// we need to cleanup the path, because it came from astar_raw(), not astar().
+		waypoints = cleanup_path(waypoints);
+
+		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
+		subgoals.push_back(make_unique<MineObject>(game,player, obj));
+
+		subgoals[0]->start();
+	}
+
 	void WalkAndMineResource::start()
 	{
 		// plan a path to the centroid of the resource patch
 		std::vector<Pos> waypoints = a_star_raw(game->players[player].position.to_int(),
-			patch->bounding_box.center(), game->walk_map, 0.4+0.1);
+			patch->bounding_box.center(), game->walk_map, 0.4+0.1, 2.);
 
 		// find the first point where we enter the patch
 		size_t i;
