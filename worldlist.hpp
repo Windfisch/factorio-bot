@@ -131,7 +131,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 								break;
 							// else stay at this end() position.
 						}
-					} while (!range.contains((*iter)->pos));
+					} while (!range.contains(iter->pos));
 				}
 
 				// retreats iter one or more times until the next valid entry has been found.
@@ -147,7 +147,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 							if (!prev_chunk())
 								assert(false);
 						}
-					} while (!range.contains((*iter)->pos));
+					} while (!range.contains(iter->pos));
 				}
 
 				range_iterator(parentptr parent_, const Area_f& range_, bool give_end=false) :
@@ -166,7 +166,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						if (curr_vec)
 						{
 							iter = curr_vec->begin();
-							if (!range.contains((*iter)->pos) )
+							if (!range.contains(iter->pos) )
 								incr();
 						}
 					}
@@ -344,7 +344,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						{
 							reftype item = *it;
 
-							double distance = (item->pos - center).len();
+							double distance = (item.pos - center).len();
 							if (!(inner_radius <= distance && distance < outer_radius))
 								continue;
 
@@ -509,9 +509,9 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		Range range(const Area_f& area) { return Range(this, area); }
 		
 		/** inserts `thing` to the WorldList */
-		void insert(T&& thing)
+		void insert(const T& thing)
 		{
-			(*this)[Pos::tile_to_chunk(thing->pos.to_int())].emplace_back(std::move(thing));
+			(*this)[Pos::tile_to_chunk(thing.pos.to_int_floor())].emplace_back(std::move(thing));
 		}
 
 		/** erases the thing pointed to by `iter` from the WorldList. Invalidates `iter`.
@@ -552,7 +552,6 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				// this will move result to the begin of the next chunk (if it exists)
 				assert(result.curr_vec != iter.curr_vec);
 				assert(result.curr_vec);
-				assert(result.iter == result.curr_vec->begin() || result.iter == result.curr_vec->end());
 
 				iter.curr_vec->erase(iter.iter);
 
@@ -567,7 +566,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				// we need to check whether that element fulfills the filter criteria of the iterator
 				// and if not, advance the iterator.
 				typename Range::iterator result = iter;
-				if (!result.range.contains((*result.iter)->pos) )
+				if (!result.range.contains(result.iter->pos) )
 					result.incr();
 				
 				return result;
