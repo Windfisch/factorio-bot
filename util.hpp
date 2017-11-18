@@ -35,4 +35,19 @@ static std::string strpad(std::string s, size_t n)
 	else return s + std::string(n-s.length(),' ');
 }
 
+template <typename container_type, typename iterator_type> iterator_type unordered_erase(container_type& container, iterator_type iter)
+{
+	if (iter == container.end()-1)
+	{
+		container.pop_back();
+		return container.end();
+	}
+	else
+	{
+		std::swap(*iter, container.back());
+		container.pop_back();
+		return iter;
+	}
+}
+
 #pragma GCC diagnostic pop
