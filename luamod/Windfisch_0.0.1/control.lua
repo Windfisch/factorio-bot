@@ -251,7 +251,7 @@ function on_tick(event)
 						player.mining_state = { mining=true, position=ent.position }
 					end
 				else
-					write_file("complete: mining "..idx.."\n")
+					--write_file("complete: mining "..idx.."\n")
 					action_completed(global.p[idx].mining.action_id)
 					global.p[idx].mining = nil
 				end
@@ -271,13 +271,17 @@ function on_tick(event)
 
 	-- periodically update the objects around the player to ensure that nothing is missed
 	-- This is merely a safety net and SHOULD be unnecessary, if all other updates don't miss anything
-	if event.tick % 300 == 0 then
+	if event.tick % 300 == 0 and false then -- don't do that for now, as it eats up too much cpu on the c++ part
 		for idx, player in pairs(game.players) do
 			if player.connected and player.character then
-				local x = math.floor(player.character.position.x)
-				local y = math.floor(player.character.position.x)
+				local x = math.floor(player.character.position.x/32)*32
+				local y = math.floor(player.character.position.x/32)*32
 
-				writeout_objects(player.surface, {left_top={x=x-100,y=y-100}, right_bottom={x=x+100,y=y+100}})
+				for xx = x-96, x+96, 32 do
+					for yy = y-96, y+96, 32 do
+						writeout_objects(player.surface, {left_top={x=xx,y=yy}, right_bottom={x=xx+32,y=yy+32}})
+					end
+				end
 			end
 		end
 	end
