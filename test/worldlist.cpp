@@ -32,14 +32,14 @@ static void test_erase(WL l, size_t i)
 	WL::Range::iterator it = r.begin();
 	advance(it, i);
 
-	cout << "elem = " << (*it).pos.str();
+	cout << "elem = " << it->pos.str();
 
 	it = l.erase(it);
 
 	if (it == r.end())
 		cout << ", next = (end)" << endl;
 	else
-		cout << ", next = " << (*it).pos.str() << endl;
+		cout << ", next = " << it->pos.str() << endl;
 
 	show(l);
 	cout << endl;
@@ -52,7 +52,7 @@ static void test_around(WL l, Pos_f center)
 	int i=0;
 	cout << "sorting around " << center.str() << endl;
 	for (WL::Around::iterator it = s.begin(); it != s.end(); it++, i++)
-		cout << "\t" << (*it).pos.str() << "\t(dist = " << ((*it).pos-center).len() << ")" << endl;
+		cout << "\t" << it->pos.str() << "\t(dist = " << (it->pos-center).len() << ")" << endl;
 	
 	cout << "\tthat's " << i << " objects" << endl;
 }
@@ -69,7 +69,7 @@ static void test_around_erase(WL l, Pos_f center, size_t idx)
 	l.erase(iter_erase);
 	
 	for (WL::Around::iterator it = s.begin(); it != s.end(); it++, i++)
-		cout << "\t" << (*it).pos.str() << "\t(dist = " << ((*it).pos-center).len() << ")" << endl;
+		cout << "\t" << it->pos.str() << "\t(dist = " << (it->pos-center).len() << ")" << endl;
 	
 	cout << "\tthat's " << i << " objects" << endl;
 }

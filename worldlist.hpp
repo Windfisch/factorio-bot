@@ -202,6 +202,8 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					assert(iter != curr_vec->end());
 					return *iter;
 				}
+				
+				ptrtype operator->() const { return &**this; }
 
 				range_iterator<is_const>& operator++()
 				{
@@ -401,6 +403,8 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					assert(worklist_iterator != worklist.end());
 					return *worklist_iterator->iterator_in_vector;
 				}
+				
+				ptrtype operator->() const { return &**this; }
 
 				around_iterator<is_const>& operator++()
 				{
