@@ -73,13 +73,13 @@ fi
 
 if [ $ACTION == --bot ]; then
 	DEBUGPREFIX="$2"
-	$DEBUGPREFIX ./test "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
+	$DEBUGPREFIX ./bot "$INSTALLPATH/server/script-output/output" localhost "$RCON_PORT" "$RCON_PASS"
 	exit 0
 fi
 
 if [ $ACTION == --bot-offline ]; then
 	DEBUGPREFIX="$2"
-	$DEBUGPREFIX ./test "$INSTALLPATH/server/script-output/output"
+	$DEBUGPREFIX ./bot "$INSTALLPATH/server/script-output/output"
 	exit 0
 fi
 

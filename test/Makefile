@@ -21,4 +21,4 @@ clean:
 	@if ! diff -u $@.out.desired $@.out; then echo "TEST $@ FAILED, see above"; false; else echo "TEST $@ PASSED"; true; fi
 
 %.bin: %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $< ../area.o -o $@

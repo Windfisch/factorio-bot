@@ -57,7 +57,7 @@ all: $(EXE) rcon-client
 clean:
 	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend
 
-test:
+test: $(EXE)
 	make -C test clean all
 
 help:
