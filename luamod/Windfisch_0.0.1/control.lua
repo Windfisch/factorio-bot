@@ -584,6 +584,51 @@ function rcon_place_entity(player_id, item_name, entity_position, direction)
 	end
 end
 
+function rcon_insert_to_inventory(player_id, entity_name, entity_pos, inventory_type, items)
+	local player = game.players[player_id]
+	local entity = player.surface.find_entity(entity_name, entity_pos)
+	if entity == nil then
+		complain("cannot insert to inventory of nonexisting entity "..entity_name.." at "..pos_str(entity_pos))
+		return
+	end
+
+	local inventory = entity.get_inventory(inventory_type)
+	if inventory == nil then
+		complain("cannot insert to nonexisting inventory of entity "..entity_name.." at "..pos_str(entity_pos))
+		return
+	end
+
+	local count = 1
+	if items.count ~= nil then count=items.count end
+	local real_n = inventory.insert(items)
+
+	if count ~= real_n then
+		complain("tried to insert "..count.." "..items.name.." but inserted " .. real_n)
+	end
+end
+function rcon_remove_from_inventory(player_id, entity_name, entity_pos, inventory_type, items)
+	local player = game.players[player_id]
+	local entity = player.surface.find_entity(entity_name, entity_pos)
+	if entity == nil then
+		complain("cannot remove from inventory of nonexisting entity "..entity_name.." at "..pos_str(entity_pos))
+		return
+	end
+
+	local inventory = entity.get_inventory(inventory_type)
+	if inventory == nil then
+		complain("cannot remove from nonexisting inventory of entity "..entity_name.." at "..pos_str(entity_pos))
+		return
+	end
+
+	local count = 1
+	if items.count ~= nil then count=items.count end
+	local real_n = inventory.remove(items)
+
+	if count ~= real_n then
+		complain("tried to remove "..count.." "..items.name.." but removed " .. real_n)
+	end
+end
+
 function rcon_whoami(who)
 	if client_local_data.whoami == nil then
 		client_local_data.whoami = who
@@ -612,5 +657,7 @@ remote.add_interface("windfisch", {
 	set_mining_target=rcon_set_mining_target,
 	place_entity=rcon_place_entity,
 	start_crafting=rcon_start_crafting,
+	insert_to_inventory=rcon_insert_to_inventory,
+	remove_from_inventory=rcon_remove_from_inventory,
 	whoami=rcon_whoami
 })
