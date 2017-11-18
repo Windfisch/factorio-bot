@@ -17,6 +17,7 @@
 #include "item.h"
 #include "recipe.h"
 #include "action.hpp"
+#include "worldlist.hpp"
 
 enum dir4_t
 {
@@ -51,8 +52,8 @@ class FactorioGame
 		std::unordered_map< std::string, const ItemPrototype* > item_prototypes;
 		std::unordered_map< std::string, const Recipe* > recipes;
 
-		std::unordered_map< Pos, std::vector< std::shared_ptr<Entity> > > actual_entities; // list of entities that are actually there per chunk
-		std::unordered_map< Pos, std::vector< std::shared_ptr<DesiredEntity> > > desired_entities; // list of entities that we expect to be there per chunk
+		WorldList<Entity> actual_entities; // list of entities that are actually there per chunk
+		WorldList<DesiredEntity> desired_entities; // list of entities that we expect to be there per chunk
 
 		/* desired_entities and actual_entities deviate because of the following reasons:
 		 *   - trees are irrelevant for desired_entities and thus omitted
