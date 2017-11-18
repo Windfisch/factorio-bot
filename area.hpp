@@ -14,6 +14,7 @@ template<typename T> struct Area_
 	Area_(T x1, T y1, T x2, T y2) : left_top(x1,y1), right_bottom(x2,y2)  {}
 	Area_(const Pos_<T>& lt, const Pos_<T>& rb) : left_top(lt), right_bottom(rb) {}
 	Area_(std::string str);
+	template <typename U> Area_(const Area_<U>& other) : left_top(other.left_top), right_bottom(other.right_bottom) {}
 	
 	std::string str() const;
 
