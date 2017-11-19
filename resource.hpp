@@ -42,7 +42,8 @@ struct Resource
 		COPPER,
 		STONE,
 		OIL,
-		URANIUM
+		URANIUM,
+		N_RESOURCES
 	};
 	static const std::unordered_map<std::string, Resource::type_t> types;
 	static const std::string typestr[];
@@ -87,6 +88,8 @@ struct ResourcePatch
 		positions.insert(positions.end(), newstuff.begin(), newstuff.end());
 		recalc_bounding_box();
 	}
+
+	size_t size() const { return positions.size(); }
 
 	private:
 		void recalc_bounding_box()

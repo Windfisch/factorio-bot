@@ -50,6 +50,8 @@ namespace pathfinding
 		bool in_closedlist=false;
 
 		walk_t() : known(false), can_walk(true), can_cross(true), tree_amount(0) {}
+		bool water() const { return known && !can_walk; } // FIXME this is a hack
+		bool land() const { return known && can_walk; } // FIXME same
 	};
 
 }

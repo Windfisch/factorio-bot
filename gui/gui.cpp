@@ -33,11 +33,13 @@
 #pragma GCC diagnostic ignored "-Wundef"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <FL/Fl.H>
-#include <FL/Fl_Window.H>
+#include <FL/Fl_Double_Window.H>
 #include <FL/Fl_RGB_Image.H>
 #include <FL/Fl_Box.H>
+#include <FL/fl_draw.H>
 #pragma GCC diagnostic pop
 
 #include "gui.h"
@@ -197,7 +199,7 @@ class _MapGui_impl
 			rects.clear();
 		}
 
-		std::unique_ptr<Fl_Window> window;
+		std::unique_ptr<Fl_Double_Window> window;
 		std::unique_ptr<MapBox> mapbox;
 
 		FactorioGame* game;
@@ -291,6 +293,22 @@ int MapBox::handle(int event)
 void MapBox::draw(void)
 {
 	rgbimg->draw(x(),y(),w(),h());
+
+	for (const auto& rect : gui->rects)
+	{
+		Pos a = zoom_transform( rect.a, -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+		Pos b = zoom_transform( rect.b, -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+
+		fl_draw_box(FL_BORDER_FRAME, x()+a.x, y()+a.y, b.x-a.x, b.y-a.y, fl_rgb_color(rect.c.r, rect.c.g, rect.c.b));
+	}
+	for (const auto& line : gui->lines)
+	{
+		Pos a = zoom_transform( line.a, -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+		Pos b = zoom_transform( line.b, -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
+
+		fl_color(fl_rgb_color(line.c.r, line.c.g, line.c.b));
+		fl_line( x()+a.x, y()+a.y, x()+b.x, y()+b.y );
+	}
 }
 
 MapBox::MapBox(_MapGui_impl* mb, int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l), gui(mb)
@@ -431,7 +449,7 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_)
 {
 	this->game = game_;
 	
-	window = std::make_unique<Fl_Window>(340,180);
+	window = std::make_unique<Fl_Double_Window>(340,180);
 	mapbox = std::make_unique<MapBox>(this,20,40,300,100,"Hello, World!");
 	mapbox->box(FL_UP_BOX);
 	mapbox->labelfont(FL_BOLD+FL_ITALIC);

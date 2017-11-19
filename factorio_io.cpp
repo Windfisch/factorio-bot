@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cassert>
+#include <climits>
 
 #include "factorio_io.h"
 #include "pathfinding.hpp"
@@ -784,6 +785,181 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	cout << "we now have " << resource_patches.size() << " patches" << endl;
 }
 
+static double cluster_quality(int diam, size_t coal_size, size_t iron_size, size_t copper_size, size_t stone_size)
+{
+	const float COAL_SIZE = 25*10;
+	const float IRON_SIZE = 25*10;
+	const float COPPER_SIZE = 25*10;
+	const float STONE_SIZE = 25*5;
+	return (diam + 50)
+		/ min(1.f,coal_size/COAL_SIZE) // penalize too-small chunks
+		/ min(1.f,iron_size/IRON_SIZE)
+		/ min(1.f,copper_size/COPPER_SIZE)
+		/ min(1.f,stone_size/STONE_SIZE);
+}
+
+struct start_mines_t
+{
+	std::shared_ptr<ResourcePatch> coal;
+	std::shared_ptr<ResourcePatch> iron;
+	std::shared_ptr<ResourcePatch> copper;
+	std::shared_ptr<ResourcePatch> stone;
+	Pos water;
+	Area area;
+};
+
+start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos = Pos_f(0.,0.))
+{
+	start_mines_t result;
+
+	// FIXME: we treat "known && !can_walk" as water and "known && can_walk" as land. this is suboptimal.
+	// FIXME so many magic numbers!
+
+	// enumerate all relevant resource patches, limit the number to 5
+
+	vector< pair<double, shared_ptr<ResourcePatch>> > patches[Resource::N_RESOURCES];
+	for (auto patch : game->resource_patches) if (patch->size() >= 30)
+	{
+		Pos center = patch->bounding_box.center();
+
+		switch (patch->type)
+		{
+			case Resource::COAL:
+			case Resource::IRON:
+			case Resource::COPPER:
+			case Resource::STONE:
+				patches[patch->type].emplace_back( (pos-patch->bounding_box.center()).len(), patch );
+				break;
+			default: // empty
+				break;
+		}
+	}
+
+	// only consider the 5 closest patches of each resource
+	int radius = 0;
+	for (auto i : {Resource::COAL, Resource::IRON, Resource::COPPER, Resource::STONE})
+	{
+		sort(patches[i].begin(), patches[i].end());
+		patches[i].resize(min(patches[i].size(), size_t(5)));
+
+		if (!patches[i].empty())
+			radius = max(radius, int(patches[i].back().first));
+		else
+			throw runtime_error("find_start_mines could not find "+Resource::typestr[i]);
+	}
+
+
+	// find potential water sources in the starting area
+	int water_radius = radius + 100;
+	auto view = game->walk_map.view(pos-Pos(radius+1,radius+1), pos+Pos(radius+1,radius+1), Pos(0,0));
+	struct watersource_t { Pos pos; };
+	WorldList<watersource_t> watersources;
+	for (int x = pos.x-radius; x<=pos.x+radius; x++)
+		for (int y = pos.y-radius; y<=pos.y+radius; y++)
+			if (view.at(x,y).land())
+			{
+				int n_water = 0;
+				for (Pos p : directions4)
+					if (view.at(Pos(x,y)+p).water())
+						n_water++;
+
+				if (n_water == 1)
+					watersources.insert( watersource_t{Pos(x,y)} );
+			}
+	
+	
+
+	double best = 999999999999; // best quality found so far
+
+	// brute-force all 4-tuples and find the best
+	for (auto& coal : patches[Resource::COAL])
+		for (auto& iron : patches[Resource::IRON])
+			for (auto& copper : patches[Resource::COPPER])
+				for (auto& stone : patches[Resource::STONE])
+				{
+					cout << endl;
+					cout << "coal:\t" << coal.second->bounding_box.center().str() << endl;
+					cout << "iron:\t" << iron.second->bounding_box.center().str() << endl;
+					cout << "copper:\t" << copper.second->bounding_box.center().str() << endl;
+					cout << "stone:\t" << stone.second->bounding_box.center().str() << endl;
+
+					// calculate the bounding box enclosing the 4-tuple of essential resources
+					int x1 = min( coal  .second->bounding_box.center().x,
+					         min( iron  .second->bounding_box.center().x,
+					         min( stone .second->bounding_box.center().x,
+					              copper.second->bounding_box.center().x )));
+					int x2 = max( coal  .second->bounding_box.center().x,
+					         max( iron  .second->bounding_box.center().x,
+					         max( stone .second->bounding_box.center().x,
+					              copper.second->bounding_box.center().x )));
+					int y1 = min( coal  .second->bounding_box.center().y,
+					         min( iron  .second->bounding_box.center().y,
+					         min( stone .second->bounding_box.center().y,
+					              copper.second->bounding_box.center().y )));
+					int y2 = max( coal  .second->bounding_box.center().y,
+					         max( iron  .second->bounding_box.center().y,
+					         max( stone .second->bounding_box.center().y,
+					              copper.second->bounding_box.center().y )));
+
+					int diam = max( x2-x1, y2-y1 );
+					if (cluster_quality(diam, coal.second->size(), iron.second->size(), copper.second->size(), stone.second->size()) > best)
+						continue; // we're worse than the best even without extending the diameter to include water. discard and continue.
+
+					cout << "diam = " << diam << endl;
+
+					// find the closest water source and calculate the new bounding box
+					Pos_f box_center = Pos_f((x1+x2)/2., (y1+y2)/2.);
+					Pos best_water_pos;
+					int best_water_diam = INT_MAX;
+					for (auto water_pos : watersources.around(box_center))
+					{
+						if ((water_pos.pos - box_center).len() >= 1.5*(best_water_diam-diam/2) )
+							break;
+
+						cout << ".";
+						
+						int new_diam = max(
+							max(x2,water_pos.pos.x)-min(x1,water_pos.pos.x),
+							max(y2,water_pos.pos.y)-min(y1,water_pos.pos.y) );
+
+						if (new_diam < best_water_diam)
+						{
+							best_water_diam = new_diam;
+							best_water_pos = water_pos.pos;
+							cout << "\b*";
+						}
+					}
+					cout << endl;
+					cout << "found water at " << best_water_pos.str() << endl;
+					cout << "best_water_diam = " << best_water_diam << endl;
+
+					x1 = min(x1, best_water_pos.x);
+					y1 = min(y1, best_water_pos.y);
+					x2 = max(x2, best_water_pos.x);
+					y2 = max(y2, best_water_pos.y);
+
+					double quality = cluster_quality(best_water_diam, coal.second->size(), iron.second->size(), copper.second->size(), stone.second->size());
+					if (quality < best)
+					{
+						best=quality;
+						// TODO
+						result.coal = coal.second;
+						result.copper = copper.second;
+						result.stone = stone.second;
+						result.iron = iron.second;
+						result.water = best_water_pos;
+						result.area = Area(x1,y1,x2,y2);
+					}
+				}
+	
+	gui->rect( result.area.left_top, result.area.right_bottom, GUI::Color(0,255,0) );
+	gui->rect( result.coal->bounding_box.left_top, result.coal->bounding_box.right_bottom, GUI::Color(255,0,255) );
+	gui->rect( result.copper->bounding_box.left_top, result.copper->bounding_box.right_bottom, GUI::Color(255,0,255) );
+	gui->rect( result.iron->bounding_box.left_top, result.iron->bounding_box.right_bottom, GUI::Color(255,0,255) );
+	gui->rect( result.stone->bounding_box.left_top, result.stone->bounding_box.right_bottom, GUI::Color(255,0,255) );
+	return result;
+}
+
 int main(int argc, const char** argv)
 {
 	if (argc != 2 && argc != 5)
@@ -810,7 +986,6 @@ int main(int argc, const char** argv)
 
 	GUI::MapGui gui(&factorio);
 
-	
 	// quick read first part of the file before doing any GUI work. Useful for debugging, since reading in 6000 lines will take more than 6 seconds.
 	for (int i=0; i<6000; i++) factorio.parse_packet(factorio.read_packet());
 
@@ -833,6 +1008,8 @@ int main(int argc, const char** argv)
 
 		if (frame == 1000)
 		{
+			find_start_mines(&factorio, &gui);
+
 			for (auto& player : factorio.players) if (player.connected)
 			{
 				// search closest coal patch and mine some coal
