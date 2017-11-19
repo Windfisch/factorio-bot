@@ -66,7 +66,8 @@ This is because walking now creates a `WalkTo` goal, which internally plans
 its own path, starting from the player's current position.
 </details>
 
-
+The `p` button switches between visualisation of the ore types and the ore-patch
+ids.
 
 Bugs / Limitations
 ------------------

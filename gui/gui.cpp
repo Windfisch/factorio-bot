@@ -118,6 +118,15 @@ Color get_color(int id)
 	return color_hsv(0.53481*id, 0.8 + 0.2*sin(id/21.324), 0.7+0.3*sin(id/2.13184));
 }
 
+std::unordered_map<Resource::type_t, Color> resource_colors {
+	{ Resource::COAL, Color(16,16,16) },
+	{ Resource::IRON, Color(130,205,255) },
+	{ Resource::COPPER, Color(230,115,0) },
+	{ Resource::STONE, Color(160,160,30) },
+	{ Resource::OIL, Color(255,0,255) },
+	{ Resource::URANIUM, Color(0,255,0) }
+};
+
 class MapBox : public Fl_Box
 {
 	protected:
@@ -132,6 +141,8 @@ class MapBox : public Fl_Box
 		Pos canvas_center; // divide this by zoom_level to get tile coords
 		Pos canvas_drag;
 		int zoom_level = 0; // powers of two
+		
+		bool display_patch_type = true; // true -> color represents type, false -> color represents pointer
 
 		Pos zoom_transform(const Pos& p, int factor);
 		void give_info(const Pos& pos);
@@ -235,6 +246,19 @@ int MapBox::handle(int event)
 			redraw();
 			return 1;
 		}
+		case FL_FOCUS: return 1;
+		case FL_UNFOCUS: return 1;
+		case FL_KEYDOWN: {
+			std::cout << "KEYBOARD EVENT " << Fl::event_key() << std::endl;
+			switch (Fl::event_key())
+			{
+				case 'p':
+					display_patch_type = !display_patch_type;
+					redraw();
+					break;
+			}
+			return 1;
+		}
 	}
 
 	return Fl_Box::handle(event);
@@ -298,6 +322,15 @@ void MapBox::update_imgbuf()
 			int tile_width_px = 1<< (-zoom_level); // drawing width of one tile
 			Pos tile_inner_pos = Pos(sane_mod(tmp.x, tile_width_px), sane_mod(tmp.y, tile_width_px));
 		
+			if (resview.at(mappos).patch_id)
+			{
+				// there's a resource patch at that location?
+				if (display_patch_type)
+					col.blend(resource_colors[resview.at(mappos).type], .15f);
+				else
+					col.blend(get_color(resview.at(mappos).patch_id), .25f);
+			}
+			
 			// draw the margins caused by objects on the tile
 			if (w.known)
 			{
@@ -325,9 +358,6 @@ void MapBox::update_imgbuf()
 					col.blend(Color(127,127,127), zoom_level==-3 ? 0.7f : 0.5f);
 			}
 
-			if (resview.at(mappos).patch_id)
-				col.blend(get_color(resview.at(mappos).patch_id), .5f);
-			
 			imgbuf[idx+0] = col.r;
 			imgbuf[idx+1] = col.g;
 			imgbuf[idx+2] = col.b;
