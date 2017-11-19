@@ -17,11 +17,24 @@
  */
 
 #include <memory>
+#include <vector>
+#include <cassert>
+#include "../pos.hpp"
 
 class FactorioGame;
 
 namespace GUI
 {
+
+struct Color {
+	uint8_t r,g,b;
+	Color() : r(0),g(0),b(0){}
+	Color(int rr,int gg,int bb):r(uint8_t(rr)),g(uint8_t(gg)),b(uint8_t(bb)){ assert(rr<256 && gg<256 && bb<256); }
+	void blend(const Color& other, float alpha);
+};
+
+Color color_hsv(double hue, double sat, double val);
+Color get_color(int id);
 
 class _MapGui_impl;
 
@@ -30,6 +43,10 @@ class MapGui
 	public:
 		MapGui(FactorioGame* game);
 		~MapGui();
+
+		void line(Pos a, Pos b, Color c);
+		void rect(Pos a, Pos b, Color c);
+		void clear();
 
 	private:
 		std::unique_ptr<_MapGui_impl> impl;

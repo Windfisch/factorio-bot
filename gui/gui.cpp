@@ -79,17 +79,12 @@ template<typename T> static constexpr T clamp(T v, T a, T b)
 namespace GUI
 {
 
-struct Color {
-	uint8_t r,g,b;
-	Color() : r(0),g(0),b(0){}
-	Color(int rr,int gg,int bb):r(uint8_t(rr)),g(uint8_t(gg)),b(uint8_t(bb)){ assert(rr<256 && gg<256 && bb<256); }
-	void blend(const Color& other, float alpha)
-	{
-		this->r = uint8_t(clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255));
-		this->g = uint8_t(clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255));
-		this->b = uint8_t(clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255));
-	}
-};
+void Color::blend(const Color& other, float alpha)
+{
+	this->r = uint8_t(clamp(int(alpha*this->r + (1.f-alpha)*other.r), 0, 255));
+	this->g = uint8_t(clamp(int(alpha*this->g + (1.f-alpha)*other.g), 0, 255));
+	this->b = uint8_t(clamp(int(alpha*this->b + (1.f-alpha)*other.b), 0, 255));
+}
 
 Color color_hsv(double hue, double sat, double val)
 {
@@ -136,7 +131,7 @@ class MapBox : public Fl_Box
 		std::vector<unsigned char> imgbuf;
 		int imgwidth, imgheight;
 		std::unique_ptr<Fl_RGB_Image> rgbimg;
-		FactorioGame* game;
+		_MapGui_impl* gui;
 
 		Pos canvas_center; // divide this by zoom_level to get tile coords
 		Pos canvas_drag;
@@ -156,7 +151,7 @@ class MapBox : public Fl_Box
 		vector<Pos> last_path;
 
 	public:
-		MapBox(FactorioGame* game, int X, int Y, int W, int H, const char *L=0);
+		MapBox(_MapGui_impl* gui, int X, int Y, int W, int H, const char *L=0);
 		void update_imgbuf();
 };
 
@@ -170,16 +165,45 @@ Pos MapBox::zoom_transform(const Pos& p, int factor)
 		return p;
 }
 
+struct line_t
+{
+	Pos a,b;
+	Color c;
+};
+
+struct rect_t
+{
+	Pos a,b;
+	Color c;
+};
+
+
 class _MapGui_impl
 {
 	public:
 		_MapGui_impl(FactorioGame* game);
 
-	private:
+		void line(Pos a, Pos b, Color c)
+		{
+			lines.push_back(line_t{a,b,c});
+		}
+		void rect(Pos a, Pos b, Color c)
+		{
+			rects.push_back(rect_t{a,b,c});
+		}
+		void clear()
+		{
+			lines.clear();
+			rects.clear();
+		}
+
 		std::unique_ptr<Fl_Window> window;
 		std::unique_ptr<MapBox> mapbox;
 
 		FactorioGame* game;
+
+		std::vector<line_t> lines;
+		std::vector<rect_t> rects;
 };
 
 void MapBox::give_info(const Pos& pos)
@@ -188,8 +212,8 @@ void MapBox::give_info(const Pos& pos)
 		return;
 	last_info_pos = pos;
 
-	const pathfinding::walk_t& info = game->walk_map.at(pos);
-	const Resource& res = game->resource_map.at(pos);
+	const pathfinding::walk_t& info = gui->game->walk_map.at(pos);
+	const Resource& res = gui->game->resource_map.at(pos);
 
 	cout << ANSI_ERASE(2)
 	     << strpad(pos.str()+":",8) << "\tcan_walk = " << info.can_walk << "; north/east/south/west margins = " <<
@@ -217,10 +241,10 @@ int MapBox::handle(int event)
 				if (button == 2)
 				{
 					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
-					last_path = a_star( last_click[0], last_click[2], game->walk_map, 0.4);
+					last_path = a_star( last_click[0], last_click[2], gui->game->walk_map, 0.4);
 					// FIXME hardcoded action id
-					//game->set_waypoints(0, 1, last_path);
-					game->walk_to(1,last_click[2]);
+					//gui->game->set_waypoints(0, 1, last_path);
+					gui->game->walk_to(1,last_click[2]);
 					cout << last_path.size() << endl;
 				}
 			}
@@ -269,7 +293,7 @@ void MapBox::draw(void)
 	rgbimg->draw(x(),y(),w(),h());
 }
 
-MapBox::MapBox(FactorioGame* g, int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l), game(g)
+MapBox::MapBox(_MapGui_impl* mb, int x, int y, int w, int h, const char* l) : Fl_Box(x,y,w,h,l), gui(mb)
 {
 	imgwidth = 1000;
 	imgheight = 1000;
@@ -292,8 +316,8 @@ void MapBox::update_imgbuf()
 {
 	Pos lt = zoom_transform(Pos(-imgwidth/2, -imgheight/2)-canvas_center, zoom_level);
 	Pos rb = zoom_transform(Pos(imgwidth-imgwidth/2, imgheight-imgheight/2)-canvas_center, zoom_level) + Pos(1,1);
-	auto resview = game->resource_map.view(lt, rb, Pos(0,0));
-	auto view = game->walk_map.view(lt, rb, Pos(0,0));
+	auto resview = gui->game->resource_map.view(lt, rb, Pos(0,0));
+	auto view = gui->game->walk_map.view(lt, rb, Pos(0,0));
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
 		{
@@ -373,7 +397,7 @@ void MapBox::update_imgbuf()
 		draw_box(screenpos, 1<<max(-zoom_level-1,0), col);
 	}
 
-	for (const auto& player : game->players) if (player.connected)
+	for (const auto& player : gui->game->players) if (player.connected)
 	{
 		Pos screenpos = zoom_transform( player.position.to_int(), -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);
 
@@ -407,8 +431,8 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_)
 {
 	this->game = game_;
 	
-	window.reset(new Fl_Window(340,180));
-	mapbox.reset(new MapBox(game,20,40,300,100,"Hello, World!"));
+	window = std::make_unique<Fl_Window>(340,180);
+	mapbox = std::make_unique<MapBox>(this,20,40,300,100,"Hello, World!");
 	mapbox->box(FL_UP_BOX);
 	mapbox->labelfont(FL_BOLD+FL_ITALIC);
 	mapbox->labelsize(36);
@@ -425,6 +449,11 @@ double wait(double t)
 	if (cnt++ % 100 == 0) {foo->update_imgbuf(); foo->redraw(); }
 	return Fl::wait(t);
 }
+
+void MapGui::line(Pos a, Pos b, Color c) { impl->line(a,b,c); }
+void MapGui::rect(Pos a, Pos b, Color c) { impl->rect(a,b,c); }
+void MapGui::clear() { impl->clear(); }
+
 
 } // namespace GUI
 
