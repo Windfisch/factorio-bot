@@ -108,6 +108,8 @@ class FactorioGame
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
+
+		void assert_resource_consistency() const; // only for debugging purposes
 		
 		struct Player
 		{

@@ -599,6 +599,24 @@ void FactorioGame::update_walkmap(const Area& area)
 	}
 }
 
+void FactorioGame::assert_resource_consistency() const // only for debugging purposes
+{
+	#ifndef NDEBUG
+	set<int> ids;
+	for (auto patch : resource_patches)
+	{
+		auto result = ids.insert(patch->patch_id);
+		assert(result.second && "non-unique patch_ids");
+
+		for (Pos pos : patch->positions)
+		{
+			const auto& res = resource_map.at(pos);
+			assert(res.resource_patch.lock() == patch);
+			assert(res.patch_id == patch->patch_id);
+		}
+	}
+	#endif
+}
 
 void FactorioGame::parse_resources(const Area& area, const string& data)
 {
@@ -608,6 +626,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	// FIXME: clear and un-assign existing entities before
+	// FIXME: handle vanishing resources
 
 	// parse all entities and write them to the WorldMap
 	while (getline(str, entry, ',')) if (entry!="")
@@ -642,6 +661,14 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			break;
 		}
 
+		if (view.at(x,y).patch_id != NOT_YET_ASSIGNED)
+		{
+			if (view.at(x,y).type != type)
+				throw std::runtime_error("resource at "+Pos(x,y).str()+" changed type from "+Resource::typestr[view.at(x,y).type]+" to "+Resource::typestr[type]+". I can't handle that yet");
+			else // ignore this for now. see the fixme above
+				continue;
+		}
+
 		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str)));
 	}
 
@@ -652,6 +679,8 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			if (view.at(x,y).type != Resource::NONE && view.at(x,y).patch_id == NOT_YET_ASSIGNED)
 				floodfill_resources(view, area, x,y, view.at(x,y).type == Resource::OIL ? 30 : 5 );
 		}
+
+	assert_resource_consistency();
 }
 
 void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
