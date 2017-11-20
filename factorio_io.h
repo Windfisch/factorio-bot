@@ -109,6 +109,7 @@ class FactorioGame
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
 
+		void resource_bookkeeping(const Area& area, WorldMap<Resource>::Viewport resview);
 		void assert_resource_consistency() const; // only for debugging purposes
 		
 		struct Player

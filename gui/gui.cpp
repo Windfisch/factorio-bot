@@ -368,7 +368,10 @@ void MapBox::update_imgbuf()
 			{
 				// there's a resource patch at that location?
 				if (display_patch_type)
-					col.blend(resource_colors[resview.at(mappos).type], .15f);
+				{
+					if (resview.at(mappos).type != Resource::OCEAN)
+						col.blend(resource_colors[resview.at(mappos).type], .15f);
+				}
 				else
 					col.blend(get_color(resview.at(mappos).patch_id), .25f);
 			}

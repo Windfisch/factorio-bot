@@ -43,6 +43,7 @@ struct Resource
 		STONE,
 		OIL,
 		URANIUM,
+		OCEAN,
 		N_RESOURCES
 	};
 	static const std::unordered_map<std::string, Resource::type_t> types;

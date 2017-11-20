@@ -49,7 +49,7 @@ using namespace std;
 
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL}, {"uranium-ore", URANIUM} };
 	
-const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM" };
+const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM", "OCEAN" };
 
 static const string dir8[] = {
 	"defines.direction.north",
@@ -410,6 +410,7 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 		throw runtime_error("parse_tiles: invalid length");
 	
 	auto view = walk_map.view(area.left_top, area.right_bottom, area.left_top);
+	auto resview = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	for (int i=0; i<1024; i++)
 	{
@@ -417,7 +418,40 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 		int y = i/32;
 		view.at(x,y).known = true;
 		view.at(x,y).can_walk = (data[2*i]=='0');
+		
+		if (!view.at(x,y).can_walk) // FIXME: this is used to recognize "water" for now
+		{
+			Pos abspos = area.left_top + Pos(x,y);
+			if (resview.at(abspos).patch_id != NOT_YET_ASSIGNED)
+			{
+				if (resview.at(abspos).type != Resource::OCEAN)
+					throw std::runtime_error("resource at "+abspos.str()+" changed type from "+Resource::typestr[resview.at(abspos).type]+" to "+Resource::typestr[Resource::OCEAN]+". I can't handle that yet");
+				//else // ignore this for now. see the fixme above
+			}
+			else
+			{
+				assert(resview.at(abspos).resource_patch.lock() == nullptr);
+				resview.at(abspos) = Resource(Resource::OCEAN, NOT_YET_ASSIGNED, Entity(abspos, nullptr));
+			}
+		}
 	}
+	
+	resource_bookkeeping(area, resview);
+}
+
+void FactorioGame::resource_bookkeeping(const Area& area, WorldMap<Resource>::Viewport resview)
+{
+	// group them together
+	for (int x=area.left_top.x; x<area.right_bottom.x; x++)
+		for (int y=area.left_top.y; y<area.right_bottom.y; y++)
+		{
+			if (resview.at(x,y).type != Resource::NONE && resview.at(x,y).patch_id == NOT_YET_ASSIGNED)
+				floodfill_resources(resview, area, x,y, 
+					resview.at(x,y).type == Resource::OIL ? 30 :
+					(resview.at(x,y).type == Resource::OCEAN ? 1 : 5));
+		}
+
+	assert_resource_consistency();
 }
 
 void FactorioGame::parse_objects(const Area& area, const string& data)
@@ -673,15 +707,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str)));
 	}
 
-	// group them together
-	for (int x=area.left_top.x; x<area.right_bottom.x; x++)
-		for (int y=area.left_top.y; y<area.right_bottom.y; y++)
-		{
-			if (view.at(x,y).type != Resource::NONE && view.at(x,y).patch_id == NOT_YET_ASSIGNED)
-				floodfill_resources(view, area, x,y, view.at(x,y).type == Resource::OIL ? 30 : 5 );
-		}
-
-	assert_resource_consistency();
+	resource_bookkeeping(area, view);
 }
 
 void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
@@ -694,7 +720,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	todo.push_back(Pos(x,y));
 	int count = 0;
 	auto resource_type = view.at(x,y).type;
-	cout << "type = "<<resource_type<< " @"<<Pos(x,y).str()<<endl;
+	cout << "type = "<<Resource::typestr[resource_type]<< " @"<<Pos(x,y).str()<<endl;
 
 	view.at(x,y).floodfill_flag = Resource::FLOODFILL_QUEUED;
 
@@ -774,7 +800,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	auto view2 = view.extend(resource_patch->bounding_box.left_top, resource_patch->bounding_box.right_bottom);
 
 	// clear floodfill_flag
-	for (const Pos& p : resource_patch->positions) // TODO FIXME: view might be too small
+	for (const Pos& p : resource_patch->positions)
 	{
 		Resource& ref = view2.at(p);
 		ref.floodfill_flag = Resource::FLOODFILL_NONE;
