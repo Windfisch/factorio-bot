@@ -878,6 +878,7 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 	// find potential water sources in the starting area
 	int water_radius = radius + 100;
 	auto view = game->walk_map.view(pos-Pos(radius+1,radius+1), pos+Pos(radius+1,radius+1), Pos(0,0));
+	auto resview = game->resource_map.view(pos-Pos(radius+1,radius+1), pos+Pos(radius+1,radius+1), Pos(0,0));
 	struct watersource_t { Pos pos; };
 	WorldList<watersource_t> watersources;
 	for (int x = pos.x-radius; x<=pos.x+radius; x++)
@@ -885,11 +886,15 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 			if (view.at(x,y).land())
 			{
 				int n_water = 0;
+				int water_size = 0;
 				for (Pos p : directions4)
 					if (view.at(Pos(x,y)+p).water())
+					{
 						n_water++;
+						water_size = resview.at(Pos(x,y)+p).resource_patch.lock()->size();
+					}
 
-				if (n_water == 1)
+				if (n_water == 1 && n_water > 30)
 					watersources.insert( watersource_t{Pos(x,y)} );
 			}
 	
