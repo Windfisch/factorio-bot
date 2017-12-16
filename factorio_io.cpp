@@ -870,10 +870,6 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 				assert(patch->type != Resource::NONE);
 				break;
 
-			case Resource::URANIUM:
-			case Resource::OCEAN:
-			case Resource::OIL:
-			case Resource::N_RESOURCES:
 			default: // empty
 				break;
 		}
@@ -904,7 +900,7 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 			if (view.at(x,y).land())
 			{
 				int n_water = 0;
-				int water_size = 0;
+				size_t water_size = 0;
 				for (Pos p : directions4)
 					if (view.at(Pos(x,y)+p).water())
 					{

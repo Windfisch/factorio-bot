@@ -197,7 +197,7 @@ namespace action {
 								break;
 						}
 
-					int quality = dist + bounding_box(nearby_trees).diameter();
+					int quality = int(dist + bounding_box(nearby_trees).diameter()); // we don't need more precision
 					if (quality < best)
 					{
 						best = quality;
