@@ -95,7 +95,11 @@ end
 
 
 function pos_str(pos)
-	return pos.x .. "," .. pos.y
+	if #pos ~= 2 then
+		return pos.x .. "," .. pos.y
+	else
+		return pos[1] .. "," .. pos[2]
+	end
 end
 
 function aabb_str(aabb)
