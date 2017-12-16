@@ -912,7 +912,7 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 						water_size = resview.at(Pos(x,y)+p).resource_patch.lock()->size();
 					}
 
-				if (n_water == 1 && n_water > 30)
+				if (n_water == 1 && water_size > 30)
 					watersources.insert( watersource_t{Pos(x,y)} );
 			}
 	
