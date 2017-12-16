@@ -821,7 +821,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	cout << "we now have " << resource_patches.size() << " patches" << endl;
 }
 
-static double cluster_quality(int diam, size_t coal_size, size_t iron_size, size_t copper_size, size_t stone_size)
+static float cluster_quality(int diam, size_t coal_size, size_t iron_size, size_t copper_size, size_t stone_size)
 {
 	const float COAL_SIZE = 25*10;
 	const float IRON_SIZE = 25*10;
@@ -844,7 +844,7 @@ struct start_mines_t
 	Area area;
 };
 
-start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos = Pos_f(0.,0.))
+static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos = Pos_f(0.,0.))
 {
 	start_mines_t result;
 
@@ -853,11 +853,9 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 
 	// enumerate all relevant resource patches, limit the number to 5
 
-	vector< pair<double, shared_ptr<ResourcePatch>> > patches[Resource::N_RESOURCES];
+	vector< pair<float, shared_ptr<ResourcePatch>> > patches[Resource::N_RESOURCES];
 	for (auto patch : game->resource_patches) if (patch->size() >= 30)
 	{
-		Pos center = patch->bounding_box.center();
-
 		switch (patch->type)
 		{
 			case Resource::COAL:
@@ -866,6 +864,16 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 			case Resource::STONE:
 				patches[patch->type].emplace_back( (pos-patch->bounding_box.center()).len(), patch );
 				break;
+			
+			case Resource::NONE:
+				// this should never happen
+				assert(patch->type != Resource::NONE);
+				break;
+
+			case Resource::URANIUM:
+			case Resource::OCEAN:
+			case Resource::OIL:
+			case Resource::N_RESOURCES:
 			default: // empty
 				break;
 		}
@@ -887,12 +895,12 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 
 	// find potential water sources in the starting area
 	int water_radius = radius + 100;
-	auto view = game->walk_map.view(pos-Pos(radius+1,radius+1), pos+Pos(radius+1,radius+1), Pos(0,0));
-	auto resview = game->resource_map.view(pos-Pos(radius+1,radius+1), pos+Pos(radius+1,radius+1), Pos(0,0));
+	auto view = game->walk_map.view(pos-Pos(water_radius+1,water_radius+1), pos+Pos(water_radius+1,water_radius+1), Pos(0,0));
+	auto resview = game->resource_map.view(pos-Pos(water_radius+1,water_radius+1), pos+Pos(water_radius+1,water_radius+1), Pos(0,0));
 	struct watersource_t { Pos pos; };
 	WorldList<watersource_t> watersources;
-	for (int x = pos.x-radius; x<=pos.x+radius; x++)
-		for (int y = pos.y-radius; y<=pos.y+radius; y++)
+	for (int x = int(pos.x)-water_radius; x<=int(pos.x)+water_radius; x++)
+		for (int y = int(pos.y)-water_radius; y<=int(pos.y)+water_radius; y++)
 			if (view.at(x,y).land())
 			{
 				int n_water = 0;
@@ -910,7 +918,7 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 	
 	
 
-	double best = 999999999999; // best quality found so far
+	float best = 999999999999; // best quality found so far
 
 	// brute-force all 4-tuples and find the best
 	for (auto& coal : patches[Resource::COAL])
@@ -979,7 +987,7 @@ start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos =
 					x2 = max(x2, best_water_pos.x);
 					y2 = max(y2, best_water_pos.y);
 
-					double quality = cluster_quality(best_water_diam, coal.second->size(), iron.second->size(), copper.second->size(), stone.second->size());
+					float quality = cluster_quality(best_water_diam, coal.second->size(), iron.second->size(), copper.second->size(), stone.second->size());
 					if (quality < best)
 					{
 						best=quality;

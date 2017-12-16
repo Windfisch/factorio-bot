@@ -236,7 +236,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				range_iterator() : parent(nullptr) {}
 
 				// copy-ctor
-				range_iterator(const range_iterator<is_const>&) = default;
+				//range_iterator(const range_iterator<is_const>&) = default;
 
 				bool operator==(range_iterator<is_const> other) const
 				{

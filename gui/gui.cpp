@@ -115,7 +115,7 @@ Color get_color(int id)
 	return color_hsv(0.53481*id, 0.8 + 0.2*sin(id/21.324), 0.7+0.3*sin(id/2.13184));
 }
 
-std::unordered_map<Resource::type_t, Color> resource_colors {
+static std::unordered_map<Resource::type_t, Color> resource_colors {
 	{ Resource::COAL, Color(16,16,16) },
 	{ Resource::IRON, Color(130,205,255) },
 	{ Resource::COPPER, Color(230,115,0) },

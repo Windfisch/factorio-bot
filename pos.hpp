@@ -38,7 +38,7 @@ struct Pos_
 	T x,y;
 	Pos_(T x_, T y_) : x(x_), y(y_) {}
 	Pos_() : x(0), y(0) {}
-	template <typename U> Pos_(const Pos_<U>& other) : x(other.x), y(other.y) {}
+	template <typename U> Pos_(const Pos_<U>& other) : x(T(other.x)), y(T(other.y)) {}
 
 	Pos_<T> operator+(const Pos_<T>& b) const { return Pos_<T>(x+b.x, y+b.y); }
 	Pos_<T> operator-(const Pos_<T>& b) const { return Pos_<T>(x-b.x, y-b.y); }
