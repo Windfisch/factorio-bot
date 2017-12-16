@@ -130,6 +130,16 @@ void FactorioGame::place_entity(int player_id, std::string item_name, Pos_f pos,
 	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir8[direction]);
 }
 
+void FactorioGame::insert_to_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory)
+{
+	rcon_call("insert_to_inventory", player_id, "'"+entity.proto->name+"',{"+entity.pos.str()+"}," + inventory_names[inventory] + ",{name='"+item_name+"',count="+to_string(amount)+"}");
+}
+
+void FactorioGame::remove_from_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory)
+{
+	rcon_call("remove_from_inventory", player_id, "'"+entity.proto->name+"',{"+entity.pos.str()+"}," + inventory_names[inventory] + ",{name='"+item_name+"',count="+to_string(amount)+"}");
+}
+
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
 	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
@@ -1043,61 +1053,53 @@ int main(int argc, const char** argv)
 
 		if (frame == 1000)
 		{
-			find_start_mines(&factorio, &gui);
+			start_mines_t start_mines = find_start_mines(&factorio, &gui);
 
 			for (auto& player : factorio.players) if (player.connected)
 			{
-				// search closest coal patch and mine some coal
-				
-				auto& patches = factorio.resource_patches; // shorthand
-
-				auto closest_coal_patch = min_element_if(
-					patches,
-					[](auto patch) { return patch->type == Resource::COAL; } ,
-					[&player](auto a, auto b) {
-						return (a->bounding_box.center().to_double() - player.position).len()
-							< (b->bounding_box.center().to_double() - player.position).len(); }
-				);
-				if (closest_coal_patch == patches.end())
-				{
-					cout << "could not find a coal patch :(" << endl;
-					continue;
-				}
-
-				vector<Entity> nearby_trees;
-				for (const auto& closest_tree : factorio.actual_entities.around(player.position))
-					if (closest_tree.proto->name.substr(0,4) == "tree")
-					{
-						for (const auto& tree : factorio.actual_entities.around(closest_tree.pos))
-							if (tree.proto->name.substr(0,4) == "tree")
-							{
-								nearby_trees.push_back(tree);
-								if (nearby_trees.size() >= 5)
-									break;
-							}
-						break;
-					}
-
 				cout << "WALKING"<< endl;
 				player.goals = make_unique<action::CompoundGoal>(&factorio, player.id);
 				
 				{
 				auto parallel = make_unique<action::ParallelGoal>(&factorio, player.id);
 				
+				// craft an axe
 				parallel->subgoals.emplace_back( make_unique<action::CraftRecipe>(
-					&factorio, player.id, "iron-axe", 2) );
+					&factorio, player.id, "iron-axe", 1) );
 				
 				auto seq = make_unique<action::CompoundGoal>(&factorio, player.id);
 
-				for (const auto& tree : nearby_trees)
-					seq->subgoals.emplace_back( make_unique<action::WalkAndMineObject>(
-						&factorio, player.id, tree) );
+				seq->subgoals.emplace_back( make_unique<action::HaveItem>(
+					&factorio, player.id, "raw-wood", 60) );
 
-				seq->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
-					&factorio, player.id, *closest_coal_patch, 5) );
+				// make 2 chests, place a drill and a furnace on the iron field and manually make 15 stone
+				auto parallel2 = make_unique<action::ParallelGoal>(&factorio, player.id);
+				parallel2->subgoals.emplace_back( make_unique<action::CraftRecipe>(
+					&factorio, player.id, "wooden-chest", 2) );
 
-				seq->subgoals.emplace_back( make_unique<action::WalkAndPlaceEntity>(
-					&factorio, player.id, "stone-furnace", Pos_f(0,0)) );
+				auto seq2 = make_unique<action::CompoundGoal>(&factorio, player.id);
+
+				Pos iron_position = start_mines.iron->positions[0]; // FIXME
+				seq2->subgoals.emplace_back( make_unique<action::WalkAndPlaceEntity>(
+					&factorio, player.id, "burner-mining-drill", iron_position, d8_NORTH) );
+				seq2->subgoals.emplace_back( make_unique<action::WalkAndPlaceEntity>(
+					&factorio, player.id, "stone-furnace", iron_position-Pos(0,2)) );
+
+				seq2->subgoals.emplace_back( make_unique<action::PutToInventory>(
+					&factorio, player.id, "raw-wood", 20,
+					Entity(iron_position, &factorio.get_entity_prototype("burner-mining-drill")),
+					INV_FUEL) );
+				seq2->subgoals.emplace_back( make_unique<action::PutToInventory>(
+					&factorio, player.id, "raw-wood", 10,
+					Entity(iron_position-Pos(0,2), &factorio.get_entity_prototype("stone-furnace")),
+					INV_FUEL) );
+				
+				seq2->subgoals.emplace_back( make_unique<action::WalkAndMineResource>(
+					&factorio, player.id, start_mines.stone, 15) );
+
+				parallel2->subgoals.emplace_back( move(seq2) );
+
+				seq->subgoals.push_back( move(parallel2) );
 
 				parallel->subgoals.push_back(move(seq));
 

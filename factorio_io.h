@@ -101,6 +101,8 @@ class FactorioGame
 		void unset_mining_target(int player_id);
 		void start_crafting(int action_id, int player_id, std::string recipe, int count=1);
 		void place_entity(int player_id, std::string item_name, Pos_f pos, dir8_t direction);
+		void insert_to_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory);
+		void remove_from_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory);
 		
 		[[deprecated("set player goals instead")]]
 		void walk_to(int id, const Pos& dest);

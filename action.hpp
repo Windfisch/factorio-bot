@@ -190,8 +190,6 @@ namespace action
 		Pos_f pos;
 		dir8_t direction;
 
-		bool is_finished() { return true; }
-
 		private: void execute_impl();
 	};
 
@@ -219,11 +217,58 @@ namespace action
 		int amount;
 
 		WalkAndMineResource(FactorioGame* game, int player, std::shared_ptr<ResourcePatch> patch_, int amount_)
-			: CompoundGoal(game,player), patch(patch_), amount(amount_) { assert(amount>0); }
+			: CompoundGoal(game,player), patch(patch_), amount(amount_)
+		{
+			if (amount <= 0) throw std::invalid_argument("amount must be positive");
+		}
 
 		void start();
 		void tick();
 		void on_mined_item(std::string type, int amount);
+	};
+
+	/** Should take whatever action deemed appropriate to have `amount` of `item` in the inventory. Possible
+	  * ways to accomplish this include mining the desired amount, fetching the amount from a chest or handcrafting
+	  * the items. This may or may not change the player's position */
+	struct HaveItem : public CompoundGoal
+	{
+		std::string item;
+		int amount;
+		
+		HaveItem(FactorioGame* game, int player, std::string item_, int amount_)
+			: CompoundGoal(game,player), item(item_), amount(amount_)
+		{
+			if (amount <= 0) throw std::invalid_argument("amount must be positive");
+			if (item != "raw-wood" && item != "copper-ore" && item != "iron-ore" && item != "stone" && item != "coal") throw std::invalid_argument("unsupported item type for now");
+		}
+
+		void start();
+	};
+
+	struct PutToInventory : public PrimitiveAction
+	{
+		std::string item;
+		int amount;
+		Entity entity;
+		inventory_t inventory_type;
+
+		PutToInventory(FactorioGame* game, int player, std::string item_, int amount_, Entity entity_, inventory_t inventory_type_) :
+			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
+
+		private: void execute_impl();
+	};
+
+	struct TakeFromInventory : public PrimitiveAction
+	{
+		std::string item;
+		int amount;
+		Entity entity;
+		inventory_t inventory_type;
+
+		TakeFromInventory(FactorioGame* game, int player, std::string item_, int amount_, Entity entity_, inventory_t inventory_type_) :
+			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
+
+		private: void execute_impl();
 	};
 
 	struct CraftRecipe : public PrimitiveAction

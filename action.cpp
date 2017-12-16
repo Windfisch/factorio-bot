@@ -148,5 +148,75 @@ namespace action {
 	void PlaceEntity::execute_impl()
 	{
 		game->place_entity(player, item, pos, direction);
+		finished.insert(id);
+	}
+
+	void PutToInventory::execute_impl()
+	{
+		game->insert_to_inventory(player, item, amount, entity, inventory_type);
+		finished.insert(id);
+	}
+
+	void TakeFromInventory::execute_impl()
+	{
+		game->remove_from_inventory(player, item, amount, entity, inventory_type);
+		finished.insert(id);
+	}
+
+	void HaveItem::start()
+	{
+		int already_in_inventory = 0; // FIXME
+
+		int todo_amount = max(0, amount - already_in_inventory);
+		if (todo_amount == 0)
+			return;
+
+		auto& p = game->players[player];
+		if (item == "raw-wood")
+		{
+			// one tree is four raw-wood
+
+			todo_amount = (todo_amount+3)/4; // round up
+
+			int best = INT_MAX;
+			vector<Entity> best_nearby_trees;
+			for (const auto& closest_tree : game->actual_entities.around(p.position))
+			{
+				auto dist = (closest_tree.pos-p.position).len();
+
+				if (dist > best) break;
+
+				if (closest_tree.proto->name.substr(0,4) == "tree")
+				{
+					vector<Entity> nearby_trees;
+					for (const auto& tree : game->actual_entities.around(closest_tree.pos))
+						if (tree.proto->name.substr(0,4) == "tree")
+						{
+							nearby_trees.push_back(tree);
+							if (nearby_trees.size() >= todo_amount)
+								break;
+						}
+
+					int quality = dist + bounding_box(nearby_trees).diameter();
+					if (quality < best)
+					{
+						best = quality;
+						best_nearby_trees = move(nearby_trees);
+					}
+				}
+			}
+			
+			assert(best_nearby_trees.size() == todo_amount);
+
+			for (const auto& tree : best_nearby_trees)
+				subgoals.emplace_back( make_unique<action::WalkAndMineObject>(
+					game, player, tree) );
+		}
+		else if (item == "copper-ore" || item == "iron-ore" || item == "stone" || item == "coal")
+		{
+			throw runtime_error("not implemented yet"); // FIXME
+		}
+		else
+			assert(false);
 	}
 }
