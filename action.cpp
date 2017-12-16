@@ -21,6 +21,7 @@
 #include <iostream>
 #include <algorithm>
 #include "factorio_io.h"
+#include <climits>
 
 using namespace std;
 
@@ -33,7 +34,7 @@ namespace action {
 
 	void WalkTo::start()
 	{
-		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, 0.4+0.1);
+		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, 0.4+0.1, allowed_distance);
 		subgoals.push_back(unique_ptr<PlayerGoal>(new WalkWaypoints(game,player, waypoints)));
 
 		subgoals[0]->start();
@@ -59,7 +60,7 @@ namespace action {
 	void WalkAndPlaceEntity::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
-			pos, game->walk_map, 0.4+0.1, 3.);
+			pos, game->walk_map, 0.4+0.1, 4., 3.);
 
 		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
 		subgoals.push_back(make_unique<PlaceEntity>(game,player, item, pos, direction));

@@ -128,8 +128,9 @@ namespace action
 	struct WalkTo : public CompoundGoal
 	{
 		Pos destination;
+		double allowed_distance;
 
-		WalkTo(FactorioGame* game, int player, Pos destination_) : CompoundGoal(game, player) { destination = destination_; }
+		WalkTo(FactorioGame* game, int player, Pos destination_, double allowed_distance_ = 0.) : CompoundGoal(game, player) { destination = destination_; allowed_distance = allowed_distance_; }
 		void start();
 	};
 

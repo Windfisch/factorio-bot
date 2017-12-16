@@ -59,13 +59,16 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 	return result;
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance)
+vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance, double min_distance)
 {
-	return cleanup_path(a_star_raw(start, end, map, size, allowed_distance));
+	return cleanup_path(a_star_raw(start, end, map, size, allowed_distance, min_distance));
 }
 
-vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance)
+vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance, double min_distance)
 {
+	if (ceil(min_distance) >= allowed_distance)
+		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");
+	
 	Area view_area(start, end);
 	view_area.normalize();
 	auto view = map.view(view_area.left_top, view_area.right_bottom, Pos(0,0));
@@ -87,7 +90,7 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 		openlist.pop();
 		n_iterations++;
 
-		if ((current.pos-end).len() <= allowed_distance)
+		if ((current.pos-end).len() <= allowed_distance && (current.pos-end).len() >= min_distance)
 		{
 			// found goal.
 

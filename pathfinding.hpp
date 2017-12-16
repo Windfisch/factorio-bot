@@ -57,6 +57,6 @@ namespace pathfinding
 }
 
 std::vector<Pos> cleanup_path(const std::vector<Pos>& path);
-std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double size, double allowed_distance=0.);
-std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double size, double allowed_distance=0.);
+std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double size, double allowed_distance=0., double min_distance=0.);
+std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double size, double allowed_distance=0., double min_distance=0.);
 
