@@ -56,3 +56,16 @@ struct DesiredEntity : public Entity
 	std::weak_ptr<Entity> corresponding_actual_entity;
 	std::shared_ptr<Entity> get_actual();
 };
+
+template<typename container_type> Area_f bounding_box(const container_type& container)
+{
+	bool first = true;
+	Area_f result;
+	for (const auto& thing : container)
+	{
+		if (first) result = Area_f(thing.pos, thing.pos);
+		else result = result.expand(thing.pos);
+		first=false;
+	}
+	return result;
+}

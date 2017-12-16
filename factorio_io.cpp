@@ -1018,7 +1018,11 @@ int main(int argc, const char** argv)
 	GUI::MapGui gui(&factorio);
 
 	// quick read first part of the file before doing any GUI work. Useful for debugging, since reading in 6000 lines will take more than 6 seconds.
-	for (int i=0; i<6000; i++) factorio.parse_packet(factorio.read_packet());
+	for (int i=0; i<6000; i++) 
+	{
+		//cout << i << endl;
+		factorio.parse_packet(factorio.read_packet());
+	}
 
 	while (true)
 	{

@@ -51,6 +51,8 @@ template<typename T> struct Area_
 	bool contains(const Pos_<T>& p) const { return left_top <= p && p < right_bottom; }
 	bool contains_x(T x) const { return left_top.x <= x && x < right_bottom.x; }
 	bool contains_y(T y) const { return left_top.y <= y && y < right_bottom.y; }
+
+	T diameter() const { return std::max(right_bottom.x - left_top.x, right_bottom.y - left_top.y); }
 	
 	template <typename U=T> typename std::enable_if< std::is_floating_point<U>::value, Area_<int> >::type
 	/*Area_<int>*/ outer() const
@@ -61,6 +63,7 @@ template<typename T> struct Area_
 
 	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
 	Area_<T> expand(T radius) const { return Area_<T>(left_top-Pos_<T>(radius,radius), right_bottom+Pos_<T>(radius,radius)); }
+	Area_<T> expand(Pos_<T> point) const { return Area_<T>( std::min(left_top.x, point.x), std::min(left_top.y, point.y), std::max(right_bottom.x, point.x), std::max(right_bottom.y, point.y) ); }
 	T radius() const { return std::max( std::max( left_top.x, left_top.y), std::max( right_bottom.x, right_bottom.y) ); }
 	Area_<T> intersect(Area_<T> other) const
 	{
