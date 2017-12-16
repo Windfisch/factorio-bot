@@ -165,9 +165,9 @@ namespace action {
 
 	void HaveItem::start()
 	{
-		int already_in_inventory = 0; // FIXME
+		size_t already_in_inventory = 0; // FIXME
 
-		int todo_amount = max(0, amount - already_in_inventory);
+		size_t todo_amount = amount - min(already_in_inventory, size_t(amount)); // ==  max(0, amount - already_in_inventory);
 		if (todo_amount == 0)
 			return;
 
