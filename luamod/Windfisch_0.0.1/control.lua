@@ -121,9 +121,36 @@ function distance(a,b)
 end
 
 function writeout_initial_stuff()
+	writeout_pictures()
 	writeout_entity_prototypes()
 	writeout_item_prototypes()
 	writeout_recipes()
+end
+
+function writeout_pictures()
+	-- this is dirty. in data-final-fixes.lua, we wrote out "serpent.dump(data.raw)" into the
+	-- order strings of the "DATA_RAW"..i entities. We had to use multiple of those, because
+	-- there's a limit of 200 characters per string.
+
+	if game.entity_prototypes["DATA_RAW_LEN"] == nil then
+		print("ERROR: no DATA_RAW_LEN entity prototype?!")
+	end
+
+	local n = tonumber(game.entity_prototypes["DATA_RAW_LEN"].order)
+	print("n is " .. n)
+
+	local i = 0
+	local string = ""
+
+	local step = math.floor(n/20)
+	if step <= 0 then step = 1 end
+	print("reading data.raw")
+	for i = 1,n do
+		if (i % step == 0) then print(string.format("%3.0f%%", 100*i/n)) end
+		string = string .. game.entity_prototypes["DATA_RAW"..i].order
+	end
+	data = {raw = loadstring(string)()}
+	--print(serpent.block(data.raw))
 end
 
 function writeout_entity_prototypes()
