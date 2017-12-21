@@ -127,6 +127,45 @@ function writeout_initial_stuff()
 	writeout_recipes()
 end
 
+function writeout_proto_picture_dir(name, dir, picspec)
+	if picspec.layers ~= nil then
+		return writeout_proto_picture_dir(name, dir, picspec.layers[1])
+	elseif picspec.hr_version ~= nil then
+		return writeout_proto_picture_dir(name, dir, picspec.hr_version)
+	elseif #picspec > 0 then
+		return writeout_proto_picture_dir(name, dir, picspec[1])
+	end
+	
+	if picspec.filename ~= nil then
+		print(">>> "..name.."["..dir.."] -> "..picspec.filename)
+	else
+		print(">>> "..name.."["..dir.."] WTF")
+	end
+end
+
+function writeout_proto_picture(name, picspec)
+	local n_dirs = 0
+	local dirs = {"north","east","south","west"}
+	for _,dir in ipairs(dirs) do
+		if picspec[dir] ~= nil then
+			n_dirs = n_dirs + 1
+		end
+	end
+
+
+	if n_dirs > 0 then
+		for _,dir in ipairs(dirs) do
+			if picspec[dir] ~= nil then
+				writeout_proto_picture_dir(name, (n_dirs == 1) and "any" or dir, picspec[dir])
+			end
+		end
+	elseif picspec.sheet ~= nil then
+		print("TODO FIXME: cannot handle sheet for "..name.." yet!")
+	else
+		writeout_proto_picture_dir(name, "any", picspec)
+	end
+end
+
 function writeout_pictures()
 	-- this is dirty. in data-final-fixes.lua, we wrote out "serpent.dump(data.raw)" into the
 	-- order strings of the "DATA_RAW"..i entities. We had to use multiple of those, because
@@ -150,6 +189,19 @@ function writeout_pictures()
 		string = string .. game.entity_prototypes["DATA_RAW"..i].order
 	end
 	data = {raw = loadstring(string)()}
+
+	for group,members in pairs(data.raw) do
+		if group ~= "recipe" and group ~= "item" then
+			for proto, content in pairs(members) do
+				for _,child in ipairs({"structure","animation","picture","animations","base_picture"}) do
+					if content[child] ~= nil then
+						writeout_proto_picture(proto, content[child])
+						break
+					end
+				end
+			end
+		end
+	end
 	--print(serpent.block(data.raw))
 end
 
