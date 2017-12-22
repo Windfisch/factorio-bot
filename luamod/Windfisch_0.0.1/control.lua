@@ -125,6 +125,7 @@ function writeout_initial_stuff()
 	writeout_entity_prototypes()
 	writeout_item_prototypes()
 	writeout_recipes()
+	write_file("STATIC_DATA_END\n")
 end
 
 function writeout_proto_picture_dir(name, dir, picspec)

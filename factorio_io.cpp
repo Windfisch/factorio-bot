@@ -1061,6 +1061,18 @@ int main(int argc, const char** argv)
 	}
 
 	FactorioGame factorio(argv[1]);
+
+	cout << "reading static data" << endl;
+	while(true)
+	{
+		string packet = factorio.read_packet();
+		if (packet == "STATIC_DATA_END")
+			break;
+		else
+			factorio.parse_packet(packet);
+	}
+	cout << "done reading static data" << endl;
+
 	if (argc == 5)
 	{
 		string host(argv[2]);
