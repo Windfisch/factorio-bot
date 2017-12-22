@@ -37,6 +37,7 @@
 #include "action.hpp"
 #include "worldlist.hpp"
 #include "defines.h"
+#include "graphics_definitions.h"
 
 class FactorioGame
 {
@@ -61,6 +62,9 @@ class FactorioGame
 	public:
 		WorldList<Entity> actual_entities; // list of entities that are actually there per chunk
 		WorldList<DesiredEntity> desired_entities; // list of entities that we expect to be there per chunk
+		
+		// the GraphicsDefinition has either one or four entries: north east south west.
+		std::unordered_map< std::string, std::vector<GraphicsDefinition> > graphics_definitions;
 
 	private:
 		/* desired_entities and actual_entities deviate because of the following reasons:
@@ -71,7 +75,7 @@ class FactorioGame
 		 *   - an entity was reconfigured by another player
 		 */
 
-
+		void parse_graphics(const std::string& data);
 		void parse_tiles(const Area& area, const std::string& data);
 		void parse_resources(const Area& area, const std::string& data);
 		void parse_entity_prototypes(const std::string& data);

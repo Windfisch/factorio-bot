@@ -235,6 +235,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_item_prototypes(data);
 	else if (type=="recipes")
 		parse_recipes(data);
+	else if (type=="graphics")
+		parse_graphics(data);
 	else if (type=="objects")
 		parse_objects(area,data);
 	else if (type=="players")
@@ -257,6 +259,47 @@ static vector<string> split(const string& data, char delim=' ')
 		result.push_back(std::move(entry));
 	
 	return result;
+}
+
+void FactorioGame::parse_graphics(const string& data)
+{
+	for (const string& gfxstring : split(data, '|'))
+	{
+		vector<string> fields = split(gfxstring, '*');
+
+		// fields is either "name, definition_for_any_direction" or
+		// "name, def_north, def_east, def_south, def_west" in that order.
+
+		if (fields.size() != 2 && fields.size() != 5)
+			throw runtime_error("malformed parse_graphics packet");
+		
+		const string& name = fields[0];
+
+		auto& defs = graphics_definitions[name];
+		if (defs.size() > 0)
+			throw runtime_error("duplicate graphics definition in parse_graphics");
+
+		for (size_t i=1; i<fields.size(); i++)
+		{
+			auto deffields = split(fields[i], ':');
+			if (deffields.size() != 8)
+				throw runtime_error("malformed graphics definition in parse_graphics packet");
+
+			GraphicsDefinition def;
+			def.filename = deffields[0];
+			def.width = stoi(deffields[1]);
+			def.height = stoi(deffields[2]);
+			def.shiftx = stof(deffields[3]);
+			def.shifty = stof(deffields[4]);
+			def.x = stoi(deffields[5]);
+			def.y = stoi(deffields[6]);
+			def.scale = stof(deffields[7]);
+
+			defs.push_back(def);
+		}
+
+		assert(defs.size() == 1 || defs.size() == 4);
+	}
 }
 
 void FactorioGame::parse_mined_item(const string& data)

@@ -136,10 +136,22 @@ function writeout_proto_picture_dir(name, dir, picspec)
 		return writeout_proto_picture_dir(name, dir, picspec[1])
 	end
 	
-	if picspec.filename ~= nil then
-		print(">>> "..name.."["..dir.."] -> "..picspec.filename)
+	if picspec.filename ~= nil and picspec.width ~= nil and picspec.height ~= nil then
+		local shiftx = picspec.shift ~= nil and (picspec.shift[0]) or 0
+		local shifty = picspec.shift ~= nil and (picspec.shift[1]) or 0
+		local scale = picspec.scale or 0
+		local xx = picspec.x or 0
+		local yy = picspec.y or 0
+
+		-- this uses "|", "*" and ":" as separators on purpose, because these
+		-- may not be used in windows path names, and are thus unlikely to appear
+		-- in the image filenames.
+		local result = picspec.filename..":"..picspec.width..":"..picspec.height..":"..shiftx..":"..shifty..":"..xx..":"..yy..":"..scale
+		--print(">>> "..name.."["..dir.."] -> "..result)
+		return result
 	else
 		print(">>> "..name.."["..dir.."] WTF")
+		return nil
 	end
 end
 
@@ -152,21 +164,39 @@ function writeout_proto_picture(name, picspec)
 		end
 	end
 
-
+	local result = {}
+	local subresult = nil
 	if n_dirs > 0 then
 		for _,dir in ipairs(dirs) do
 			if picspec[dir] ~= nil then
-				writeout_proto_picture_dir(name, (n_dirs == 1) and "any" or dir, picspec[dir])
+				subresult = writeout_proto_picture_dir(name, (n_dirs == 1) and "any" or dir, picspec[dir])
+				if subresult == nil then
+					return nil
+				else
+					table.insert(result, subresult)
+				end
 			end
 		end
 	elseif picspec.sheet ~= nil then
 		print("TODO FIXME: cannot handle sheet for "..name.." yet!")
 	else
-		writeout_proto_picture_dir(name, "any", picspec)
+		subresult = writeout_proto_picture_dir(name, "any", picspec)
+		if subresult == nil then
+			return nil
+		else
+			table.insert(result, subresult)
+		end
 	end
+	
+	-- this uses "|", "*" and ":" as separators on purpose, because these
+	-- may not be used in windows path names, and are thus unlikely to appear
+	-- in the image filenames.
+	return name.."*"..table.concat(result, "*")
 end
 
 function writeout_pictures()
+	header = "graphics: "
+	
 	-- this is dirty. in data-final-fixes.lua, we wrote out "serpent.dump(data.raw)" into the
 	-- order strings of the "DATA_RAW"..i entities. We had to use multiple of those, because
 	-- there's a limit of 200 characters per string.
@@ -190,12 +220,16 @@ function writeout_pictures()
 	end
 	data = {raw = loadstring(string)()}
 
+	local lines = {}
 	for group,members in pairs(data.raw) do
 		if group ~= "recipe" and group ~= "item" then
 			for proto, content in pairs(members) do
 				for _,child in ipairs({"structure","animation","picture","animations","base_picture"}) do
 					if content[child] ~= nil then
-						writeout_proto_picture(proto, content[child])
+						local result = writeout_proto_picture(proto, content[child])
+						if result ~= nil then
+							table.insert(lines, result)
+						end
 						break
 					end
 				end
@@ -203,6 +237,12 @@ function writeout_pictures()
 		end
 	end
 	--print(serpent.block(data.raw))
+	
+	-- this uses "|", "*" and ":" as separators on purpose, because these
+	-- may not be used in windows path names, and are thus unlikely to appear
+	-- in the image filenames.
+	write_file(header..table.concat(lines, "|").."\n")
+	print(table.concat(lines,"|"))
 end
 
 function writeout_entity_prototypes()
