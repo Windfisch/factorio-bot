@@ -216,6 +216,7 @@ void MapBox::give_info(const Pos& pos)
 
 	const pathfinding::walk_t& info = gui->game->walk_map.at(pos);
 	const Resource& res = gui->game->resource_map.at(pos);
+	auto patch = res.resource_patch.lock();
 
 	cout << ANSI_ERASE(2)
 	     << strpad(pos.str()+":",8) << "\tcan_walk = " << info.can_walk << "; north/east/south/west margins = " <<
@@ -223,7 +224,9 @@ void MapBox::give_info(const Pos& pos)
 		info.margins[EAST] << "," <<
 		info.margins[SOUTH] << "," <<
 		info.margins[WEST] << ";" << endl
-	     << "\t\t" << "restype = " << Resource::typestr[res.type] << "; patch = " << res.resource_patch.lock().get() << endl;
+	     << "\t\t" << "restype = " << Resource::typestr[res.type] << "; patch = " << patch.get();
+	     if (patch) cout << ", size = " << patch->size();
+	     cout << endl;
 }
 
 int MapBox::handle(int event)
