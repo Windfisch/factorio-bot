@@ -148,7 +148,7 @@ function writeout_proto_picture_dir(name, dir, picspec)
 		-- may not be used in windows path names, and are thus unlikely to appear
 		-- in the image filenames.
 		local result = picspec.filename..":"..picspec.width..":"..picspec.height..":"..shiftx..":"..shifty..":"..xx..":"..yy..":"..scale
-		--print(">>> "..name.."["..dir.."] -> "..result)
+		print(">>> "..name.."["..dir.."] -> "..result)
 		return result
 	else
 		print(">>> "..name.."["..dir.."] WTF")

@@ -319,6 +319,47 @@ void MapBox::draw(void)
 {
 	rgbimg->draw(x(),y(),w(),h());
 
+
+	if (img_minscale <= zoom_level && zoom_level <= img_maxscale)
+	{
+		// draw entities
+		
+		Pos top_left_chunk  = Pos::tile_to_chunk( zoom_transform( Pos(-imgwidth/2, -imgheight/2) - canvas_center, zoom_level ) );
+		Pos bot_right_chunk = Pos::tile_to_chunk( zoom_transform( Pos(imgwidth/2, imgheight/2) - canvas_center, zoom_level ) );
+		for (int y = top_left_chunk.y; y <= bot_right_chunk.y; y++)
+			for (int x = top_left_chunk.x; x <= bot_right_chunk.x; x++)
+			{
+				//cout << "chunk " << x << "/" << y << endl;
+				const auto& ent_iter = gui->game->actual_entities.find(Pos(x,y));
+				if (ent_iter == gui->game->actual_entities.end())
+					continue;
+
+				const vector<Entity>& entities_orig = ent_iter->second;
+				vector<Entity> entities = entities_orig; // get a local copy
+				sort(entities.begin(), entities.end(), [](const Entity& a, const Entity& b) { return a.pos.less_rowwise(b.pos); });
+
+				for (const auto& entity : entities)
+				{
+					// FIXME this should be a member of EntityPrototype to
+					// avoid the hashmap lookup
+
+					auto iter = gui->game_graphics.find(entity.proto->name);
+					if (iter != gui->game_graphics.end())
+					{
+						// we have a graphic for this entity
+						// FIXME use the proper direction, once we get it from the game
+						const GameGraphic& gfx = iter->second[NORTH];
+
+						Pos p = zoom_transform(entity.pos + gfx.shift, -zoom_level) + canvas_center + Pos(imgwidth/2, imgheight/2);
+						
+						const auto& img = gfx.img_pyramid[zoom_level-img_minscale];
+						img->draw( this->x()+p.x - img->w()/2, this->y()+p.y - img->h()/2);
+					}
+				}
+			}
+	}
+
+
 	for (const auto& rect : gui->rects)
 	{
 		Pos a = zoom_transform( rect.a, -zoom_level ) + canvas_center + Pos(imgwidth/2, imgheight/2);

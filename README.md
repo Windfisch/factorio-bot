@@ -15,6 +15,7 @@ proof-of-concept that this can actually work.
 Features right now:
 
   * we can read out the map / buildings on the map
+  * most buildings are drawn, if you zoom in far enough
   * we can plan walking paths
   * we can actually walk :)
   * place entities
