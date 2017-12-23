@@ -23,6 +23,13 @@ Features right now:
   * craft recipes
 
 
+Screenshots
+-----------
+
+![map overview](screenshots/overview.png)
+
+![zoomed in](screenshots/zoomed.png)
+
 
 Setup
 ------
