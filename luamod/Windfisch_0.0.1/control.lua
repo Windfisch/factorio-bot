@@ -112,10 +112,10 @@ function distance(a,b)
 	local x2
 	local y2
 
-	if a.x ~= nil then x1 = a.x else x1=a[0] end
-	if a.y ~= nil then y1 = a.y else y1=a[1] end
-	if b.x ~= nil then x2 = b.x else x2=b[0] end
-	if b.y ~= nil then y2 = b.y else y2=b[1] end
+	if a.x ~= nil then x1 = a.x else x1=a[1] end
+	if a.y ~= nil then y1 = a.y else y1=a[2] end
+	if b.x ~= nil then x2 = b.x else x2=b[1] end
+	if b.y ~= nil then y2 = b.y else y2=b[2] end
 
 	return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
 end
@@ -138,8 +138,8 @@ function writeout_proto_picture_dir(name, dir, picspec)
 	end
 	
 	if picspec.filename ~= nil and picspec.width ~= nil and picspec.height ~= nil then
-		local shiftx = picspec.shift ~= nil and (picspec.shift[0]) or 0
-		local shifty = picspec.shift ~= nil and (picspec.shift[1]) or 0
+		local shiftx = picspec.shift ~= nil and (picspec.shift[1]) or 0
+		local shifty = picspec.shift ~= nil and (picspec.shift[2]) or 0
 		local scale = picspec.scale or 1
 		local xx = picspec.x or 0
 		local yy = picspec.y or 0
