@@ -62,6 +62,17 @@ struct Pos_
 	bool operator> (const Pos_<T>& that) const { return this->x >  that.x && this->y >  that.y; }
 	bool operator>=(const Pos_<T>& that) const { return this->x >= that.x && this->y >= that.y; }
 
+	bool less_rowwise(const Pos_<T>& that) const {
+		if (this->y < that.y) return true;
+		if (this->y > that.y) return false;
+		else return this->x < that.x;
+	}
+	bool less_columnwise(const Pos_<T>& that) const {
+		if (this->x < that.x) return true;
+		if (this->x > that.x) return false;
+		else return this->y < that.y;
+	}
+
 	double len() const { return std::sqrt(x*x+y*y); }
 
 	std::string str() const { return std::to_string(x) + "," + std::to_string(y); }
