@@ -151,6 +151,7 @@ class MapBox : public Fl_Box
 		bool display_patch_type = true; // true -> color represents type, false -> color represents pointer
 
 		Pos zoom_transform(const Pos& p, int factor);
+		Pos zoom_transform(const Pos_f& p, int factor);
 		void give_info(const Pos& pos);
 
 		void draw_box(const Pos& center, int radius, const Color& col);
@@ -174,6 +175,10 @@ Pos MapBox::zoom_transform(const Pos& p, int factor)
 		return p/(1<<(-factor));
 	else
 		return p;
+}
+Pos MapBox::zoom_transform(const Pos_f& p, int factor)
+{
+	return (p * pow(2, factor)).to_int();
 }
 
 struct line_t
