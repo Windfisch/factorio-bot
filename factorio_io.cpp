@@ -1073,6 +1073,7 @@ int main(int argc, const char** argv)
 	}
 	cout << "done reading static data" << endl;
 
+	bool online = false;
 	if (argc == 5)
 	{
 		string host(argv[2]);
@@ -1080,6 +1081,7 @@ int main(int argc, const char** argv)
 		string pass(argv[4]);
 
 		factorio.rcon_connect(host, port, pass);
+		online = true;
 	}
 
 	int frame=0;
@@ -1110,7 +1112,7 @@ int main(int argc, const char** argv)
 			}
 		}
 
-		if (frame == 1000)
+		if (online && frame == 1000)
 		{
 			start_mines_t start_mines = find_start_mines(&factorio, &gui);
 
