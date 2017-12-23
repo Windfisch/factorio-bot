@@ -140,7 +140,7 @@ function writeout_proto_picture_dir(name, dir, picspec)
 	if picspec.filename ~= nil and picspec.width ~= nil and picspec.height ~= nil then
 		local shiftx = picspec.shift ~= nil and (picspec.shift[0]) or 0
 		local shifty = picspec.shift ~= nil and (picspec.shift[1]) or 0
-		local scale = picspec.scale or 0
+		local scale = picspec.scale or 1
 		local xx = picspec.x or 0
 		local yy = picspec.y or 0
 
