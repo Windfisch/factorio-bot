@@ -22,6 +22,8 @@
 #include <cmath>
 #include <algorithm>
 #include "pos.hpp"
+#include "defines.h"
+#include <assert.h>
 
 template<typename T> struct Area_
 {
@@ -59,6 +61,20 @@ template<typename T> struct Area_
 	{
 		return Area_<int>( Pos_<int>(int(std::floor(left_top.x)), int(std::floor(left_top.y))),
 		                   Pos_<int>(int(std::ceil(right_bottom.x)), int(std::ceil(right_bottom.y))) );
+	}
+
+	Area_<T> rotate(dir4_t rot) const // assumes that the box is originally in NORTH orientation. i.e., passing rot=NORTH will do nothing, passing EAST will rotate 90deg clockwise etc
+	{
+		assert(rot == NORTH || rot == EAST || rot == SOUTH || rot == WEST);
+		switch (rot)
+		{
+			case NORTH: return *this;
+			case EAST: return Area_<T>( Pos_<T>(-right_bottom.y, left_top.x), Pos_<T>(-left_top.y, right_bottom.x) );
+			case SOUTH: return Area_<T>( Pos_<T>(-right_bottom.x, -right_bottom.y), Pos_<T>(-left_top.x, -left_top.y) );
+			case WEST: return Area_<T>( Pos_<T>(left_top.y, -right_bottom.x), Pos_<T>(right_bottom.y, -left_top.x) );
+		}
+		// can't be reached
+		assert(false);
 	}
 
 	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
