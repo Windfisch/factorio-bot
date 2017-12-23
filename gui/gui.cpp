@@ -499,7 +499,7 @@ static shared_ptr<Fl_Image> crop_image(const Fl_RGB_Image& img, int x, int y, in
 	if (ld == 0) ld = img.w() * img.d();
 	cout << "w="<<img.w()<<", h="<<img.h()<<", d="<<img.d()<<",ld="<<img.ld()<<","<<ld<<endl;
 
-	Fl_RGB_Image cropped( (img.array + x*img.d() + y*img.ld()), w, h, img.d(), img.ld() );
+	Fl_RGB_Image cropped( (img.array + x*img.d() + y*ld), w, h, img.d(), ld );
 	return shared_ptr<Fl_Image>(cropped.copy());
 }
 
