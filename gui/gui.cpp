@@ -37,7 +37,9 @@
 #endif
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
+#include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_RGB_Image.H>
+#include <FL/Fl_Image.H>
 #include <FL/Fl_Box.H>
 #include <FL/fl_draw.H>
 #pragma GCC diagnostic pop
@@ -50,6 +52,9 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <memory>
+#include <unordered_map>
+#include <array>
 
 using std::cout;
 using std::endl;
@@ -61,6 +66,12 @@ using std::sin;
 using std::max;
 
 using std::string;
+using std::unordered_map;
+using std::shared_ptr;
+using std::array;
+
+const int img_minscale = -6;
+const int img_maxscale = -3;
 
 static const string ANSI_CLEAR_LINE = "\033[2K";
 static const string ANSI_CURSOR_UP = "\033[A";
@@ -179,6 +190,12 @@ struct rect_t
 	Color c;
 };
 
+struct GameGraphic
+{
+	vector<shared_ptr<Fl_Image>> img_pyramid;
+	float shiftx;
+	float shifty;
+};
 
 class _MapGui_impl
 {
@@ -206,6 +223,9 @@ class _MapGui_impl
 
 		std::vector<line_t> lines;
 		std::vector<rect_t> rects;
+
+		void load_graphics();
+		unordered_map<string, array<GameGraphic,4> > game_graphics;
 };
 
 void MapBox::give_info(const Pos& pos)
@@ -266,7 +286,7 @@ int MapBox::handle(int event)
 		case FL_MOUSEWHEEL: {
 			int zoom_level_prev = zoom_level;
 			zoom_level += Fl::event_dy();
-			zoom_level = clamp(zoom_level, -5, 1);
+			zoom_level = clamp(zoom_level, -6, 1);
 
 			canvas_center = zoom_transform(canvas_center-mouse, zoom_level_prev-zoom_level)+mouse;
 			canvas_drag = zoom_transform(canvas_drag-mouse, zoom_level_prev-zoom_level)+mouse;
@@ -454,6 +474,8 @@ MapGui::~MapGui() {}
 _MapGui_impl::_MapGui_impl(FactorioGame* game_)
 {
 	this->game = game_;
+
+	load_graphics();
 	
 	window = std::make_unique<Fl_Double_Window>(340,180);
 	mapbox = std::make_unique<MapBox>(this,20,40,300,100,"Hello, World!");
@@ -465,6 +487,89 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_)
 	window->resizable(mapbox.get());
 	window->end();
 	window->show();
+}
+
+static shared_ptr<Fl_Image> crop_image(const Fl_RGB_Image& img, int x, int y, int w, int h)
+{
+	assert(img.d() >= 1);
+	assert(x >= 0 && x < img.w());
+	assert(y >= 0 && y < img.h());
+
+	int ld = img.ld();
+	if (ld == 0) ld = img.w() * img.d();
+	cout << "w="<<img.w()<<", h="<<img.h()<<", d="<<img.d()<<",ld="<<img.ld()<<","<<ld<<endl;
+
+	Fl_RGB_Image cropped( (img.array + x*img.d() + y*img.ld()), w, h, img.d(), img.ld() );
+	return shared_ptr<Fl_Image>(cropped.copy());
+}
+
+static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, int x, int y, int w, int h, float scale)
+{
+	Fl_PNG_Image img(filename.c_str());
+
+	if (img.fail())
+	{
+		if (img.fail() == Fl_Bitmap::ERR_FORMAT)
+			cout << "could not load image " << filename << ": " << strerror(errno) << endl;
+		else
+			cout << "could not load image " << filename << ": invalid format" << endl;
+		exit(1);
+	}
+
+	shared_ptr<Fl_Image> cropped = crop_image(img, x,y,w,h);
+	vector<shared_ptr<Fl_Image>> result;
+
+	for (int i = img_minscale; i <= img_maxscale; i++)
+	{
+		float factor = powf(2.f,-i) / 32.f * scale;
+		result.emplace_back( cropped->copy( int(w*factor), int(h*factor) ) );
+	}
+
+	return result;
+}
+
+static string gfx_filename(string orig) // FIXME HACK
+{
+	string prefix;
+	if (orig.substr(0,8) == "__base__")
+		prefix = "base";
+	else if (orig.substr(0,8) == "__core__" )
+		prefix = "core";
+	else
+		assert(false);
+
+	return "/home/flo/kruschkram/facbot2/server/data/" + prefix + orig.substr(8);
+}
+
+void _MapGui_impl::load_graphics()
+{
+	for (const auto& iter : game->graphics_definitions)
+	{
+		const string& name = iter.first;
+		const vector<GraphicsDefinition>& defs = iter.second;
+		array<GameGraphic,4>& game_graphic = game_graphics[name];
+
+		assert(defs.size() == 1 || defs.size() == 4);
+		if (defs.size() == 4)
+		{
+			for (int i=0; i<4; i++)
+			{
+				game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale );
+				game_graphic[i].shiftx = defs[i].shiftx;
+				game_graphic[i].shifty = defs[i].shifty;
+			}
+		}
+		else
+		{
+			auto pyr = load_image_pyramid( gfx_filename(defs[0].filename), defs[0].x, defs[0].y, defs[0].width, defs[0].height, defs[0].scale );
+			for (int i=0; i<4; i++)
+			{
+				game_graphic[i].img_pyramid = pyr;
+				game_graphic[i].shiftx = defs[0].shiftx;
+				game_graphic[i].shifty = defs[0].shifty;
+			}
+		}
+	}
 }
 
 double wait(double t)

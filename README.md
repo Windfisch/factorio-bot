@@ -82,7 +82,7 @@ Building / Requirements
 -----------------------
 
 Most code is written in C++, using the C++14 standard. Dependencies are 
-[Boost](http://boost.org) and [FLTK](http://fltk.org) for the GUI. (On Ubuntu,
+[Boost](http://boost.org) and [FLTK](http://fltk.org)-1.3.4 for the GUI. (On Ubuntu,
 run: `apt-get install libboost-dev libfltk1.3-dev` to get them)
 
 The build system used is Make. So just type `make all` and you should™ be

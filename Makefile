@@ -42,11 +42,11 @@ else
 endif
 
 FLAGS += $(WARNFLAGS)
-CFLAGS = $(CFLAGS_BASE) $(FLAGS) `fltk-config --cflags`
-CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags`
+CFLAGS = $(CFLAGS_BASE) $(FLAGS) `fltk-config --cflags --use-images`
+CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags --use-images`
 LINK=$(CXX)
 LINKFLAGS=$(CXXFLAGS)
-LIBS=`fltk-config --ldflags`
+LIBS=`fltk-config --ldflags --use-images`
 
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
