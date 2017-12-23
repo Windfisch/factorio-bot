@@ -202,7 +202,7 @@ struct GameGraphic
 class _MapGui_impl
 {
 	public:
-		_MapGui_impl(FactorioGame* game);
+		_MapGui_impl(FactorioGame* game, string datapath);
 
 		void line(Pos a, Pos b, Color c)
 		{
@@ -222,6 +222,9 @@ class _MapGui_impl
 		std::unique_ptr<MapBox> mapbox;
 
 		FactorioGame* game;
+		string datapath;
+
+		string gfx_filename(string orig);
 
 		std::vector<line_t> lines;
 		std::vector<rect_t> rects;
@@ -512,12 +515,13 @@ void MapBox::draw_box(const Pos& center, int radius, const Color& col)
 		}
 }
 
-MapGui::MapGui(FactorioGame* game) : impl(new _MapGui_impl(game)) {}
+MapGui::MapGui(FactorioGame* game, const char* datapath) : impl(new _MapGui_impl(game, datapath)) {}
 MapGui::~MapGui() {}
 
-_MapGui_impl::_MapGui_impl(FactorioGame* game_)
+_MapGui_impl::_MapGui_impl(FactorioGame* game_, string datapath_)
 {
 	this->game = game_;
+	this->datapath = datapath_;
 
 	load_graphics();
 	
@@ -572,7 +576,7 @@ static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, i
 	return result;
 }
 
-static string gfx_filename(string orig) // FIXME HACK
+string _MapGui_impl::gfx_filename(string orig)
 {
 	string prefix;
 	if (orig.substr(0,8) == "__base__")
@@ -582,7 +586,7 @@ static string gfx_filename(string orig) // FIXME HACK
 	else
 		assert(false);
 
-	return "/home/flo/kruschkram/facbot2/server/data/" + prefix + orig.substr(8);
+	return datapath + "/" + prefix + orig.substr(8);
 }
 
 void _MapGui_impl::load_graphics()

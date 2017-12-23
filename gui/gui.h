@@ -41,7 +41,7 @@ class _MapGui_impl;
 class MapGui
 {
 	public:
-		MapGui(FactorioGame* game);
+		MapGui(FactorioGame* game, const char* datapath);
 		~MapGui();
 
 		void line(Pos a, Pos b, Color c);
