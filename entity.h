@@ -46,7 +46,7 @@ struct Entity
 	const EntityPrototype* proto;
 	dir4_t direction;
 
-	bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto; }
+	bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction; }
 
 	Area_f collision_box() const { return proto->collision_box.rotate(direction).shift(pos); }
 

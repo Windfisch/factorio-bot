@@ -703,6 +703,7 @@ script.on_event(defines.events.on_player_mined_item, on_player_mined_item)
 script.on_event(defines.events.on_biter_base_built, on_some_entity_created) --entity
 script.on_event(defines.events.on_built_entity, on_some_entity_created) --created_entity
 script.on_event(defines.events.on_robot_built_entity, on_some_entity_created) --created_entity
+script.on_event(defines.events.on_player_rotated_entity, on_some_entity_created) --entity
 
 script.on_event(defines.events.on_entity_died, on_some_entity_deleted) --entity
 script.on_event(defines.events.on_player_mined_entity, on_some_entity_deleted) --entity
