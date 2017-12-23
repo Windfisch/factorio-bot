@@ -196,8 +196,7 @@ struct rect_t
 struct GameGraphic
 {
 	vector<shared_ptr<Fl_Image>> img_pyramid;
-	float shiftx;
-	float shifty;
+	Pos_f shift;
 };
 
 class _MapGui_impl
@@ -559,8 +558,8 @@ void _MapGui_impl::load_graphics()
 			for (int i=0; i<4; i++)
 			{
 				game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale );
-				game_graphic[i].shiftx = defs[i].shiftx;
-				game_graphic[i].shifty = defs[i].shifty;
+				game_graphic[i].shift.x = defs[i].shiftx;
+				game_graphic[i].shift.y = defs[i].shifty;
 			}
 		}
 		else
@@ -569,8 +568,8 @@ void _MapGui_impl::load_graphics()
 			for (int i=0; i<4; i++)
 			{
 				game_graphic[i].img_pyramid = pyr;
-				game_graphic[i].shiftx = defs[0].shiftx;
-				game_graphic[i].shifty = defs[0].shifty;
+				game_graphic[i].shift.x = defs[0].shiftx;
+				game_graphic[i].shift.y = defs[0].shifty;
 			}
 		}
 	}
