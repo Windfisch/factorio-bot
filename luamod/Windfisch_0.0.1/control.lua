@@ -755,6 +755,8 @@ function rcon_place_entity(player_id, item_name, entity_position, direction)
 
 	if result == nil then
 		complain("placing item '"..item_name.."' failed, surface.create_entity returned nil :(")
+	else
+		on_some_entity_created({entity = result})
 	end
 end
 
