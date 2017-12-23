@@ -1097,7 +1097,7 @@ int main(int argc, const char** argv)
 	{
 		factorio.parse_packet( factorio.read_packet() );
 		frame++;
-		//if (frame>6000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
+		//cout << "frame " << frame << endl; if (frame>1000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
 		
 		for (auto& player : factorio.players)
 		{

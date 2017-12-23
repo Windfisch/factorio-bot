@@ -359,6 +359,7 @@ void MapBox::update_imgbuf()
 	Pos rb = zoom_transform(Pos(imgwidth-imgwidth/2, imgheight-imgheight/2)-canvas_center, zoom_level) + Pos(1,1);
 	auto resview = gui->game->resource_map.view(lt, rb, Pos(0,0));
 	auto view = gui->game->walk_map.view(lt, rb, Pos(0,0));
+	// the chunks store the data as array [x][y], i.e., y should be the fast-running coordinate to be cache efficient
 	for (int x=0; x<imgwidth; x++)
 		for (int y=0; y<imgheight; y++)
 		{
