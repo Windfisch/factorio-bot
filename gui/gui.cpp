@@ -20,9 +20,8 @@
 #include <cassert>
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
-#pragma GCC diagnostic push
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdocumentation-deprecated-sync"
@@ -33,7 +32,6 @@
 #pragma GCC diagnostic ignored "-Wundef"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -146,7 +144,7 @@ class MapBox : public Fl_Box
 		std::unique_ptr<Fl_RGB_Image> rgbimg;
 		_MapGui_impl* gui;
 
-		Pos canvas_center; // divide this by zoom_level to get tile coords
+		Pos canvas_center; // divide this by 2**zoom_level to get tile coords
 		Pos canvas_drag;
 		int zoom_level = 0; // powers of two
 		
