@@ -528,14 +528,27 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	{
 		vector<string> fields = split(entry);
 
-		if (fields.size() != 3)
+		if (fields.size() != 4)
 			throw runtime_error("malformed parse_objects packet");
 
 		const string& name = fields[0];
 		double ent_x = stod(fields[1]);
 		double ent_y = stod(fields[2]);
+		const string& dir = fields[3];
 
-		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name));
+		if (dir.length() != 1)
+			throw runtime_error("invalid direction '"+dir+"' in parse_objects");
+		dir4_t dir4;
+		switch(dir[0])
+		{
+			case 'N': dir4 = NORTH; break;
+			case 'E': dir4 = EAST; break;
+			case 'S': dir4 = SOUTH; break;
+			case 'W': dir4 = WEST; break;
+			default: throw runtime_error("invalid direction '"+dir+"' in parse_objects");
+		};
+
+		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name), dir4);
 
 		// ignore various ever-moving entities that need to be handled specially
 		if (name == "player")

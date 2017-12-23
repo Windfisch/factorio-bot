@@ -19,6 +19,7 @@
 #pragma once
 #include "area.hpp"
 #include "pos.hpp"
+#include "defines.h"
 #include <string>
 #include <memory>
 
@@ -43,12 +44,13 @@ struct Entity
 {
 	Pos_f pos;
 	const EntityPrototype* proto;
+	dir4_t direction;
 
 	bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto; }
 
-	Area_f collision_box() const { return proto->collision_box.shift(pos); }
+	Area_f collision_box() const { return proto->collision_box.rotate(direction).shift(pos); }
 
-	Entity(const Pos_f& pos_, const EntityPrototype* proto_) : pos(pos_), proto(proto_) {}
+	Entity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH) : pos(pos_), proto(proto_), direction(direction_) {}
 };
 
 struct DesiredEntity : public Entity

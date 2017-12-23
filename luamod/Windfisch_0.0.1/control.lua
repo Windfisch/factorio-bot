@@ -561,6 +561,20 @@ function writeout_resources(surface, area) -- quite fast. beastie can do > 40, u
 	line=nil
 end
 
+function direction_str(d)
+	if d == defines.direction.north then
+		return "N"
+	elseif d == defines.direction.east then
+		return "E"
+	elseif d == defines.direction.south then
+		return "S"
+	elseif d == defines.direction.west then
+		return "W"
+	else
+		return "X"
+	end
+end
+
 function writeout_objects(surface, area)
 	--if my_client_id ~= 1 then return end
 	header = "objects "..area.left_top.x..","..area.left_top.y..";"..area.right_bottom.x..","..area.right_bottom.y..": "
@@ -569,7 +583,7 @@ function writeout_objects(surface, area)
 	for idx, ent in pairs(surface.find_entities(area)) do
 		if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
 			if ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
-				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y
+				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..direction_str(ent.direction)
 				if idx % 100 == 0 then
 					table.insert(lines,line)
 					line=''

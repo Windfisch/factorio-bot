@@ -351,7 +351,7 @@ void MapBox::draw(void)
 					{
 						// we have a graphic for this entity
 						// FIXME use the proper direction, once we get it from the game
-						const GameGraphic& gfx = iter->second[NORTH];
+						const GameGraphic& gfx = iter->second[entity.direction];
 
 						Pos p = zoom_transform(entity.pos + gfx.shift, -zoom_level) + canvas_center + Pos(imgwidth/2, imgheight/2);
 						
