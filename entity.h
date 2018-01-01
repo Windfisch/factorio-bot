@@ -50,13 +50,27 @@ struct Entity
 
 	Area_f collision_box() const { return proto->collision_box.rotate(direction).shift(pos); }
 
-	Entity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH) : pos(pos_), proto(proto_), direction(direction_) {}
+	Entity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
+		: pos(pos_), proto(proto_), direction(direction_) {}
 };
 
 struct DesiredEntity : public Entity
 {
 	std::weak_ptr<Entity> corresponding_actual_entity;
 	std::shared_ptr<Entity> get_actual();
+	
+	DesiredEntity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
+		: Entity(pos_, proto_, direction_) {}
+};
+
+struct PlannedEntity : public DesiredEntity
+{
+	int level; // at which facility-level to place this
+	
+	PlannedEntity(int level_, const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
+		: DesiredEntity(pos_, proto_, direction_), level(level_) {}
+	PlannedEntity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
+		: DesiredEntity(pos_, proto_, direction_), level(-1) {}
 };
 
 template<typename container_type> Area_f bounding_box(const container_type& container)
