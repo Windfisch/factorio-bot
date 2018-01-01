@@ -24,6 +24,7 @@
 #include "pos.hpp"
 #include "defines.h"
 #include <assert.h>
+#include <vector>
 
 template<typename T> struct Area_
 {
@@ -33,6 +34,24 @@ template<typename T> struct Area_
 	Area_() {}
 	Area_(T x1, T y1, T x2, T y2) : left_top(x1,y1), right_bottom(x2,y2)  {}
 	Area_(const Pos_<T>& lt, const Pos_<T>& rb) : left_top(lt), right_bottom(rb) {}
+	Area_(const std::vector<Pos_<T>>& positions)
+	{
+		assert(!positions.empty());
+		// calculate the bounding box
+		left_top = positions[0];
+		right_bottom = positions[0];
+		for (const Pos& p : positions)
+		{
+			if (p.x < left_top.x)
+				left_top.x = p.x;
+			if (p.x >= right_bottom.x)
+				right_bottom.x = p.x+1; // FIXME what to do with floats here :/?
+			if (p.y < left_top.y)
+				left_top.y = p.y;
+			if (p.y >= right_bottom.y)
+				right_bottom.y = p.y+1;
+		}
+	}
 	Area_(std::string str);
 	template <typename U> Area_(const Area_<U>& other) : left_top(other.left_top), right_bottom(other.right_bottom) {}
 	
