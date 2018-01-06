@@ -22,6 +22,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
+#pragma GCC diagnostic push
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wdocumentation"
 #pragma GCC diagnostic ignored "-Wdocumentation-deprecated-sync"

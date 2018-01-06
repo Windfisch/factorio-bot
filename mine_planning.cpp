@@ -8,6 +8,8 @@ using namespace std;
 
 constexpr unsigned SANE_MOD(int a, unsigned b) { return ((a%b)+b)%b; }
 
+const int UNINITIALIZED = INT_MAX;
+
 struct thing_t
 {
 	enum type_t { BELT, MACHINE };
@@ -22,11 +24,11 @@ struct thing_t
 
 
 // gives a list of positions, so that U_{i \in result} { [i; i+width[ } \superset array
-static vector<int> array_cover(const vector<bool>& array, int width, Pos size)
+static vector<size_t> array_cover(const vector<bool>& array, unsigned width, Pos size)
 {
-	vector<int> result;
+	vector<size_t> result;
 
-	int i=0;
+	size_t i=0;
 	while (i<array.size())
 	{
 		if (array[i])
@@ -65,9 +67,9 @@ void plan_rectgrid_belt(const std::vector<Pos>& positions, int outerx, int outer
 	}
 }
 
-static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, int side_max, int preferred_y_out, dir4_t x_side_);
+static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_);
 
-static vector<thing_t> plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, int side_max, int preferred_y_out, dir4_t x_side)
+static vector<thing_t> plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side)
 {
 	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
 
@@ -97,18 +99,18 @@ static vector<thing_t> plan_rectgrid_belt_horiz(const vector<bool>& grid, const 
 }
 
 // a belt at position i is located between drill(i-1) and drill(i)
-static vector<int> plan_belts(const vector< vector<int> >& rows, int side_max, bool start_south=true)
+static vector<size_t> plan_belts(const vector< vector<size_t> >& rows, unsigned side_max, bool start_south=true)
 {
 	int a=0;
 	int side[2] = {0,0};
 
-	vector<int> belts;
+	vector<size_t> belts;
 	belts.push_back(start_south ? 1 : 0);
 
-	for (int i= (start_south ? 1 : 0); i<int(rows.size()+1); i+=2)
+	for (size_t i= (start_south ? 1 : 0); i<rows.size()+1; i+=2)
 	{
-		int size1 = 0, size2 = 0;
-		if (i-1 >= 0)
+		size_t size1 = 0, size2 = 0;
+		if (i >= 1)
 			size1 = rows[i-1].size();
 		if (i < rows.size())
 			size2 = rows[i].size();
@@ -149,7 +151,7 @@ template <typename T> void dump(const vector<vector<T>>& vecs, string name = "")
 	cout << "}\n";
 }
 
-static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, int side_max, int preferred_y_out, dir4_t x_side_)
+static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_)
 {
 	assert(-outery < ystart && ystart <= 0);
 	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
@@ -162,7 +164,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	// plan the grid of machines. FIXME: this doesn't account for "forbidden tiles"
 	// plan the grid of machines. FIXME: this doesn't account for "forbidden tiles"
 	// caused by other ores in proximity
-	vector< vector<int> > rows;
+	vector< vector<size_t> > rows;
 	for (int row = 0; row < n_rows; row++)
 	{
 		int y1 = (row*outery - ystart); // incl
@@ -186,7 +188,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 
 	// calculate the rows each belt group must cover, taking
 	// into account the maximum belt capacity.
-	vector<int> belts;
+	vector<size_t> belts;
 	bool firstrow_south;
 	{
 	auto belts1 = plan_belts(rows, side_max, true);
@@ -208,7 +210,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 
 
 	vector< pair<int,int> > belt_ranges; // (begin incl, end excl)
-	for (int i=1; i<belts.size(); i++)
+	for (size_t i=1; i<belts.size(); i++)
 		belt_ranges.emplace_back( belts[i-1], belts[i] );
 	belt_ranges.emplace_back( belts.back(), n_rows+1 );
 	if (belt_ranges.back().second % 2 != belt_ranges.back().first % 2)
@@ -242,7 +244,6 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	// calculate the directions (right to left or left to right) of the belt rows
 	// and layout the belts and the mining drills in their respective orders
 	assert(belt_ranges.size() > 0);
-	int i=preferred_rowrange;
 
 	struct belt_row_t
 	{
@@ -256,6 +257,8 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		belt_row_t(int r, layout_direction_t d, bool c) : row(r), dir(d), connect_from_prev(c) {}
 	};
 	vector<belt_row_t> belt_rows;
+	{
+	size_t i=preferred_rowrange;
 	do
 	{
 		cout << "loop, i = " << i << endl;
@@ -289,13 +292,14 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		// advance to the next belt group
 		i = (i-mine_direction+belt_ranges.size()) % belt_ranges.size();
 	} while (i != preferred_rowrange);
+	}
 
 
 	vector<thing_t> result;
-	int prev_x;
+	int prev_x = UNINITIALIZED;
 	unsigned curr_level = 0;
 	// now we know which machines to places and where the belts should be. we must bring them in an order and add inter-row-connections.
-	for (auto i=0; i<belt_rows.size(); i++)
+	for (size_t i=0; i<belt_rows.size(); i++)
 	{
 		int row = belt_rows[i].row;
 		layout_direction_t lay_dir = belt_rows[i].dir;
@@ -308,14 +312,14 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		vector< pair<Pos, dir4_t> > machines;
 		if (row-1 >= 0)
 		{
-			for (int machine_x : rows[row-1])
+			for (auto machine_x : rows[row-1])
 				machines.emplace_back(
 					Pos(machine_x, (row-1)*outery+ystart),
 					SOUTH);
 		}
-		if (row < rows.size()) // the if is only for symmetry
+		if (row < ssize_t(rows.size())) // the if is only for symmetry
 		{
-			for (int machine_x : rows[row])
+			for (auto machine_x : rows[row])
 				machines.emplace_back(
 					Pos(machine_x, row*outery+ystart),
 					NORTH);
@@ -341,7 +345,8 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 			int prev_belt_y = prevrow*outery + ystart;
 			
 			int connect_x = lay_dir == LAY_LEFT ? min(prev_x, xbegin) - innery/2 - 1 : max(prev_x, xbegin) + innery/2 + 1;
-			
+
+			assert(prev_x != UNINITIALIZED);
 			for (int x = prev_x; x != connect_x; x += lay_dir)
 				result.emplace_back(curr_level, thing_t::BELT, Pos(x, prev_belt_y), lay_dir == LAY_LEFT ? WEST : EAST);
 			for (int y = prev_belt_y; y != belt_y; y += (prev_belt_y < belt_y ? 1 : -1))
@@ -355,7 +360,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		}
 		
 
-		int mach_idx = 0;
+		unsigned mach_idx = 0;
 		int x;
 		for (x = xbegin; x != xend; x-=lay_dir)
 		{
@@ -392,7 +397,7 @@ static void rect(vector<bool>& v, Pos size, Pos lt, Pos rb, bool val) //DEBUG
 			v[x*size.y + y] = val;
 }
 
-typedef vector<int> v;
+typedef vector<size_t> v;
 int main()
 {
 	auto result = plan_belts( { v(5), v(5),    v(6), v(2),   v(1), v(4),   v(3), v(3) }, 11, false);
