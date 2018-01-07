@@ -47,7 +47,7 @@ static vector<size_t> array_cover(const vector<bool>& array, unsigned width, Pos
 	
 	// ensure that the last object is not placed outside of array's width. if so, move it inside.
 	assert(result.size()<=1 || result[ result.size()-1 ] >= result[ result.size()-2 ]+width);
-	if (result.back() > size.x-width)
+	if (!result.empty() && result.back() > size.x-width)
 		result.back() = size.x-width;
 
 	return result;
@@ -245,8 +245,11 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	vector< vector<size_t> > rows;
 	for (int row = 0; row < n_rows; row++)
 	{
-		int y1 = (row*outery - ystart); // incl
+		int y1 = (row*outery + ystart); // incl
 		int y2 = y1 + outery; // excl
+
+		y1 = max(y1, 0);
+		y2 = min(y2, size.y);
 
 		// for each machine row (which is outery tiles large), perform a logical OR
 		// over the tile rows.
@@ -297,7 +300,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	// search that rowrange covered by a single belt which contains preferred_y_out
 	size_t preferred_rowrange = SIZE_MAX;
 	for (size_t i=0; i<belt_ranges.size(); i++)
-		if (belt_ranges[i].first*outery + ystart <= preferred_y_out && preferred_y_out < belt_ranges[i].second*outery + ystart)
+		if ((belt_ranges[i].first-1)*outery + ystart <= preferred_y_out && preferred_y_out < (belt_ranges[i].second-1)*outery + ystart)
 		{
 			// this must be executed exactly once.
 			assert(preferred_rowrange == SIZE_MAX);
@@ -475,6 +478,8 @@ static void rect(vector<bool>& v, Pos size, Pos lt, Pos rb, bool val) //DEBUG
 			v[x*size.y + y] = val;
 }
 
+#if 0
+FIXME remove this
 typedef vector<size_t> v;
 int main()
 {
@@ -490,3 +495,4 @@ int main()
 
 	plan_rectgrid_belt_horiz_ystart(grid, size, /*ystart*/ 0, 5, 5, 3, 3, 10, /*preferred_y_out*/ 8, WEST);
 }
+#endif
