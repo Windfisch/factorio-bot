@@ -1,8 +1,11 @@
 #include <vector>
 #include <iostream>
 #include <limits.h>
+#include "safe_cast.hpp"
 #include "pos.hpp"
 #include "area.hpp"
+#include "mine_planning.h"
+#include "factorio_io.h"
 
 using namespace std;
 
@@ -48,28 +51,86 @@ static vector<size_t> array_cover(const vector<bool>& array, unsigned width, Pos
 	return result;
 }
 
+static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_);
+static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side);
+static vector<thing_t> plan_rectgrid_belt(const std::vector<Pos>& positions, Pos destination, unsigned side_max, int outerx, int outery, int innerx, int innery);
 
-void plan_rectgrid_belt(const std::vector<Pos>& positions, int outerx, int outery, int innerx, int innery)
+vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, const FactorioGame& game)
+{
+	return plan_mine(positions, destination, 12,
+		&game.get_entity_prototype("transport-belt"),
+		&game.get_entity_prototype("electric-mining-drill"));
+}
+
+vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, unsigned side_max, const EntityPrototype* belt_proto, const EntityPrototype* machine_proto)
+{
+	auto things = plan_rectgrid_belt(positions, destination, side_max, 5, 5, 3, 3);
+	vector<PlannedEntity> result;
+
+	for (const auto& t : things)
+	{
+		assert(t.type == thing_t::BELT || t.type == thing_t::MACHINE);
+
+		if (t.type == thing_t::BELT)
+			result.emplace_back(t.level, t.pos.to_double()+Pos_f(0.5,0.5), belt_proto, t.dir);
+		else if (t.type == thing_t::MACHINE)
+			result.emplace_back(t.level, t.pos.to_double()+Pos_f(2.5,2.5), machine_proto, t.dir);
+	}
+
+	return result;
+}
+
+static vector<thing_t> plan_rectgrid_belt(const std::vector<Pos>& positions, Pos destination, unsigned side_max, int outerx, int outery, int innerx, int innery)
 {
 	Area bounding_box(positions);
 
 	Pos size = bounding_box.right_bottom - bounding_box.left_top;
 
-	// FIXME: vector<bool> or vector<uint8_t> for speed?
-	
 	vector<bool> normal_layout(size.x*size.y, false); // x \times y array
 	vector<bool> mirrored_layout(size.x*size.y, false); // y times x array
 
 	for (const Pos& pos : positions)
 	{
-		normal_layout[pos.y + size.y * pos.x] = true;
-		mirrored_layout[pos.x + size.x * pos.y] = true;
+		assert(pos.x >= bounding_box.left_top.x);
+		assert(pos.y >= bounding_box.left_top.y);
+		Pos relpos = pos - bounding_box.left_top;
+
+		normal_layout  [relpos.y + size.y * relpos.x] = true;
+		mirrored_layout[relpos.x + size.x * relpos.y] = true;
 	}
+
+	auto normal_result = plan_rectgrid_belt_horiz(normal_layout, size, outerx, outery, innerx, innery, side_max, destination.y, (destination.x > bounding_box.center().x) ? EAST : WEST);
+	auto mirrored_result = plan_rectgrid_belt_horiz(mirrored_layout, Pos(size.y, size.x), outery, outerx, innery, innerx, side_max, destination.x, (destination.y > bounding_box.center().y) ? EAST : WEST);
+
+	// unmirror the mirrored_result
+	vector<thing_t> unmirrored_result;
+
+	const dir4_t dir_map[4] = {
+		/* NORTH -> */ WEST,
+		/* EAST  -> */ SOUTH,
+		/* SOUTH -> */ EAST,
+		/* WEST  -> */ NORTH
+	};
+
+	for (const auto& thing : mirrored_result.first)
+		unmirrored_result.emplace_back( thing.level, thing.type, Pos(thing.pos.y, thing.pos.x), dir_map[thing.dir] );
+	
+	auto best_result = 
+		(normal_result.second < mirrored_result.second) ?
+		normal_result.first :
+		unmirrored_result;
+	
+	// best_result is relative to the top-left corner of the mine. add an offset
+	// to all positions
+	vector<thing_t> result;
+	for (const auto& thing : best_result)
+		result.emplace_back(thing.level, thing.type, thing.pos+bounding_box.left_top, thing.dir);
+	
+	return result;
 }
 
-static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_);
-
-static vector<thing_t> plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side)
+// [ build plan, quality ]
+static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side)
 {
 	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
 
@@ -96,6 +157,8 @@ static vector<thing_t> plan_rectgrid_belt_horiz(const vector<bool>& grid, const 
 
 	assert(best_cost != INT_MAX);
 	cout << "best has cost " << best_cost << " with ystart = " << best_ystart << endl;
+
+	return pair< vector<thing_t>, int >(best_result, best_cost);
 }
 
 // a belt at position i is located between drill(i-1) and drill(i)
@@ -161,7 +224,6 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 
 	int n_rows = (size.y-ystart + outery-1) / outery;
 	
-	// plan the grid of machines. FIXME: this doesn't account for "forbidden tiles"
 	// plan the grid of machines. FIXME: this doesn't account for "forbidden tiles"
 	// caused by other ores in proximity
 	vector< vector<size_t> > rows;
@@ -314,14 +376,14 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		{
 			for (auto machine_x : rows[row-1])
 				machines.emplace_back(
-					Pos(machine_x, (row-1)*outery+ystart),
+					Pos( safe_cast<int>(machine_x), (row-1)*outery+ystart),
 					SOUTH);
 		}
 		if (row < ssize_t(rows.size())) // the if is only for symmetry
 		{
 			for (auto machine_x : rows[row])
 				machines.emplace_back(
-					Pos(machine_x, row*outery+ystart),
+					Pos( safe_cast<int>(machine_x), row*outery+ystart),
 					NORTH);
 		}
 		if (lay_dir == LAY_LEFT)
