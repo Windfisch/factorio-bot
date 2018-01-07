@@ -221,6 +221,20 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	assert(-outery < ystart && ystart <= 0);
 	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
 
+	cout << "laying out with ystart = " << ystart << endl;
+	cout << "  ";
+	for (int x=0; x<size.x; x+=5)
+		cout << ".    ";
+	cout << endl;
+	for (int y=0; y<size.y; y++)
+	{
+		cout << ((y+ystart+outery)%outery==0 ? ". " : "  ");
+		for (int x=0; x<size.x; x++)
+			cout << (grid[x*size.y + y] ? "X" : ".");
+		cout << endl;
+	}
+	cout << endl;
+
 	if (preferred_y_out < 0) preferred_y_out = 0;
 	else if (preferred_y_out >= size.y) preferred_y_out = size.y-1;
 
