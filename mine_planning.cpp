@@ -1,3 +1,5 @@
+#pragma GCC optimize "-O0"
+
 #include <vector>
 #include <iostream>
 #include <limits.h>

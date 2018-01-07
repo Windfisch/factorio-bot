@@ -46,6 +46,7 @@
 #include "gui.h"
 #include "../factorio_io.h"
 #include "../pathfinding.hpp"
+#include "../mine_planning.h" // DEBUG
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -150,6 +151,8 @@ class MapBox : public Fl_Box
 		int zoom_level = 0; // powers of two
 		
 		bool display_patch_type = true; // true -> color represents type, false -> color represents pointer
+
+		vector<PlannedEntity> display_debug_entities;
 
 		Pos zoom_transform(const Pos& p, int factor);
 		Pos zoom_transform(const Pos_f& p, int factor);
@@ -307,10 +310,30 @@ int MapBox::handle(int event)
 			std::cout << "KEYBOARD EVENT " << Fl::event_key() << std::endl;
 			switch (Fl::event_key())
 			{
-				case 'p':
+				case 'p': // display patch type
 					display_patch_type = !display_patch_type;
 					redraw();
 					break;
+				case 'm': // debug mine planning
+				{
+					auto pos = zoom_transform(mouse-canvas_center, zoom_level);
+					const pathfinding::walk_t& info = gui->game->walk_map.at(pos);
+					const Resource& res = gui->game->resource_map.at(pos);
+					auto patch = res.resource_patch.lock();
+					
+					if (patch)
+					{
+						cout << "planning mine" << endl;
+
+						display_debug_entities = plan_mine(
+							patch->positions, pos, *gui->game);
+					}
+					else
+					{
+						cout << "no patch under cursor" << endl;
+					}
+					break;
+				}
 			}
 			return 1;
 		}

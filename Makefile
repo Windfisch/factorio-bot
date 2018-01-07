@@ -1,7 +1,7 @@
 include config.mk
 
 EXE=bot
-OBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o gui/gui.o # objects used for $(EXE)
+OBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o gui/gui.o # objects used for $(EXE)
 
 ALLOBJECTS=$(OBJECTS) rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
 DEBUG=1
