@@ -40,7 +40,7 @@ template<typename T> struct Area_
 		// calculate the bounding box
 		left_top = positions[0];
 		right_bottom = positions[0];
-		for (const Pos& p : positions)
+		for (const auto& p : positions)
 		{
 			if (p.x < left_top.x)
 				left_top.x = p.x;
