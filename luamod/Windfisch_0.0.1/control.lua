@@ -202,20 +202,37 @@ function writeout_beltproto_picture(name, picspec)
 end
 
 function writeout_proto_picture(name, picspec)
-	local n_dirs = 0
-	local dirs = {"north","east","south","west"}
-	for _,dir in ipairs(dirs) do
-		if picspec[dir] ~= nil then
-			n_dirs = n_dirs + 1
+	if name == "pipe" then print("WOOP WOOP PIPE") end
+
+	dirsNESW = {"north","east","south","west"}
+	dirs_list = {
+		dirsNESW,
+		{"up","right","down","left"},
+		{"straight_vertical","straight_horizontal","straight_vertical","straight_horizontal"}
+	}
+
+	local n_dirs, dirs
+	for _,dirs_tmp in ipairs(dirs_list) do
+		n_dirs = 0
+		
+		for _,dir in ipairs(dirs_tmp) do
+			if picspec[dir] ~= nil then
+				n_dirs = n_dirs + 1
+			end
+		end
+
+		if n_dirs > 0 then
+			dirs = dirs_tmp
+			break
 		end
 	end
-
+	
 	local result = {}
 	local subresult = nil
 	if n_dirs > 0 then
-		for _,dir in ipairs(dirs) do
+		for i,dir in ipairs(dirs) do
 			if picspec[dir] ~= nil then
-				subresult = writeout_proto_picture_dir(name, (n_dirs == 1) and "any" or dir, picspec[dir])
+				subresult = writeout_proto_picture_dir(name, (n_dirs == 1) and "any" or dirsNESW[i], picspec[dir])
 				if subresult == nil then
 					return nil
 				else
@@ -225,6 +242,7 @@ function writeout_proto_picture(name, picspec)
 		end
 	elseif picspec.sheet ~= nil then
 		print("TODO FIXME: cannot handle sheet for "..name.." yet!")
+		return nil
 	else
 		subresult = writeout_proto_picture_dir(name, "any", picspec)
 		if subresult == nil then
@@ -281,7 +299,7 @@ function writeout_pictures()
 				
 				-- normal treatment for anything else
 				if result == nil then
-					for _,child in ipairs({"structure","animation","picture","animations","base_picture"}) do
+					for _,child in ipairs({"structure","animation","picture","animations","base_picture","pictures"}) do
 						if content[child] ~= nil then
 							result = writeout_proto_picture(proto, content[child])
 							if result ~= nil then break end
