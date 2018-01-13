@@ -156,6 +156,51 @@ function writeout_proto_picture_dir(name, dir, picspec)
 	end
 end
 
+function writeout_beltproto_picture(name, picspec)
+	if picspec == nil then
+		print(">>> " .. name .. "(belt) empty, WTF?")
+		return nil
+	end
+	if picspec.hr_version ~= nil then
+		return writeout_beltproto_picture(name, picspec.hr_version)
+	end
+
+	if picspec.filename ~= nil and picspec.width ~= nil and picspec.height ~= nil then
+		local shiftx = picspec.shift ~= nil and (picspec.shift[1]) or 0
+		local shifty = picspec.shift ~= nil and (picspec.shift[2]) or 0
+		local scale = picspec.scale or 1
+		local frame_count = picspec.frame_count
+		local line_length = picspec.line_length or frame_count
+
+		if frame_count % line_length ~= 0 then
+			print(">>> "..name.."(belt) has frame_count which is not a multiple of line_length. can't handle that yet")
+			return nil
+		end
+
+		local y_offset = picspec.height * (frame_count / line_length)
+
+		-- this uses "|", "*" and ":" as separators on purpose, because these
+		-- may not be used in windows path names, and are thus unlikely to appear
+		-- in the image filenames.
+		-- also, a trailing ">" or "<" indicate mirroring.
+		local result = name
+
+		local xx = 0
+		local yy = 0
+		
+		result = result .. "*" .. picspec.filename..":"..picspec.width..":"..picspec.height..":"..shiftx..":"..shifty..":"..xx..":"..(yy+1*y_offset)..":"..scale -- north
+		result = result .. "*" .. picspec.filename..":"..picspec.width..":"..picspec.height..":"..shiftx..":"..shifty..":"..xx..":"..(yy+0*y_offset)..":"..scale -- east
+		result = result .. "*" .. picspec.filename..":"..picspec.width..":"..(-picspec.height)..":"..shiftx..":"..shifty..":"..xx..":"..(yy+1*y_offset)..":"..scale -- south
+		result = result .. "*" .. picspec.filename..":"..(-picspec.width)..":"..picspec.height..":"..shiftx..":"..shifty..":"..xx..":"..(yy+0*y_offset)..":"..scale -- west
+		-- negative width or height signifies that the picture must be swapped afterwards
+		print(">>> "..name.."(belt) -> "..result)
+		return result
+	else
+		print(">>> "..name.."(belt) WTF")
+		return nil
+	end
+end
+
 function writeout_proto_picture(name, picspec)
 	local n_dirs = 0
 	local dirs = {"north","east","south","west"}
@@ -222,22 +267,35 @@ function writeout_pictures()
 	data = {raw = loadstring(string)()}
 
 	local lines = {}
+	
+	local group, members, proto, content
 	for group,members in pairs(data.raw) do
 		if group ~= "recipe" and group ~= "item" then
 			for proto, content in pairs(members) do
-				for _,child in ipairs({"structure","animation","picture","animations","base_picture"}) do
-					if content[child] ~= nil then
-						local result = writeout_proto_picture(proto, content[child])
-						if result ~= nil then
-							table.insert(lines, result)
+				local result = nil
+
+				-- special treatment for belts
+				if content.type == "transport-belt" and result == nil then
+					result = writeout_beltproto_picture(proto, content.animations)
+				end
+				
+				-- normal treatment for anything else
+				if result == nil then
+					for _,child in ipairs({"structure","animation","picture","animations","base_picture"}) do
+						if content[child] ~= nil then
+							result = writeout_proto_picture(proto, content[child])
+							if result ~= nil then break end
 						end
-						break
 					end
+				end
+				
+				if result ~= nil then
+					table.insert(lines, result)
 				end
 			end
 		end
 	end
-	--print(serpent.block(data.raw))
+	--game.write_file("data.raw", serpent.block(data.raw))
 	
 	-- this uses "|", "*" and ":" as separators on purpose, because these
 	-- may not be used in windows path names, and are thus unlikely to appear
@@ -582,7 +640,7 @@ function writeout_objects(surface, area)
 	lines={}
 	for idx, ent in pairs(surface.find_entities(area)) do
 		if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
-			if ent.prototype.collision_mask ~= nil and ent.prototype.collision_mask['player-layer'] then
+			if ent.prototype.collision_mask ~= nil and (ent.prototype.collision_mask['player-layer'] or ent.prototype.collision_mask['object-layer']) then
 				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..direction_str(ent.direction)
 				if idx % 100 == 0 then
 					table.insert(lines,line)

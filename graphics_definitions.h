@@ -9,6 +9,9 @@ struct GraphicsDefinition
 	int y;
 	int width;
 	int height;
+
+	bool flip_x;
+	bool flip_y;
 	
 	float shiftx;
 	float shifty;

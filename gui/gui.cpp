@@ -561,7 +561,7 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_, string datapath_)
 	window->show();
 }
 
-static shared_ptr<Fl_Image> crop_image(const Fl_RGB_Image& img, int x, int y, int w, int h)
+static shared_ptr<Fl_Image> crop_and_flip_image(const Fl_RGB_Image& img, int x, int y, int w, int h, bool flip_x=false, bool flip_y=false)
 {
 	assert(img.d() >= 1);
 	assert(x >= 0 && x < img.w());
@@ -569,13 +569,27 @@ static shared_ptr<Fl_Image> crop_image(const Fl_RGB_Image& img, int x, int y, in
 
 	int ld = img.ld();
 	if (ld == 0) ld = img.w() * img.d();
-	cout << "w="<<img.w()<<", h="<<img.h()<<", d="<<img.d()<<",ld="<<img.ld()<<","<<ld<<endl;
+	cout << "W="<<img.w()<<", H="<<img.h()<<", w="<<w<<", h="<<h<<", d="<<img.d()<<",ld="<<img.ld()<<","<<ld<<endl;
 
-	Fl_RGB_Image cropped( (img.array + x*img.d() + y*ld), w, h, img.d(), ld );
-	return shared_ptr<Fl_Image>(cropped.copy());
+
+	// copy the region of interest into a new array, flip as appropriate
+	int newld = img.d()*w;
+	uchar* array = new uchar[h*newld]; // `array` will be transferred into `result`'s ownership, `result` is responsible for freeing `array`. FL_RGB_Image will use "delete[] (uchar*) array".
+	int yo_delta = flip_y ? -1 : 1;
+	int xo_delta = flip_x ? -1 : 1;
+	for (int yd=0, yo=(flip_y ? h-1 : 0); yd<h; yd++, yo+=yo_delta)
+		for (int xd=0, xo=(flip_x ? w-1 : 0); xd<w; xd++, xo+=xo_delta)
+			for (int i = 0; i < img.d(); i++)
+				array[xd*img.d() + yd*newld + i] = img.array[ (x + xo)*img.d() + (y + yo)*ld + i];
+
+	// create new image using said array
+	Fl_RGB_Image* result = new Fl_RGB_Image(array, w, h, img.d(), newld); // `result` will be wrapped in a shared_ptr, which is responsible for deleting result
+	result->alloc_array = 1; // we want that Fl_RGB_Image frees `array` upon destruction
+
+	return shared_ptr<Fl_Image>(result);
 }
 
-static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, int x, int y, int w, int h, float scale)
+static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, int x, int y, int w, int h, float scale, bool flip_x = false, bool flip_y = false)
 {
 	Fl_PNG_Image img(filename.c_str());
 
@@ -588,7 +602,9 @@ static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, i
 		exit(1);
 	}
 
-	shared_ptr<Fl_Image> cropped = crop_image(img, x,y,w,h);
+	cout << "loaded image " << filename << endl;
+
+	shared_ptr<Fl_Image> cropped = crop_and_flip_image(img, x,y,w,h, flip_x, flip_y);
 	vector<shared_ptr<Fl_Image>> result;
 
 	for (int i = img_minscale; i <= img_maxscale; i++)
@@ -626,14 +642,14 @@ void _MapGui_impl::load_graphics()
 		{
 			for (int i=0; i<4; i++)
 			{
-				game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale );
+				game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale, defs[i].flip_x, defs[i].flip_y );
 				game_graphic[i].shift.x = defs[i].shiftx;
 				game_graphic[i].shift.y = defs[i].shifty;
 			}
 		}
 		else
 		{
-			auto pyr = load_image_pyramid( gfx_filename(defs[0].filename), defs[0].x, defs[0].y, defs[0].width, defs[0].height, defs[0].scale );
+			auto pyr = load_image_pyramid( gfx_filename(defs[0].filename), defs[0].x, defs[0].y, defs[0].width, defs[0].height, defs[0].scale, defs[0].flip_x, defs[0].flip_y );
 			for (int i=0; i<4; i++)
 			{
 				game_graphic[i].img_pyramid = pyr;

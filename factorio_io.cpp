@@ -289,6 +289,10 @@ void FactorioGame::parse_graphics(const string& data)
 			def.filename = deffields[0];
 			def.width = stoi(deffields[1]);
 			def.height = stoi(deffields[2]);
+			def.flip_x = def.width<0;
+			def.flip_y = def.height<0;
+			def.width = abs(def.width);
+			def.height = abs(def.height);
 			def.shiftx = stof(deffields[3]);
 			def.shifty = stof(deffields[4]);
 			def.x = stoi(deffields[5]);
