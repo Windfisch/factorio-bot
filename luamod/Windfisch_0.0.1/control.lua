@@ -659,7 +659,32 @@ function writeout_objects(surface, area)
 	for idx, ent in pairs(surface.find_entities(area)) do
 		if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
 			if ent.prototype.collision_mask ~= nil and (ent.prototype.collision_mask['player-layer'] or ent.prototype.collision_mask['object-layer']) then
-				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..direction_str(ent.direction)
+				local dir
+				if ent.type == "pipe" or ent.type == "wall" or ent.type == "heat-pipe" then
+					-- HACK to render pipes/walls etc correctly *most* of the time. (at least for straight parts)
+					-- this requires writeout_objects of neighboring entities whenever a pipe/wall etc is placed, because adjacent things might change their
+					-- direction as well
+					local n_horiz = 0
+					local n_vert = 0
+					n_horiz = n_horiz + #surface.find_entities_filtered{type=ent.type, position={x=ent.position.x+1, y=ent.position.y}}
+					n_horiz = n_horiz + #surface.find_entities_filtered{type=ent.type, position={x=ent.position.x-1, y=ent.position.y}}
+					n_horiz = n_horiz + #surface.find_entities_filtered{type=ent.type.."-to-ground", position={x=ent.position.x+1, y=ent.position.y}}
+					n_horiz = n_horiz + #surface.find_entities_filtered{type=ent.type.."-to-ground", position={x=ent.position.x-1, y=ent.position.y}}
+					n_vert  = n_vert  + #surface.find_entities_filtered{type=ent.type, position={x=ent.position.x, y=ent.position.y+1}}
+					n_vert  = n_vert  + #surface.find_entities_filtered{type=ent.type, position={x=ent.position.x, y=ent.position.y-1}}
+					n_vert  = n_vert  + #surface.find_entities_filtered{type=ent.type.."-to-ground", position={x=ent.position.x, y=ent.position.y+1}}
+					n_vert  = n_vert  + #surface.find_entities_filtered{type=ent.type.."-to-ground", position={x=ent.position.x, y=ent.position.y-1}}
+
+					if n_horiz > n_vert then
+						dir = defines.direction.east
+					else
+						dir = defines.direction.north
+					end
+				else
+					dir = ent.direction
+				end
+
+				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..direction_str(dir)
 				if idx % 100 == 0 then
 					table.insert(lines,line)
 					line=''
@@ -723,7 +748,12 @@ function on_some_entity_created(event)
 		return
 	end
 
-	writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}})
+	if ent.type == "pipe" or ent.type == "pipe-to-ground" or ent.type == "wall" or ent.type == "heat-pipe" then -- HACK to semi-correctly assign an orientation to pipes etc
+		-- need to write out neighboring entities as well, because they might have changed their orientation by this event
+		writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x)-1, y=math.floor(ent.position.y)-1}, right_bottom={x=math.floor(ent.position.x)+2, y=math.floor(ent.position.y)+2}})
+	else
+		writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}})
+	end
 
 	complain("on_some_entity_created: "..ent.name.." at "..ent.position.x..","..ent.position.y)
 end
