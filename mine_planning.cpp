@@ -102,7 +102,7 @@ static vector<thing_t> plan_rectgrid_belt(const std::vector<Pos>& positions, Pos
 	}
 
 	auto normal_result = plan_rectgrid_belt_horiz(normal_layout, size, outerx, outery, innerx, innery, side_max, destination.y, (destination.x > bounding_box.center().x) ? EAST : WEST);
-	auto mirrored_result = plan_rectgrid_belt_horiz(mirrored_layout, Pos(size.y, size.x), outery, outerx, innery, innerx, side_max, destination.x, (destination.y > bounding_box.center().y) ? EAST : WEST);
+	auto mirrored_result = plan_rectgrid_belt_horiz(mirrored_layout, Pos(size.y, size.x), outerx, outery, innerx, innery, side_max, destination.x, (destination.y > bounding_box.center().y) ? EAST : WEST);
 
 	// unmirror the mirrored_result
 	vector<thing_t> unmirrored_result;
