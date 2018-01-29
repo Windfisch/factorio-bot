@@ -428,12 +428,12 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 			int connect_x = lay_dir == LAY_LEFT ? min(prev_x, xbegin) - innery/2 - 1 : max(prev_x, xbegin) + innery/2 + 1;
 
 			assert(prev_x != UNINITIALIZED);
-			for (int x = prev_x; x != connect_x; x += lay_dir)
-				result.emplace_back(curr_level, thing_t::BELT, Pos(x, prev_belt_y), lay_dir == LAY_LEFT ? WEST : EAST);
-			for (int y = prev_belt_y; y != belt_y; y += (prev_belt_y < belt_y ? 1 : -1))
-				result.emplace_back(curr_level, thing_t::BELT, Pos(connect_x, y), prev_belt_y < belt_y ? SOUTH : NORTH);
-			for (int x = connect_x; x != xbegin; x -= lay_dir)
-				result.emplace_back(curr_level, thing_t::BELT, Pos(x, belt_y), lay_dir == LAY_LEFT ? EAST : WEST);
+			for (int x = connect_x; x != prev_x-lay_dir; x -= lay_dir)
+				result.emplace_back(curr_level, thing_t::BELT, Pos(x, prev_belt_y), lay_dir == LAY_LEFT ? EAST : WEST);
+			for (int y = belt_y; y != prev_belt_y; y += (prev_belt_y < belt_y ? -1 : 1))
+				result.emplace_back(curr_level-1, thing_t::BELT, Pos(connect_x, y), prev_belt_y < belt_y ? NORTH : SOUTH);
+			for (int x = xbegin+lay_dir; x != connect_x; x += lay_dir)
+				result.emplace_back(curr_level, thing_t::BELT, Pos(x, belt_y), lay_dir == LAY_LEFT ? WEST : EAST);
 		}
 		else
 		{
@@ -445,13 +445,21 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		int x;
 		for (x = xbegin; x != xend; x-=lay_dir)
 		{
-			result.emplace_back(curr_level, thing_t::BELT, Pos(x, belt_y), lay_dir == LAY_LEFT ? EAST : WEST);
+			result.emplace_back(curr_level, thing_t::BELT, Pos(x, belt_y), lay_dir == LAY_LEFT ? WEST : EAST);
 
 			if (x == machines[mach_idx].first.x + output_offset)
 			{
 				while (mach_idx < machines.size() && x == machines[mach_idx].first.x + output_offset)
 				{
 					result.emplace_back(curr_level, thing_t::MACHINE, machines[mach_idx].first, machines[mach_idx].second);
+					
+
+					if (machines[mach_idx].second == SOUTH)
+						for (int belt_i = outery - outery/2 + innery/2; belt_i < outery; belt_i++)
+							result.emplace_back(curr_level, thing_t::BELT, machines[mach_idx].first + Pos(outerx/2, belt_i), SOUTH);
+					if (machines[mach_idx].second == NORTH)
+						for (int belt_i = 1; belt_i < outery/2 - innery/2; belt_i++)
+							result.emplace_back(curr_level, thing_t::BELT, machines[mach_idx].first + Pos(outerx/2, belt_i), NORTH);
 					mach_idx++;
 					curr_level++;
 				}
