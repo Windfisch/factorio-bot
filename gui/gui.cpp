@@ -152,7 +152,8 @@ class MapBox : public Fl_Box
 		
 		bool display_patch_type = true; // true -> color represents type, false -> color represents pointer
 
-		vector<PlannedEntity> display_debug_entities;
+		WorldList<PlannedEntity> display_debug_entities;
+		int display_debug_entity_level = 1;
 
 		Pos zoom_transform(const Pos& p, int factor);
 		Pos zoom_transform(const Pos_f& p, int factor);
@@ -325,8 +326,9 @@ int MapBox::handle(int event)
 					{
 						cout << "planning mine" << endl;
 
-						display_debug_entities = plan_mine(
-							patch->positions, pos, *gui->game);
+						display_debug_entities.clear();
+						display_debug_entities.insert_all( plan_mine(
+							patch->positions, pos, *gui->game) );
 					}
 					else
 					{
@@ -334,6 +336,12 @@ int MapBox::handle(int event)
 					}
 					break;
 				}
+				case ',':
+					display_debug_entity_level = max(display_debug_entity_level-1,0);
+					break;
+				case '.':
+					display_debug_entity_level++;
+					break;
 			}
 			return 1;
 		}
@@ -358,11 +366,21 @@ void MapBox::draw(void)
 			{
 				//cout << "chunk " << x << "/" << y << endl;
 				const auto& ent_iter = gui->game->actual_entities.find(Pos(x,y));
-				if (ent_iter == gui->game->actual_entities.end())
+				const auto& dbg_iter = display_debug_entities.find(Pos(x,y));
+				
+				vector<Entity> entities;
+				
+				if (ent_iter != gui->game->actual_entities.end())
+					entities.insert(entities.end(), ent_iter->second.begin(), ent_iter->second.end());
+
+				if (dbg_iter != display_debug_entities.end())
+					for (const auto& ent : dbg_iter->second)
+						if (ent.level <= display_debug_entity_level)
+							entities.push_back(ent);
+				
+				if (entities.empty())
 					continue;
 
-				const vector<Entity>& entities_orig = ent_iter->second;
-				vector<Entity> entities = entities_orig; // get a local copy
 				sort(entities.begin(), entities.end(), [](const Entity& a, const Entity& b) { return a.pos.less_rowwise(b.pos); });
 
 				for (const auto& entity : entities)
