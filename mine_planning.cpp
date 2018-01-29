@@ -9,6 +9,10 @@
 #include "mine_planning.h"
 #include "factorio_io.h"
 
+// TODO FIXME:
+// - avoid places that cover multiple ores
+// - avoid "long and thin" constellations that oversaturate a belt.
+
 using namespace std;
 
 constexpr unsigned SANE_MOD(int a, unsigned b) { return ((a%b)+b)%b; }
@@ -66,7 +70,7 @@ vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destinati
 
 vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, unsigned side_max, const EntityPrototype* belt_proto, const EntityPrototype* machine_proto)
 {
-	auto things = plan_rectgrid_belt(positions, destination, side_max, 5, 5, 3, 3);
+	auto things = plan_rectgrid_belt(positions, destination, side_max, 3, 4, 3, 3);
 	vector<PlannedEntity> result;
 
 	for (const auto& t : things)
@@ -134,8 +138,6 @@ static vector<thing_t> plan_rectgrid_belt(const std::vector<Pos>& positions, Pos
 // [ build plan, quality ]
 static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side)
 {
-	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
-
 	vector<thing_t> best_result;
 	int best_cost = INT_MAX;
 	int best_ystart = 0;
@@ -219,7 +221,6 @@ template <typename T> void dump(const vector<vector<T>>& vecs, string name = "")
 static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_)
 {
 	assert(-outery < ystart && ystart <= 0);
-	assert(outerx%2 == innerx%2 && outery%2 == innery%2);
 
 	cout << "laying out with ystart = " << ystart << endl;
 	cout << "  ";
