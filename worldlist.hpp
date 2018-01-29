@@ -568,6 +568,14 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 			(*this)[Pos::tile_to_chunk(thing.pos.to_int_floor())].emplace_back(std::move(thing));
 		}
 
+		/** inserts all objects in the `things` container to the WorldList */
+		template<typename container>
+		void insert_all(const container& things)
+		{
+			for (const auto& thing : things)
+				insert(thing);
+		}
+
 		/** erases the thing pointed to by `iter` from the WorldList. Invalidates `iter`.
 		  * Range::iterators pointing to earlier items as well as Range::iterators pointing to items in different chunks
 		  * remain valid, while Range::iterators after `iter` in the same chunk get invalidated.
