@@ -24,11 +24,13 @@ ifeq ($(COMPILER),GCC)
 	CC=gcc
 	CXX=g++
 	WARNFLAGS=-Wall -Wextra -pedantic
+	WARNFLAGS+=-Werror=return-type
 	GUIFLAGS += 
 else
 	CC=clang
 	CXX=clang++
 	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-weak-vtables -Wno-switch-enum -Wswitch
+	WARNFLAGS+=-Werror=return-type -Werror=header-hygiene
 	# -Wswitch-enum complains, even if there's a default: label. -Wswitch does not.
 	GUIFLAGS += 
 endif
@@ -42,21 +44,21 @@ else
 endif
 
 FLAGS += $(WARNFLAGS)
-CFLAGS = $(CFLAGS_BASE) $(FLAGS) `fltk-config --cflags --use-images`
-CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) `fltk-config --cxxflags --use-images`
+CFLAGS = $(CFLAGS_BASE) $(FLAGS) $(shell fltk-config --cflags --use-images)
+CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) $(shell fltk-config --cxxflags --use-images)
 LINK=$(CXX)
 LINKFLAGS=$(CXXFLAGS)
-LIBS=`fltk-config --ldflags --use-images`
+LIBS=$(shell fltk-config --ldflags --use-images)
 
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
 # Pseudotargets
 .PHONY: all clean run info mod help test
 
-all: $(EXE) rcon-client
+all: compile_commands.json $(EXE) rcon-client
 
 clean:
-	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend
+	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend compile_commands.json
 
 test: $(EXE)
 	make -C test clean all
@@ -144,17 +146,14 @@ gui/%.o: gui/%.cpp
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+%: %.o
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $(LIBS) $^ -o $@
+
 $(EXE): $(OBJECTS)
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 rcon-client: rcon-client.o rcon.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-
--include .dummy.mk
-
-.dummy.mk: Makefile config.mk
-	@echo Makefile changed, cleaning to rebuild
-	@echo "# used to let all targets depend on Makefile" > $@
-	make -s clean
-
+compile_commands.json:
+	bash mk_compile_commands_json.bash > $@

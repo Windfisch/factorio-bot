@@ -20,6 +20,7 @@
 #include "entity.h"
 #include <string>
 
+
 struct ItemPrototype
 {
 	std::string name;
@@ -36,4 +37,16 @@ struct ItemPrototype
 		name(name_), type(type_), place_result(place_result_), stack_size(stack_size_),
 		fuel_value(fuel_value_), speed(speed_), durability(durability_) {}
 };
+
+struct ItemStack
+{
+	const ItemPrototype* proto;
+	size_t amount;
+};
+
+struct OwnedItemStack : public ItemStack
+{
+	
+};
+
 

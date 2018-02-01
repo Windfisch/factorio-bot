@@ -19,6 +19,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include <optional>
+#include <memory>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -67,5 +70,53 @@ template <typename container_type, typename iterator_type> iterator_type unorder
 		return iter;
 	}
 }
+
+
+template <typename T, typename K, K T::*key, typename Comparator = std::equal_to<K>> class vector_map : public std::vector<T>
+{
+	public:
+		size_t find(K what) const
+		{
+			Comparator comp;
+
+			for (size_t i=0; i< std::vector<T>::size(); i++)
+				if ( comp((*this)[i].*key, what) )
+					return i;
+			return SIZE_MAX;
+		}
+
+		T& get(K what)
+		{
+			auto idx = find(what);
+			if (idx == SIZE_MAX)
+			{
+				std::vector<T>::emplace_back();
+				std::vector<T>::back().*key = what;
+				idx = std::vector<T>::size() - 1;
+			}
+			return (*this)[idx];
+		}
+};
+
+template <typename T, typename U>
+inline bool equals(const std::weak_ptr<T>& t, const std::weak_ptr<U>& u)
+{
+    return !t.owner_before(u) && !u.owner_before(t);
+}
+
+
+template <typename T, typename U>
+inline bool equals(const std::weak_ptr<T>& t, const std::shared_ptr<U>& u)
+{
+    return !t.owner_before(u) && !u.owner_before(t);
+}
+
+template <typename T, typename U=T> struct weak_ptr_equal
+{
+	inline bool operator()(const T& a, const U& b)
+	{
+		return equals(a,b);
+	}
+};
 
 #pragma GCC diagnostic pop
