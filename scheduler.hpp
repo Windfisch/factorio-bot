@@ -45,7 +45,7 @@ struct CraftingList
 
 	// may only be called if the finished craft has been confirmed.
 	// returns the Recipe to be crafted now, or none.
-	std::optional<Recipe> advance()
+	std::optional<Recipe> advance(Clock::time_point now)
 	{
 		if (currently_crafting)
 			current_recipe++;
@@ -58,8 +58,8 @@ struct CraftingList
 
 		currently_crafting = true;
 		craft_start_time = now;
-		craft_end_time = recipes[current_recipe].duration;
-		return std::optional[recipes[current_recipe]];
+		craft_end_time = now + recipes[current_recipe].duration;
+		return std::optional(recipes[current_recipe]);
 	}
 
 	bool finished() const { return current_recipe >= recipes.size(); }
@@ -111,7 +111,7 @@ struct Task
 
 	std::vector<ItemStack> required_items;
 	
-	std::vector<ItemStack> get_missing_items();
+	std::vector<ItemStack> get_missing_items(); // TODO
 
 	action::CompoundGoal actions;
 
@@ -148,7 +148,7 @@ class Scheduler
 
 
 	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(Player& player, Clock::time_point now, size_t max_n = 20);
-	std::shared_ptr<Task> get_next_task(Player& player);
+	std::shared_ptr<Task> get_next_task(Player& player, Clock::time_point now);
 
 	/** returns whether we have claimed, or will eventually have crafted, everything the task needs */
 	bool task_eventually_runnable(const std::shared_ptr<Task>& task, const TaggedInventory& inventory) const
@@ -221,18 +221,6 @@ class Scheduler
 	 */
 	std::shared_ptr<Task> build_collector_task(const std::shared_ptr<Task>& original_task, const Player& player, Clock::duration max_duration, float grace = 10.f);
 
-
-	void schedule()
-	{
-		for (auto it = pending_tasks.begin(); it != pending_tasks.end(); it++)
-		{
-			auto& task = it->second;
-			if (eventually_runnable(task, player.inventory))
-			{
-				
-			}
-		}
-	}
 
 	void tick();
 

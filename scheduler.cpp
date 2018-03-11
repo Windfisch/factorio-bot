@@ -4,6 +4,7 @@
 #include "worldlist.hpp" // FIXME
 #include "pathfinding.hpp"
 #include "defines.h"
+#include "factorio_io.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -195,14 +196,14 @@ private:
   * removed from there (which should call its destructor), and will be regenerated if neccessary.
   * TODO: what to do with crafts?
   */
-shared_ptr<Task> Scheduler::get_next_task(Player& player)
+shared_ptr<Task> Scheduler::get_next_task(Player& player, Clock::time_point now)
 {
 	// FIXME: use proper calculation function
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float radius) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
 	for (auto& entry : pending_tasks)
 	{
-		Task::priority_t prio = entry.first;
+		Task::priority_t prio = entry.first; UNUSED(prio);
 		const shared_ptr<Task>& pending_task = entry.second;
 		shared_ptr<Task> task;
 
@@ -214,11 +215,16 @@ shared_ptr<Task> Scheduler::get_next_task(Player& player)
 			// runnable)
 			assert(schedule.empty() || schedule.begin()->first.second < prio);
 			
-			// If a task is already scheduled, then it has a higher priority than the currently considered task. In
-			// that case, the resource-collecting task's duration is limited by that already-scheduled task plus some
-			// grace time. OTOH, all tasks we may consider afterwards would have a priority smaller than our task.
-			// So we try to collect our resources and as many resources for other tasks as possible within the available
-			// time. (Only limited by some sanity constant)
+			// If a task is already scheduled, then it has a higher
+			// priority than the currently considered task. In that
+			// case, the resource-collecting task's duration is
+			// limited by that already-scheduled task plus some
+			// grace time. OTOH, all tasks we may consider
+			// afterwards would have a priority smaller than our
+			// task.  So we try to collect our resources and as
+			// many resources for other tasks as possible within
+			// the available time. (Only limited by some sanity
+			// constant)
 			const auto grace_duration = std::chrono::duration_cast<Clock::duration>(chrono::seconds(15)); // FIXME magic number, better retrieve this from the task. probably related to task's ETA
 			Clock::duration max_duration;
 			if (schedule.empty())
@@ -230,7 +236,7 @@ shared_ptr<Task> Scheduler::get_next_task(Player& player)
 		}
 
 		// FIXME: task can be nullptr!
-		Clock::duration eta = task->crafting_list.time_remaining();
+		Clock::duration eta = task->crafting_list.time_remaining(now);
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
 		if (!check_schedule(schedule))
@@ -247,14 +253,51 @@ struct Chest // FIXME move this to somewhere sane
 	Inventory inventory;
 };
 
+
+
+constexpr double WALKING_SPEED = 8.9021; // in tiles per second.
+// source: https://wiki.factorio.com/Talk:Exoskeleton#Movement_speed_experiments
+
+static double path_length(const vector<Pos>& path) // FIXME move this somewhere else
+{
+	double sum = 0.;
+	for (size_t i=1; i<path.size(); i++)
+		sum += (path[i-1]-path[i]).len();
+	return sum;
+}
+
+static Clock::duration path_walk_duration(const vector<Pos>& path) // FIXME move this somewhere else
+{
+	return chrono::duration_cast<Clock::duration>(
+		chrono::duration<float>(
+			path_length(path) / WALKING_SPEED
+		)
+	);
+}
+
+static Clock::duration walk_duration_approx(const Pos& start, const Pos& end)
+{
+	return chrono::duration_cast<Clock::duration>(
+		chrono::duration<float>(
+			(start-end).len() / WALKING_SPEED
+		)
+	);
+}
+
+static double walk_distance_in_time(Clock::duration time) // FIXME move this somewhere else
+{
+	using fseconds = chrono::duration<float>;
+	auto seconds = chrono::duration_cast<fseconds>(time).count();
+	return seconds * WALKING_SPEED;
+}
+
 /** returns a Task containing walking and take_from actions in order to make
  * one or more Tasks eventually_runnable. This is a trivial implementation
  * returning a very suboptimal path which only respects original_task, no
  * opportunistic detours are made. But it gets the stuff done.*/
 shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& original_task, const Player& player, Clock::duration max_duration, float grace)
 {
-	// this is a poor man's implementation
-	UNUSED(grace);
+	UNUSED(grace); // this is a poor man's implementation
 
 	const WorldList<Chest> world_chests; // FIXME actually get them from the world
 	auto missing_items = original_task->get_missing_items();
@@ -275,10 +318,8 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	auto result = make_shared<Task>();
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
-	//result->duration = FIXME;
 	result->is_dependent = true;
 	result->owner = original_task;
-
 
 	Clock::duration time_spent = Clock::duration::zero();
 
@@ -300,9 +341,9 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 		bool relevant = false;
 		auto chest_goal = make_unique<action::CompoundGoal>(game, player.id);
 
-		
 		// check whether the chest is useful for any missing item.
-		// if so, relevant is set to true. if not, chest_goal will
+		// if so, set relevant = true and construct the chest goal
+		// if not, chest_goal will
 		// be deleted at the end of this scipe.
 		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player, chest.entity.pos, ALLOWED_DISTANCE));
 		for (ItemStack& stack : missing_items)
@@ -324,15 +365,15 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 			relevant = true;
 		}
 
-		// if the chest is relevant, check if it's actually close enough.
-		// if so, add it.
 		if (relevant)
 		{
-			Clock::duration chest_duration = walk_duration( a_star(
+			// check if this chest is actually close enough
+			Clock::duration chest_duration = path_walk_duration( a_star(
 				last_pos, chest.entity.pos,
-				// TODO: early exit for a star: (max_duration - time_spent)
-				/*TODO*/1, 0.5 /*FIXME: hardcoded size*/,
-				ALLOWED_DISTANCE) ); // TODO maybe add a constant?
+				game->walk_map,
+				ALLOWED_DISTANCE, 0.,
+				walk_distance_in_time(max_duration - time_spent)
+			) ); // FIXME maybe add a constant?
 			
 			if (time_spent + chest_duration <= max_duration)
 			{
@@ -347,7 +388,8 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 
 	if (result->actions.subgoals.empty())
 		return nullptr;
-
+	
+	result->duration = time_spent;
 
 	return result;
 }
