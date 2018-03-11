@@ -276,7 +276,7 @@ int MapBox::handle(int event)
 				if (button == 2)
 				{
 					cout << "starting pathfinding from " << last_click[0].str() << " to " << last_click[2].str() << endl;
-					last_path = a_star( last_click[0], last_click[2], gui->game->walk_map, 0.4);
+					last_path = a_star( last_click[0], last_click[2], gui->game->walk_map);
 					// FIXME hardcoded action id
 					//gui->game->set_waypoints(0, 1, last_path);
 					gui->game->walk_to(1,last_click[2]);

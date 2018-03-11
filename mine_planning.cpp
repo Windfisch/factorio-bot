@@ -68,9 +68,17 @@ vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destinati
 		&game.get_entity_prototype("electric-mining-drill"));
 }
 
-vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, unsigned side_max, const EntityPrototype* belt_proto, const EntityPrototype* machine_proto)
+
+/** plans a mine for the ore field defined by `positions`. tries to put the output belts
+    close to `destination`. tries to not put more than `side_max` miners per belt side.
+    belt_proto and machine_proto must be the prototypes that should be used.
+    outerx is the width, outery the height of a miner, if the belt goes horizontal.
+    that means, with standard 3x3-miners, outerx may be 3, but outery must be >=4 to account
+    for the belt.
+*/
+vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, unsigned side_max, const EntityPrototype* belt_proto, const EntityPrototype* machine_proto, int outerx, int outery)
 {
-	auto things = plan_rectgrid_belt(positions, destination, side_max, 3, 4, 3, 3);
+	auto things = plan_rectgrid_belt(positions, destination, side_max, outerx, outery, 3, 3);
 	vector<PlannedEntity> result;
 
 	for (const auto& t : things)
@@ -80,7 +88,7 @@ vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destinati
 		if (t.type == thing_t::BELT)
 			result.emplace_back(t.level, t.pos.to_double()+Pos_f(0.5,0.5), belt_proto, t.dir);
 		else if (t.type == thing_t::MACHINE)
-			result.emplace_back(t.level, t.pos.to_double()+Pos_f(2.5,2.5), machine_proto, t.dir);
+			result.emplace_back(t.level, t.pos.to_double()+ ((t.dir==WEST || t.dir==EAST) ? Pos_f(int(outery/2)+0.5f, int(outerx/2)+0.5f) : Pos_f(int(outerx/2)+0.5f, int(outery/2)+0.5f)), machine_proto, t.dir);
 	}
 
 	return result;
@@ -432,7 +440,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 			for (int x = connect_x; x != prev_x-lay_dir; x -= lay_dir)
 				result.emplace_back(curr_level, thing_t::BELT, Pos(x, prev_belt_y), lay_dir == LAY_LEFT ? EAST : WEST);
 			for (int y = belt_y; y != prev_belt_y; y += (prev_belt_y < belt_y ? -1 : 1))
-				result.emplace_back(curr_level-1, thing_t::BELT, Pos(connect_x, y), prev_belt_y < belt_y ? NORTH : SOUTH);
+				result.emplace_back(curr_level, thing_t::BELT, Pos(connect_x, y), prev_belt_y < belt_y ? NORTH : SOUTH);
 			for (int x = xbegin+lay_dir; x != connect_x; x += lay_dir)
 				result.emplace_back(curr_level, thing_t::BELT, Pos(x, belt_y), lay_dir == LAY_LEFT ? WEST : EAST);
 		}
@@ -456,7 +464,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 					
 
 					if (machines[mach_idx].second == SOUTH)
-						for (int belt_i = outery - outery/2 + innery/2; belt_i < outery; belt_i++)
+						for (int belt_i = outery/2 + innery/2 + 1; belt_i < outery; belt_i++)
 							result.emplace_back(curr_level, thing_t::BELT, machines[mach_idx].first + Pos(outerx/2, belt_i), SOUTH);
 					if (machines[mach_idx].second == NORTH)
 						for (int belt_i = 1; belt_i < outery/2 - innery/2; belt_i++)
