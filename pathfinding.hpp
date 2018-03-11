@@ -19,6 +19,7 @@
 #pragma once
 #include <vector>
 #include <boost/heap/binomial_heap.hpp>
+#include <limits>
 #include "pos.hpp"
 #include "worldmap.hpp"
 
@@ -27,7 +28,7 @@ namespace pathfinding
 	struct Entry
 	{
 		Pos pos;
-		double f;
+		double f; // this is (exact best-known-yet distance to pos) + (estimated distance to goal)
 
 		Entry(const Pos& p, double f_) : pos(p), f(f_) {}
 		bool operator<(const Entry& other) const { return f > other.f; }
@@ -58,6 +59,11 @@ namespace pathfinding
 
 std::vector<Pos> cleanup_path(const std::vector<Pos>& path);
 /* FIXME maybe deprecate those in favor of FactorioGame::blah? */
-std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double size=0.5);
-std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double size=0.5);
+
+/** calculates a path from start into the disc around end, with outer radius allowed_distance
+  * and inner radius min_distance. If length_limit is positive, the search will abort early
+  * if the path is guaranteed to be longer than length_limit. Size specifies the width of
+  * the character; 0.5 is usually a good value. */
+std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
+std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
 
