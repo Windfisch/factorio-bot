@@ -64,6 +64,6 @@ std::vector<Pos> cleanup_path(const std::vector<Pos>& path);
   * and inner radius min_distance. If length_limit is positive, the search will abort early
   * if the path is guaranteed to be longer than length_limit. Size specifies the width of
   * the character; 0.5 is usually a good value. */
-std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
-std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=0., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
+std::vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=1., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
+std::vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<pathfinding::walk_t>& map, double allowed_distance=1., double min_distance=0., double length_limit=std::numeric_limits<double>::infinity(), double size=0.5);
 
