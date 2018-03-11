@@ -246,7 +246,7 @@ class WorldMap
 		Chunk<T>* get_chunk(int x, int y)
 		{
 			Chunk<T>* retval = &(storage[ Pos(x,y) ]);
-			assert(retval != NULL);
+			assert(retval != nullptr);
 			return retval;
 		}
 		

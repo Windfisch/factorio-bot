@@ -411,7 +411,7 @@ void FactorioGame::parse_item_prototypes(const string& data)
 		if (place_result_str != "nil")
 			place_result = entity_prototypes.at(place_result_str);
 		else
-			place_result = NULL;
+			place_result = nullptr;
 
 		item_prototypes[name] = new ItemPrototype(name, type, place_result, stack_size, fuel_value, speed, durability); // no automatic memory management, because prototypes never change.
 	}
