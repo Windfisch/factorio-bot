@@ -37,10 +37,22 @@
 using namespace std;
 using namespace pathfinding;
 
+
+/** controls the exactness-speed-tradeoff.
+ * if set to 1.0, this equals the textbook A*-algorithm, which
+ * requires that the heuristic may under- but never overestimate
+ * the true distance to the goal. (the direct line as used fulfils
+ * this).
+ * if set to >1, this results in a potential overestimation of the
+ * distance by that factor. This greatly speeds up the algorithm, at
+ * the cost of up results worse by up to this factor.
+ */
+constexpr double OVERAPPROXIMATE=1.1;
+
 static double heuristic(const Pos& p, const Pos& goal)
 {
 	Pos tmp = p-goal;
-	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y)*1.1; // FIXME overapproximation for speed
+	return sqrt(tmp.x*tmp.x+tmp.y*tmp.y)*OVERAPPROXIMATE; // FIXME overapproximation for speed
 }
 
 vector<Pos> cleanup_path(const vector<Pos>& path)
@@ -59,12 +71,12 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 	return result;
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double size)
+vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
 {
-	return cleanup_path(a_star_raw(start, end, map, allowed_distance, min_distance, size));
+	return cleanup_path(a_star_raw(start, end, map, allowed_distance, min_distance, length_limit, size));
 }
 
-vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double size)
+vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
 {
 	if (ceil(min_distance) >= allowed_distance)
 		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");
@@ -84,11 +96,14 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 	needs_cleanup.push_back(&view.at(start));
 
 	int n_iterations = 0;
-	while(!openlist.empty())
+	while (!openlist.empty())
 	{
 		auto current = openlist.top();
 		openlist.pop();
 		n_iterations++;
+
+		if (current.f >= length_limit*OVERAPPROXIMATE) // this (and any subsequent) entry is guaranteed
+			break;                                 // to exceed the length_limit.
 
 		if ((current.pos-end).len() <= allowed_distance && (current.pos-end).len() >= min_distance)
 		{

@@ -168,7 +168,7 @@ class MapBox : public Fl_Box
 		vector<Pos> last_path;
 
 	public:
-		MapBox(_MapGui_impl* gui, int X, int Y, int W, int H, const char *L=0);
+		MapBox(_MapGui_impl* gui, int X, int Y, int W, int H, const char *L=nullptr);
 		void update_imgbuf();
 };
 
@@ -439,7 +439,7 @@ MapBox::MapBox(_MapGui_impl* mb, int x, int y, int w, int h, const char* l) : Fl
 	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
 
-static MapBox* foo = 0;
+static MapBox* foo = nullptr;
 
 void MapBox::update_imgbuf()
 {
