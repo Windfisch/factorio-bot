@@ -59,12 +59,12 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 	return result;
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance, double min_distance)
+vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double size)
 {
-	return cleanup_path(a_star_raw(start, end, map, size, allowed_distance, min_distance));
+	return cleanup_path(a_star_raw(start, end, map, allowed_distance, min_distance, size));
 }
 
-vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double size, double allowed_distance, double min_distance)
+vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double size)
 {
 	if (ceil(min_distance) >= allowed_distance)
 		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");

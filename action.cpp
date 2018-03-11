@@ -34,7 +34,7 @@ namespace action {
 
 	void WalkTo::start()
 	{
-		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, 0.4+0.1, allowed_distance);
+		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
 		subgoals.push_back(unique_ptr<PlayerGoal>(new WalkWaypoints(game,player, waypoints)));
 
 		subgoals[0]->start();
@@ -60,7 +60,7 @@ namespace action {
 	void WalkAndPlaceEntity::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
-			pos, game->walk_map, 0.4+0.1, 4., 3.);
+			pos, game->walk_map, 4., 3.);
 
 		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
 		subgoals.push_back(make_unique<PlaceEntity>(game,player, item, pos, direction));
@@ -74,7 +74,7 @@ namespace action {
 
 		// plan a path to the object
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
-			obj.pos, game->walk_map, 0.4+0.1, 2.);
+			obj.pos, game->walk_map, 2.);
 
 		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
 		subgoals.push_back(make_unique<MineObject>(game,player, obj));
@@ -86,7 +86,7 @@ namespace action {
 	{
 		// plan a path to the centroid of the resource patch
 		std::vector<Pos> waypoints = a_star_raw(game->players[player].position.to_int(),
-			patch->bounding_box.center(), game->walk_map, 0.4+0.1, 2.);
+			patch->bounding_box.center(), game->walk_map, 2.);
 
 		// find the first point where we enter the patch
 		size_t i;
