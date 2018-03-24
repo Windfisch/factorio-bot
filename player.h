@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pos.hpp"
 #include "action.hpp"
 #include "item.h"

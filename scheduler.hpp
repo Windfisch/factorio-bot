@@ -43,9 +43,10 @@ struct CraftingList
 		return min(result, Clock::duration::zero());
 	}
 
+	#if 0
 	// may only be called if the finished craft has been confirmed.
 	// returns the Recipe to be crafted now, or none.
-	std::optional<Recipe> advance(Clock::time_point now)
+	std::optional<const Recipe*> advance(Clock::time_point now)
 	{
 		if (currently_crafting)
 			current_recipe++;
@@ -58,15 +59,21 @@ struct CraftingList
 
 		currently_crafting = true;
 		craft_start_time = now;
-		craft_end_time = now + recipes[current_recipe].duration;
-		return std::optional(recipes[current_recipe]);
+		craft_end_time = now + recipes[current_recipe].second->duration;
+		return std::optional(recipes[current_recipe].second);
 	}
+	#endif
 
 	bool finished() const { return current_recipe >= recipes.size(); }
 };
 
 struct Task
 {
+	Task(FactorioGame* game_, int player_) : game(game_), player(player_), actions(game_,player_) {}
+
+	FactorioGame* game;
+	int player;
+
 	// if the task is dependent, then this task is a item-collection-task
 	// for "owner" (though it may also collect for some other tasks, because
 	// that's on its way).
@@ -81,7 +88,7 @@ struct Task
 
 	void invariant() const
 	{
-		assert(!is_dependent || crafting_queue_item == nullptr);
+		//assert(!is_dependent || crafting_queue_item == nullptr);
 	}
 
 	static constexpr int LOWEST_PRIO = 99999;
@@ -116,7 +123,7 @@ struct Task
 	action::CompoundGoal actions;
 
 	// optimizes the task, if possible (e.g. TSP-solving for get-item-tasks)
-	virtual void optimize() = 0;
+	// virtual void optimize() = 0; FIXME
 
 	// calculates a Task with no required_items, that collects required_items for this
 	// task and assigns them into this Task's ownership. This task will have
@@ -126,12 +133,16 @@ struct Task
 	std::pair<Task, CraftingList> prepare() const;
 
 };
-	
+
+// Scheduler for all Tasks for a single player. Note that this does *not*
+// do cross-player load balancing. It it necessary to remove Tasks from one
+// Player and to insert them at another Player's scheduler to accomplish this.
 class Scheduler
 {
-	Scheduler(FactorioGame* game_) : game(game_) {}
+	Scheduler(FactorioGame* game_, int player_) : game(game_), player(player_) {}
 
 	FactorioGame* game;
+	int player;
 
 	Clock clock;
 
@@ -162,10 +173,12 @@ class Scheduler
 			if (idx != SIZE_MAX)
 				remaining -= std::min(req.amount, claims[idx].amount);
 
-			if (auto cqi = task->crafting_queue_item.lock())
-			{
+			//if (auto cqi = task->crafting_queue_item.lock())
+			//{
 				// FIXME figure out how much net outcome your crafting queue has.
-			}
+			//}
+
+			// TODO FIXME implement this
 
 			if (remaining > 0)
 				return false;
@@ -175,22 +188,23 @@ class Scheduler
 
 	void invariant() const
 	{
-	#ifndef NDEBUG
+	#if 0 // FIXME reenable this
+	//#ifndef NDEBUG
 		for (const auto& [prio, task] : pending_tasks)
 		{
 			if (task->is_dependent)
-				assert(!task->owner.is_expired());
+				assert(!task->owner.expired());
 
 			assert(prio == task->priority());
 
-			if (auto craft = task->crafting_queue_item.lock())
-				assert(craft->owner.lock() == task;
+			//if (auto craft = task->crafting_queue_item.lock())
+			//	assert(craft->owner.lock() == task);
 		}
 
 		int n_currently_crafting = 0;
 		for (const auto& [prio, craft] : pending_crafts)
 		{
-			assert(!craft->owner.is_expired());
+			assert(!craft->owner.expired());
 
 			assert(prio == craft->owner->priority());
 			

@@ -124,7 +124,19 @@ struct ScheduleChecker
 private:
 	Pos start_location;
 	calc_walk_duration_t calc_walk_duration;
-	unordered_map<tuple<Pos,Pos,float>, size_t> cache;
+	
+	
+	struct cache_hash {
+		size_t operator()(tuple<Pos,Pos,float> const& t) const {
+			size_t h = 0;
+			boost::hash_combine(h, hash<Pos>{}(get<0>(t)));
+			boost::hash_combine(h, hash<Pos>{}(get<1>(t)));
+			boost::hash_combine(h, hash<float>{}(get<2>(t)));
+			return h;
+		}
+	};
+
+	unordered_map<tuple<Pos,Pos,float>, Clock::duration, cache_hash> cache;
 public:
 	/** @param calc_walk_duration_ User-supplied function that calculates a walking duration from "from, to, radius" */
 	ScheduleChecker(Pos start_location_, calc_walk_duration_t calc_walk_duration_) : start_location(start_location_), calc_walk_duration(calc_walk_duration_) {}
@@ -161,6 +173,7 @@ public:
 			
 			prev_finished_offset = actual_work_offset + task->duration;
 		}
+		return true;
 	}
 
 private:
@@ -176,19 +189,9 @@ private:
 		return iter->second;
 	}
 
-	struct cache_hash {
-		size_t operator()(tuple<Pos,Pos,float> const& t) const {
-			size_t h = 0;
-			boost::hash_combine(h, hash<Pos>{}(get<0>(t)));
-			boost::hash_combine(h, hash<Pos>{}(get<1>(t)));
-			boost::hash_combine(h, hash<float>{}(get<2>(t)));
-			return h;
-		}
-	};
-
 };
 
-/** returns a pointer to a task which may or may not be contained in the pending_tasks queue.
+/** returns a pointer (or nullptr) to a task which may or may not be contained in the pending_tasks queue.
   * If it is contained, then this task has or will have its requirements fulfilled at the time
   * it reaches the task location.
   * If the returned task is not contained, this is a item-collecting task. It will never
@@ -233,6 +236,8 @@ shared_ptr<Task> Scheduler::get_next_task(Player& player, Clock::time_point now)
 				max_duration = schedule.begin()->first.first + grace_duration;
 			
 			task = build_collector_task(pending_task, player, max_duration);
+			
+			assert(task->crafting_list.time_remaining(now) == chrono::seconds(0));
 		}
 
 		// FIXME: task can be nullptr!
@@ -320,7 +325,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	// assert that missing_items only has unique entries
 	#ifndef NDEBUG
 	{
-		set<ItemPrototype*> s;
+		set<const ItemPrototype*> s;
 		for (ItemStack& stack : missing_items)
 		{
 			assert(s.count(stack.proto) == 0);
@@ -330,7 +335,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	#endif
 
 	// initialize the resulting collector task
-	auto result = make_shared<Task>();
+	auto result = make_shared<Task>(game, this->player /*FIXME remove this->*/);
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;
@@ -358,9 +363,8 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 
 		// check whether the chest is useful for any missing item.
 		// if so, set relevant = true and construct the chest goal
-		// if not, chest_goal will
-		// be deleted at the end of this scipe.
-		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player, chest.entity.pos, ALLOWED_DISTANCE));
+		// if not, chest_goal will be deleted at the end of this scope.
+		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player.id, chest.entity.pos, ALLOWED_DISTANCE));
 		for (ItemStack& stack : missing_items)
 		{
 			if (stack.amount == 0)
