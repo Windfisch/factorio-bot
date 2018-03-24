@@ -240,15 +240,30 @@ shared_ptr<Task> Scheduler::get_next_task(Player& player, Clock::time_point now)
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
 		if (!check_schedule(schedule))
+		{
+			// the Task would delay a more important task for too long
+			// => cannot use it
 			schedule.erase(iter);
+		}
+		else
+		{
+			// the Task can be scheduled in `eta`.
+			if (eta <= chrono::seconds(10)) // FIXME magic value
+			{
+				return task;
+			}
+		}
 
 		assert(check_schedule(schedule));
 	}
+	return nullptr;
 }
 
 
 struct Chest // FIXME move this to somewhere sane
 {
+	Pos_f get_pos() const { return entity.pos; } // WorldList<Chest> wants to call this.
+	
 	Entity entity;
 	Inventory inventory;
 };

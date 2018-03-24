@@ -953,7 +953,7 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 	int water_radius = radius + 100;
 	auto view = game->walk_map.view(pos-Pos(water_radius+1,water_radius+1), pos+Pos(water_radius+1,water_radius+1), Pos(0,0));
 	auto resview = game->resource_map.view(pos-Pos(water_radius+1,water_radius+1), pos+Pos(water_radius+1,water_radius+1), Pos(0,0));
-	struct watersource_t { Pos pos; };
+	struct watersource_t { Pos pos; Pos get_pos() const { return pos;} };
 	WorldList<watersource_t> watersources;
 	for (int x = int(pos.x)-water_radius; x<=int(pos.x)+water_radius; x++)
 		for (int y = int(pos.y)-water_radius; y<=int(pos.y)+water_radius; y++)
