@@ -36,7 +36,7 @@ void Scheduler::tick_crafting_queue()
  *  2. If no more higher priority crafts can be performed, we fill the list up with less priority crafts
  *  It is guaranteed that no higher-priority craft gets delayed more than a configurable duration by any lower-priority crafts.
  */
-vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(Player& player, Clock::time_point now, size_t max_n)
+vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max_n)
 {
 	vector<pair<weak_ptr<Task>,const Recipe*>> result;
 
@@ -58,11 +58,14 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(Player& pl
 	for (auto& iter : pending_tasks)
 	{
 		auto& task = iter.second;
+
+		// TODO FIXME: skip this iteration, if the task has nothing to craft anyway (with the current inventory)
+
 		queue.push_back({
 			task,
 			Clock::duration::zero(),
-			task->crafting_list.time_remaining(now)/10,
-			task->crafting_list.time_remaining(now)
+			task->crafting_list.time_remaining()/10, // magic number
+			task->crafting_list.time_remaining()
 		});
 		
 		for (size_t i = queue.size(); i --> 1;)
@@ -85,21 +88,21 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(Player& pl
 	}
 
 
-	for (auto& iter : pending_tasks)
+	for (auto& iter : queue)
 	{
-		auto& task = iter.second;
+		auto& task = iter.task;
 		auto& crafts = task->crafting_list;
-		Inventory available_inventory(player.inventory, task);
+		Inventory available_inventory(game->players[player_idx].inventory, task);
 		if (crafts.finished())
 			continue;
 
 		// iterate over each not-yet-finished craft in the current task's crafting list
 		// and add all crafts  which we will be able to perform it with our current inventory
 		// (taking into account the inventory changes made by previous crafts)
-		for (auto& entry : crafts.recipes) if (!entry.first)
-			if (available_inventory.apply(entry.second))
+		for (auto& entry : crafts.recipes) if (!entry.finished)
+			if (available_inventory.apply(entry.recipe))
 			{
-				result.emplace_back(task, entry.second);
+				result.emplace_back(task, entry.recipe);
 
 				// limit the result's size
 				if (result.size() >= max_n)
@@ -199,8 +202,9 @@ private:
   * removed from there (which should call its destructor), and will be regenerated if neccessary.
   * TODO: what to do with crafts?
   */
-shared_ptr<Task> Scheduler::get_next_task(Player& player, Clock::time_point now)
+shared_ptr<Task> Scheduler::get_next_task()
 {
+	const Player& player = game->players[player_idx];
 	// FIXME: use proper calculation function
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float radius) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
@@ -235,13 +239,13 @@ shared_ptr<Task> Scheduler::get_next_task(Player& player, Clock::time_point now)
 			else
 				max_duration = schedule.begin()->first.first + grace_duration;
 			
-			task = build_collector_task(pending_task, player, max_duration);
+			task = build_collector_task(pending_task, max_duration);
 			
-			assert(task->crafting_list.time_remaining(now) == chrono::seconds(0));
+			assert(task->crafting_list.time_remaining() == chrono::seconds(0));
 		}
 
 		// FIXME: task can be nullptr!
-		Clock::duration eta = task->crafting_list.time_remaining(now);
+		Clock::duration eta = task->crafting_list.time_remaining();
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
 		if (!check_schedule(schedule))
@@ -315,9 +319,11 @@ static double walk_distance_in_time(Clock::duration time) // FIXME move this som
  * one or more Tasks eventually_runnable. This is a trivial implementation
  * returning a very suboptimal path which only respects original_task, no
  * opportunistic detours are made. But it gets the stuff done.*/
-shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& original_task, const Player& player, Clock::duration max_duration, float grace)
+shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
 {
 	UNUSED(grace); // this is a poor man's implementation
+
+	const Player& player = game->players[player_idx];
 
 	const WorldList<Chest> world_chests; // FIXME actually get them from the world
 	auto missing_items = original_task->get_missing_items();
@@ -335,7 +341,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	#endif
 
 	// initialize the resulting collector task
-	auto result = make_shared<Task>(game, this->player /*FIXME remove this->*/);
+	auto result = make_shared<Task>(game, player_idx);
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;

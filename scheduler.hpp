@@ -8,8 +8,9 @@
 #include "inventory.hpp"
 #include "player.h"
 #include "action.hpp"
+#include "recipe.h"
 
-struct Recipe;
+class FactorioGame;
 
 namespace sched
 {
@@ -18,7 +19,13 @@ using Clock = std::chrono::steady_clock;
 
 struct CraftingList
 {
-	std::vector< std::pair<bool, const Recipe*> > recipes;
+	// recipes[i].finished == true iff the recipe was already crafted
+	// usually, only those entries with .finished==false are interesting
+	struct Entry {
+		bool finished;
+		const Recipe* recipe;
+	};
+	std::vector<Entry> recipes;
 
 	// `current_recipe` ranges between 0 and recipes.size(), or is SIZE_MAX.
 	// if ==SIZE_MAX, we're currently not crafting and craft_{start,end}_time
@@ -36,12 +43,23 @@ struct CraftingList
 		return now-craft_start_time;
 	}
 
+	Clock::duration time_remaining() const
+	{
+		Clock::duration sum;
+		for (const Entry& ent : recipes)
+			if (!ent.finished)
+				sum += ent.recipe->crafting_duration();
+		return sum;
+	}
+
+	#if 0
 	Clock::duration time_remaining(Clock::time_point now) const
 	{
 		assert(currently_crafting);
 		Clock::duration result = craft_end_time - now;
 		return min(result, Clock::duration::zero());
 	}
+	#endif
 
 	#if 0
 	// may only be called if the finished craft has been confirmed.
@@ -69,10 +87,10 @@ struct CraftingList
 
 struct Task
 {
-	Task(FactorioGame* game_, int player_) : game(game_), player(player_), actions(game_,player_) {}
+	Task(FactorioGame* game_, int player_) : game(game_), player_idx(player_), actions(game_,player_) {}
 
 	FactorioGame* game;
-	int player;
+	int player_idx;
 
 	// if the task is dependent, then this task is a item-collection-task
 	// for "owner" (though it may also collect for some other tasks, because
@@ -137,12 +155,12 @@ struct Task
 // Scheduler for all Tasks for a single player. Note that this does *not*
 // do cross-player load balancing. It it necessary to remove Tasks from one
 // Player and to insert them at another Player's scheduler to accomplish this.
-class Scheduler
+struct Scheduler
 {
-	Scheduler(FactorioGame* game_, int player_) : game(game_), player(player_) {}
+	Scheduler(FactorioGame* game_, int player_) : game(game_), player_idx(player_) {}
 
 	FactorioGame* game;
-	int player;
+	int player_idx;
 
 	Clock clock;
 
@@ -158,8 +176,8 @@ class Scheduler
 	std::multimap<int, std::shared_ptr<Task>> pending_tasks;
 
 
-	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(Player& player, Clock::time_point now, size_t max_n = 20);
-	std::shared_ptr<Task> get_next_task(Player& player, Clock::time_point now);
+	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(size_t max_n = 20);
+	std::shared_ptr<Task> get_next_task();
 
 	/** returns whether we have claimed, or will eventually have crafted, everything the task needs */
 	bool task_eventually_runnable(const std::shared_ptr<Task>& task, const TaggedInventory& inventory) const
@@ -233,7 +251,7 @@ class Scheduler
 	 * collection duration by no more than `grace` percent and will not take longer
 	 * than max_duration.
 	 */
-	std::shared_ptr<Task> build_collector_task(const std::shared_ptr<Task>& original_task, const Player& player, Clock::duration max_duration, float grace = 10.f);
+	std::shared_ptr<Task> build_collector_task(const std::shared_ptr<Task>& original_task, Clock::duration max_duration, float grace = 10.f);
 
 
 	void tick();

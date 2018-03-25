@@ -1,9 +1,9 @@
 include config.mk
 
 EXE=bot
-OBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o gui/gui.o main.o # objects used for $(EXE)
+COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o gui/gui.o # objects used for $(EXE)
 
-ALLOBJECTS=$(OBJECTS) rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
+ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o  # all objects, including those for other targets (i.e. rcon-client)
 DEBUG=1
 
 
@@ -149,7 +149,10 @@ gui/%.o: gui/%.cpp
 %: %.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $(LIBS) $^ -o $@
 
-$(EXE): $(OBJECTS)
+$(EXE): $(COMMONOBJECTS) main.o
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+schedtest: $(COMMONOBJECTS) scheduler.o schedtest.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 rcon-client: rcon-client.o rcon.o
