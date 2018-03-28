@@ -49,7 +49,7 @@ struct {
 			}
 		};
 	Recipe furnace =
-		{"furnace", true, 5.0,
+		{"furnace", true, 4.5,
 			vector<Recipe::ItemAmount>{
 				{&items.stone, 10},
 				{&items.circuit, 4}
@@ -94,6 +94,7 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 		sched.pending_tasks.insert({task->priority(), task});
 
 	auto result = sched.get_next_crafts(5);
+	cout << "got " << result.size() << " crafts" << endl;
 }
 
 int main()

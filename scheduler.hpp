@@ -49,7 +49,7 @@ struct CraftingList
 
 	Clock::duration time_remaining() const
 	{
-		Clock::duration sum;
+		Clock::duration sum = Clock::duration::zero();
 		for (const Entry& ent : recipes)
 			if (!ent.finished)
 				sum += ent.recipe->crafting_duration();
