@@ -21,6 +21,10 @@ struct CraftingList
 {
 	// recipes[i].finished == true iff the recipe was already crafted
 	// usually, only those entries with .finished==false are interesting
+	// TODO: finished should probably be called "has_been_started", as with
+	// the start of a craft, it's guaranteed to finish successfully (unless
+	// interrupted; either we don't do that, or we need to ensure that the
+	// crafting list is updated accordingly in that case...)
 	struct Entry {
 		bool finished;
 		const Recipe* recipe;
@@ -136,7 +140,7 @@ struct Task
 
 	std::vector<ItemStack> required_items;
 	
-	std::vector<ItemStack> get_missing_items(); // TODO
+	std::vector<ItemStack> get_missing_items(const std::shared_ptr<Task>& this_shared /* TODO FIXME ugly. maybe replace with some task id */) const;
 
 	action::CompoundGoal actions;
 
@@ -180,29 +184,7 @@ struct Scheduler
 	std::shared_ptr<Task> get_next_task();
 
 	/** returns whether we have claimed, or will eventually have crafted, everything the task needs */
-	bool task_eventually_runnable(const std::shared_ptr<Task>& task, const TaggedInventory& inventory) const
-	{
-		for (const auto& req : task->required_items)
-		{
-			auto remaining = req.amount;
-
-			const auto& claims = inventory.at(req.proto).claims;
-			auto idx = claims.find(std::weak_ptr(task));
-			if (idx != SIZE_MAX)
-				remaining -= std::min(req.amount, claims[idx].amount);
-
-			//if (auto cqi = task->crafting_queue_item.lock())
-			//{
-				// FIXME figure out how much net outcome your crafting queue has.
-			//}
-
-			// TODO FIXME implement this
-
-			if (remaining > 0)
-				return false;
-		}
-		return true;
-	}
+	bool task_eventually_runnable(const std::shared_ptr<Task>& task) const;
 
 	void invariant() const
 	{

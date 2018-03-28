@@ -29,6 +29,61 @@ void Scheduler::tick_crafting_queue()
 	
 }
 
+static map<const ItemPrototype*, signed int> needed_items(const vector<ItemStack>& required_items, const CraftingList& crafting_list)
+{
+	map<const ItemPrototype*, signed int> needed;
+
+	for (const ItemStack& stack : required_items)
+		needed[stack.proto] += stack.amount;
+
+	// FIXME: this assumes that recipes are sane, and don't have cyclic dependencies.
+	// If you can make 1 Bar from 2 Foo, and you can make 1 Foo and 1 Qux from a Bar,
+	// then you do need *two* Foos in the beginning. This naive algorithm will output
+	// a need of one single Foo, however.
+	for (const auto& entry : crafting_list.recipes)
+		if (!entry.finished)
+		{
+			for (const auto& product : entry.recipe->products)
+				needed[product.item] -= product.amount;
+			for (const auto& ingredient : entry.recipe->ingredients)
+				needed[ingredient.item] += ingredient.amount;
+		}
+	
+	return needed;
+}
+
+// TODO FIXME oh my god, these two (get_missing_items and task_eventually_runnable) should
+// *definitely* be siblings in the same class... they basically do the same thing.
+std::vector<ItemStack> Task::get_missing_items(const shared_ptr<Task>& this_shared) const
+{
+	// this is so ugly :(
+	assert(this_shared.get() == this);
+
+	auto needed = needed_items(required_items, crafting_list);
+
+	// find out what items we may use
+	Inventory claimed_items(game->players[player_idx].inventory, this_shared);
+	vector<ItemStack> missing;
+
+	for (const auto& [item, needed_amount] : needed)
+	{
+		if (claimed_items[item] < needed_amount)
+			missing.push_back(ItemStack{item, size_t(needed_amount-claimed_items[item])});
+	}
+	return missing;
+}
+
+bool sched::Scheduler::task_eventually_runnable(const std::shared_ptr<Task>& task) const
+{
+	auto needed = needed_items(task->required_items, task->crafting_list);
+	Inventory claimed_items(game->players[player_idx].inventory, task);
+	
+	for (const auto& [item, needed_amount] : needed)
+		if (claimed_items[item] < needed_amount)
+			return false;
+	return true;
+}
+
 
 /** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
  *  Crafts belonging to higher priority tasks will generally be performed earlier, with two exceptions:
@@ -208,13 +263,32 @@ shared_ptr<Task> Scheduler::get_next_task()
 	// FIXME: use proper calculation function
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float radius) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
+	
+	/*// TODO maybe move this somewhere else?
+	for (auto& entry : pending_tasks)
+	{
+		// Maybe recalculate, our crafting_list. I.e. what items from
+		// required_items should be fetched from a chest, and which
+		// should be crafted. This method will most likely just return
+		// and re-use the cached path. (Except for the first call, where
+		// no cached value is available yet)
+		task.recalc_crafting_path();
+
+
+		// If the player has useful "free for all"-items in the inventory,
+		// grab them. This is fine, because all higher-priority tasks
+		// have already executed this loop and grabbed their items, so
+		// we're not stealing them.
+		task.claim_available_items();
+	}*/
+
 	for (auto& entry : pending_tasks)
 	{
 		Task::priority_t prio = entry.first; UNUSED(prio);
 		const shared_ptr<Task>& pending_task = entry.second;
 		shared_ptr<Task> task;
 
-		if (task_eventually_runnable(pending_task, player.inventory))
+		if (task_eventually_runnable(pending_task))
 			task = pending_task;
 		else
 		{
@@ -326,7 +400,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	const Player& player = game->players[player_idx];
 
 	const WorldList<Chest> world_chests; // FIXME actually get them from the world
-	auto missing_items = original_task->get_missing_items();
+	auto missing_items = original_task->get_missing_items(original_task);
 
 	// assert that missing_items only has unique entries
 	#ifndef NDEBUG

@@ -8,6 +8,25 @@
 
 using namespace sched;
 
+bool Inventory::apply(const Recipe* recipe)
+{
+	Inventory& self = *this;
+
+	for (const auto& ingredient : recipe->ingredients)
+	{
+		if (self[ingredient.item] < ingredient.amount)
+			return false;
+	}
+	
+	for (const auto& ingredient : recipe->ingredients)
+		self[ingredient.item] += ingredient.amount;
+
+	for (const auto& product : recipe->products)
+		self[product.item] += product.amount;
+
+	return true;
+}
+
 void TaggedAmount::cleanup()
 {
 	for (auto it = claims.begin(); it != claims.end(); )

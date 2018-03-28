@@ -43,10 +43,20 @@ struct TaggedAmount
 	size_t claim(const std::shared_ptr<sched::Task>& task, size_t n);
 
 	/** returns the amount of items claimed for the specified task. */
-	size_t claimed_by(const std::shared_ptr<sched::Task>& task) const;
+	size_t claimed_by(const std::shared_ptr<sched::Task>& task) const
+	{
+		auto idx = claims.find(task);
+		if (idx == SIZE_MAX)
+			return 0;
+		else
+			return claims[idx].amount;
+	}
 	
 	/** returns the amount of items available to the specified task. This includes claimed and free-for-use items. */
-	size_t available_for(const std::shared_ptr<sched::Task>& task) const;
+	size_t available_for(const std::shared_ptr<sched::Task>& task) const
+	{
+		return amount - n_claimed() + claimed_by(task);
+	}
 };
 
 // this is a glorified vector<pair<>>
