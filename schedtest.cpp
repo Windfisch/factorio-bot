@@ -52,7 +52,7 @@ struct {
 		{"furnace", true, 4.5,
 			vector<Recipe::ItemAmount>{
 				{&items.stone, 10},
-				{&items.circuit, 4}
+				{&items.iron, 4}
 			},
 			vector<Recipe::ItemAmount>{
 				{&items.furnace, 1}
@@ -63,27 +63,40 @@ struct {
 void test_get_next_craft(FactorioGame* game, int playerid)
 {
 	sched::Scheduler sched(game, playerid);
+	Player& p = game->players[playerid];
+	p.inventory.clear();
 	
 	std::array<shared_ptr<sched::Task>, 3> tasks;
 
-	tasks[0] = make_shared<sched::Task>(game, playerid);
+	tasks[0] = make_shared<sched::Task>(game, playerid, "task #0");
 	tasks[0]->priority_ = 42;
 	for (int i=0; i<10; i++)
 		tasks[0]->crafting_list.recipes.push_back({false, &recipes.circuit});
 	for (int i=0; i<2; i++)
 		tasks[0]->crafting_list.recipes.push_back({false, &recipes.machine});
 	
-	tasks[1] = make_shared<sched::Task>(game, playerid);
+	tasks[1] = make_shared<sched::Task>(game, playerid, "task #1");
 	tasks[1]->priority_ = 17;
 	for (int i=0; i<10; i++)
 		tasks[1]->crafting_list.recipes.push_back({false, &recipes.circuit});
 	for (int i=0; i<2; i++)
 		tasks[1]->crafting_list.recipes.push_back({false, &recipes.furnace});
 	
-	tasks[2] = make_shared<sched::Task>(game, playerid);
+	tasks[2] = make_shared<sched::Task>(game, playerid, "task #2");
 	tasks[2]->priority_ = 99;
 	for (int i=0; i<5; i++)
 		tasks[2]->crafting_list.recipes.push_back({false, &recipes.circuit});
+
+	p.inventory[&items.iron].amount += 50;
+	p.inventory[&items.iron].claims.push_back({tasks[0],20});
+	p.inventory[&items.iron].claims.push_back({tasks[1],15});
+	p.inventory[&items.iron].claims.push_back({tasks[2],15});
+	p.inventory[&items.coppercable].amount += 40;
+	p.inventory[&items.coppercable].claims.push_back({tasks[0],19});
+	p.inventory[&items.coppercable].claims.push_back({tasks[2],5});
+	p.inventory[&items.stone].amount += 152;
+	p.inventory[&items.stone].claims.push_back({tasks[1],52});
+
 
 	for (auto& task : tasks)
 	{
@@ -93,8 +106,13 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 	for (auto& task : tasks)
 		sched.pending_tasks.insert({task->priority(), task});
 
-	auto result = sched.get_next_crafts(5);
+	auto result = sched.get_next_crafts(20);
 	cout << "got " << result.size() << " crafts" << endl;
+
+	for (const auto& [task, recipe] : result)
+	{
+		cout << "\tcraft " << recipe->name << " for task " << task.lock()->name << endl;
+	}
 }
 
 int main()
@@ -113,7 +131,7 @@ int main()
 	test_get_next_craft(&game, playerid);
 	exit(0);
 	
-	auto task1 = make_shared<sched::Task>(&game, playerid);
+	/*auto task1 = make_shared<sched::Task>(&game, playerid);
 	task1->priority_ = 42;
 	task1->start_location = Pos(4,4);
 	task1->start_radius = 0;
@@ -147,4 +165,5 @@ int main()
 
 //	sched.get_next_task();
 //	sched.get_next_crafts();
+*/
 }

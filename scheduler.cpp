@@ -415,7 +415,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	#endif
 
 	// initialize the resulting collector task
-	auto result = make_shared<Task>(game, player_idx);
+	auto result = make_shared<Task>(game, player_idx, "resource collector for " +original_task->name);
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;

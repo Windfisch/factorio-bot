@@ -91,7 +91,9 @@ struct CraftingList
 
 struct Task
 {
-	Task(FactorioGame* game_, int player_) : game(game_), player_idx(player_), actions(game_,player_) {}
+	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), game(game_), player_idx(player_), actions(game_,player_) {}
+
+	std::string name;
 
 	FactorioGame* game;
 	int player_idx;
