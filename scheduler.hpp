@@ -3,6 +3,7 @@
 #include <vector>
 #include <assert.h>
 #include <map>
+#include <optional>
 
 #include "task.hpp"
 #include "inventory.hpp"
@@ -19,74 +20,45 @@ using Clock = std::chrono::steady_clock;
 
 struct CraftingList
 {
-	// recipes[i].finished == true iff the recipe was already crafted
-	// usually, only those entries with .finished==false are interesting
-	// TODO: finished should probably be called "has_been_started", as with
-	// the start of a craft, it's guaranteed to finish successfully (unless
-	// interrupted; either we don't do that, or we need to ensure that the
-	// crafting list is updated accordingly in that case...)
+	enum status_t {
+		PENDING, // not yet started. the ingredients haven't been consumed, the results aren't there yet.
+		CURRENT, // currently in the crafting queue. the ingredients have already been consumed, the results aren't there yet
+		FINISHED // finished. the ingredients have been consumed, and the results have been added
+	};
 	struct Entry {
-		bool finished;
+		status_t status;
 		const Recipe* recipe;
 	};
 	std::vector<Entry> recipes;
 
-	// `current_recipe` ranges between 0 and recipes.size(), or is SIZE_MAX.
-	// if ==SIZE_MAX, we're currently not crafting and craft_{start,end}_time
-	// are invalid. otherwise, recipes[ current_recipe ] denotes the recipe
-	// which is currently being crafted and craft_start_time and
-	// craft_end_time denote the begin and end time, respectively.
-	size_t current_recipe;
-	Clock::time_point craft_start_time;
-	Clock::time_point craft_end_time;
-	bool currently_crafting;
-
-	Clock::duration time_lost_if_interrupted(Clock::time_point now) const
-	{
-		assert(currently_crafting);
-		return now-craft_start_time;
-	}
-
+	// returns the time needed for all recipes which are not FINISHED. this means
+	// that an almost-finishe, but yet CURRENT recipe is accounted for with its
+	// full duration.
 	Clock::duration time_remaining() const
 	{
 		Clock::duration sum = Clock::duration::zero();
 		for (const Entry& ent : recipes)
-			if (!ent.finished)
+			if (ent.status != FINISHED)
 				sum += ent.recipe->crafting_duration();
 		return sum;
 	}
 
-	#if 0
-	Clock::duration time_remaining(Clock::time_point now) const
+	// returns true if all crafts are FINISHED
+	bool finished() const
 	{
-		assert(currently_crafting);
-		Clock::duration result = craft_end_time - now;
-		return min(result, Clock::duration::zero());
+		for (auto [status, recipe] : recipes)
+			if (status != FINISHED)
+				return false;
+		return true;
 	}
-	#endif
-
-	#if 0
-	// may only be called if the finished craft has been confirmed.
-	// returns the Recipe to be crafted now, or none.
-	std::optional<const Recipe*> advance(Clock::time_point now)
+	// returns true if all crafts are FINISHED or CURRENT
+	bool almost_finished() const
 	{
-		if (currently_crafting)
-			current_recipe++;
-
-		if (current_recipe >= recipes.size())
-		{
-			currently_crafting = false;
-			return std::nullopt;
-		}
-
-		currently_crafting = true;
-		craft_start_time = now;
-		craft_end_time = now + recipes[current_recipe].second->duration;
-		return std::optional(recipes[current_recipe].second);
+		for (auto [status, recipe] : recipes)
+			if (status == PENDING)
+				return false;
+		return true;
 	}
-	#endif
-
-	bool finished() const { return current_recipe >= recipes.size(); }
 };
 
 struct Task
@@ -109,6 +81,14 @@ struct Task
 	std::weak_ptr<Task> owner;
 
 	CraftingList crafting_list;
+	struct crafting_eta_t {
+		Clock::duration eta; // managed by Scheduler
+		Clock::time_point reference;
+	};
+	std::optional<crafting_eta_t> crafting_eta;
+
+	bool eventually_runnable() const { return crafting_eta.has_value(); }
+	
 
 	void invariant() const
 	{
@@ -142,7 +122,12 @@ struct Task
 
 	std::vector<ItemStack> required_items;
 	
-	std::vector<ItemStack> get_missing_items(const std::shared_ptr<Task>& this_shared /* TODO FIXME ugly. maybe replace with some task id */) const;
+	// returns true if the given inventory is sufficient to execute all crafts from
+	// crafting_list, and then supply all items listed in required_items
+	bool check_inventory(Inventory inventory);
+	// returns a list of missing items that are required to a) fully execute the
+	// crafting_list and b) have all required_items
+	std::vector<ItemStack> get_missing_items(Inventory inventory) const;
 
 	action::CompoundGoal actions;
 
@@ -180,13 +165,20 @@ struct Scheduler
 
 	// list of all tasks known to the scheduler
 	std::multimap<int, std::shared_ptr<Task>> pending_tasks;
+	
+	// list of the first N tasks (or all tasks? TODO) in their order
+	// the grocery store queue sort has determined
+	std::vector<std::weak_ptr<Task>> crafting_order;
 
+	// returns an ordering in which the tasks should perform their crafts,
+	// balancing between "high priority first" and "quick crafts may go first"
+	std::vector<std::weak_ptr<Task>> calc_crafting_order();
+	
+	// updates the crafting order and the tasks' ETAs
+	void update_crafting_order();
 
 	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(size_t max_n = 20);
 	std::shared_ptr<Task> get_next_task();
-
-	/** returns whether we have claimed, or will eventually have crafted, everything the task needs */
-	bool task_eventually_runnable(const std::shared_ptr<Task>& task) const;
 
 	void invariant() const
 	{

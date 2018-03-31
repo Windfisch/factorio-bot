@@ -5,6 +5,7 @@
 #include "pathfinding.hpp"
 #include "defines.h"
 #include "factorio_io.h"
+#include "safe_cast.hpp"
 
 #include <boost/functional/hash.hpp>
 
@@ -12,6 +13,7 @@
 #include <utility>
 #include <memory>
 #include <limits>
+#include <optional>
 
 using namespace std;
 
@@ -41,60 +43,54 @@ static map<const ItemPrototype*, signed int> needed_items(const vector<ItemStack
 	// then you do need *two* Foos in the beginning. This naive algorithm will output
 	// a need of one single Foo, however.
 	for (const auto& entry : crafting_list.recipes)
-		if (!entry.finished)
+	{
+		switch (entry.status)
 		{
-			for (const auto& product : entry.recipe->products)
-				needed[product.item] -= product.amount;
-			for (const auto& ingredient : entry.recipe->ingredients)
-				needed[ingredient.item] += ingredient.amount;
+			case CraftingList::PENDING:
+				for (const auto& ingredient : entry.recipe->ingredients)
+					needed[ingredient.item] += ingredient.amount;
+				[[fallthrough]];
+			case CraftingList::CURRENT:
+				for (const auto& product : entry.recipe->products)
+					needed[product.item] -= product.amount;
+				[[fallthrough]];
+			case CraftingList::FINISHED:
+				break;
 		}
+	}
 	
 	return needed;
 }
 
-// TODO FIXME oh my god, these two (get_missing_items and task_eventually_runnable) should
-// *definitely* be siblings in the same class... they basically do the same thing.
-std::vector<ItemStack> Task::get_missing_items(const shared_ptr<Task>& this_shared) const
+std::vector<ItemStack> Task::get_missing_items(Inventory inventory) const
 {
-	// this is so ugly :(
-	assert(this_shared.get() == this);
-
 	auto needed = needed_items(required_items, crafting_list);
-
-	// find out what items we may use
-	Inventory claimed_items(game->players[player_idx].inventory, this_shared);
+	
 	vector<ItemStack> missing;
-
-	for (const auto& [item, needed_amount] : needed)
+	for (auto [item, needed_amount] : needed)
 	{
-		if (claimed_items[item] < needed_amount)
-			missing.push_back(ItemStack{item, size_t(needed_amount-claimed_items[item])});
+		if (safe_cast<signed int>(inventory[item]) < needed_amount)
+			missing.push_back(ItemStack{item, size_t(needed_amount-inventory[item])});
 	}
 	return missing;
 }
 
-bool sched::Scheduler::task_eventually_runnable(const std::shared_ptr<Task>& task) const
+bool Task::check_inventory(Inventory inventory)
 {
-	auto needed = needed_items(task->required_items, task->crafting_list);
-	Inventory claimed_items(game->players[player_idx].inventory, task);
+	auto needed = needed_items(required_items, crafting_list);
 	
-	for (const auto& [item, needed_amount] : needed)
-		if (claimed_items[item] < needed_amount)
+	for (auto [item, needed_amount] : needed)
+	{
+		if (safe_cast<signed int>(inventory[item]) < needed_amount)
 			return false;
+	}
 	return true;
 }
 
-
-/** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
- *  Crafts belonging to higher priority tasks will generally be performed earlier, with two exceptions:
- *  1. Low-priority quick crafts are preferred over heavy-weight high priority crafts (up to a certain limit)
- *  2. If no more higher priority crafts can be performed, we fill the list up with less priority crafts
- *  It is guaranteed that no higher-priority craft gets delayed more than a configurable duration by any lower-priority crafts.
- */
-vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max_n)
+// returns an ordering in which the tasks should perform their crafts,
+// balancing between "high priority first" and "quick crafts may go first"
+vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 {
-	vector<pair<weak_ptr<Task>,const Recipe*>> result;
-
 	struct WaitingQueueItem
 	{
 		shared_ptr<Task> task;
@@ -105,16 +101,13 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max
 	vector<WaitingQueueItem> queue;
 
 	// grocery store queue algorithm: from the highest to lowest priority
-	// task, enqueue their crafts with their expected total runtime, but only
-	// if they can do anything *right now*.
+	// task, enqueue their crafts with their expected total runtime
 	// each task that is enqueued asks their precedessors to let them skip them.
 	// precedessors will approve unless their total time_granted exceeds 10% of
 	// their own_duration.
 	for (auto& iter : pending_tasks)
 	{
 		auto& task = iter.second;
-
-		// TODO FIXME: skip this iteration, if the task has nothing to craft anyway (with the current inventory)
 
 		queue.push_back({
 			task,
@@ -123,6 +116,7 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max
 			task->crafting_list.time_remaining()
 		});
 		
+		// jump the queue
 		for (size_t i = queue.size(); i --> 1;)
 		{
 			auto& curr = queue[i];
@@ -142,27 +136,72 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max
 		}
 	}
 
-
+	vector<weak_ptr<Task>> result;
 	for (auto& iter : queue)
+		result.push_back(iter.task);
+	return result;
+}
+
+// updates the crafting order and the tasks' ETAs
+void Scheduler::update_crafting_order()
+{
+	for (auto task_w : crafting_order)
+		if (auto task = task_w.lock()) // silently ignore expired weak_ptrs
+			task->crafting_eta = nullopt;
+
+	crafting_order = calc_crafting_order();
+
+	auto eta = Clock::duration::zero();
+	for (auto task_w : crafting_order)
 	{
-		auto& task = iter.task;
+		auto task = shared_ptr<Task>(task_w); // loudly crash on expired weak_ptrs
+		eta += task->crafting_list.time_remaining();
+
+		if (task->check_inventory(Inventory(game->players[player_idx].inventory, task)))
+			task->crafting_eta = { eta, Clock::now()};
+		else
+			task->crafting_eta = nullopt;
+	}
+}
+
+/** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
+ */
+vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max_n)
+{
+	vector<pair<weak_ptr<Task>,const Recipe*>> result;
+
+	for (auto& task_w : crafting_order)
+	{
+		shared_ptr<Task> task(task_w); // fail loudly if the weak_ptr has expired
 		auto& crafts = task->crafting_list;
 		Inventory available_inventory(game->players[player_idx].inventory, task);
-		if (crafts.finished())
+		if (crafts.almost_finished())
 			continue;
 
 		// iterate over each not-yet-finished craft in the current task's crafting list
 		// and add all crafts  which we will be able to perform it with our current inventory
 		// (taking into account the inventory changes made by previous crafts)
-		for (auto& entry : crafts.recipes) if (!entry.finished)
-			if (available_inventory.apply(entry.recipe))
+		for (auto& entry : crafts.recipes)
+		{
+			switch (entry.status)
 			{
-				result.emplace_back(task, entry.recipe);
+				case CraftingList::FINISHED:
+					break;
+				case CraftingList::PENDING:
+					if (available_inventory.apply(entry.recipe))
+					{
+						result.emplace_back(task, entry.recipe);
 
-				// limit the result's size
-				if (result.size() >= max_n)
-					goto finish;
+						// limit the result's size
+						if (result.size() >= max_n)
+							goto finish;
+					}
+					break;
+				case CraftingList::CURRENT:
+					available_inventory.apply(entry.recipe, true);
+					break;
 			}
+		}
 	}
 finish:
 	
@@ -288,7 +327,7 @@ shared_ptr<Task> Scheduler::get_next_task()
 		const shared_ptr<Task>& pending_task = entry.second;
 		shared_ptr<Task> task;
 
-		if (task_eventually_runnable(pending_task))
+		if (pending_task->eventually_runnable())
 			task = pending_task;
 		else
 		{
@@ -400,7 +439,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	const Player& player = game->players[player_idx];
 
 	const WorldList<Chest> world_chests; // FIXME actually get them from the world
-	auto missing_items = original_task->get_missing_items(original_task);
+	auto missing_items = original_task->get_missing_items(Inventory(player.inventory, original_task));
 
 	// assert that missing_items only has unique entries
 	#ifndef NDEBUG

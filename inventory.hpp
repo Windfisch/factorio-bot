@@ -64,8 +64,11 @@ using TaggedInventory = boost::container::flat_map<const ItemPrototype*, TaggedA
 
 struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_t>
 {
-	/** applies the recipe. if successful, the inventory is altered and true is returned, otherwise the inventory remains unchanged and false is returned */
-	bool apply(const Recipe*);
+	/** applies the recipe. if successful, the inventory is altered and true is returned, otherwise the inventory remains unchanged and false is returned.
+	  If already_started == true, the ingredients are not removed, but the products are added. In this
+	  case, the function always returns true.
+	*/
+	bool apply(const Recipe*, bool already_started = false);
 
 
 	/** constructs the empty inventory */

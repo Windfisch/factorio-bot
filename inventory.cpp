@@ -8,18 +8,21 @@
 
 using namespace sched;
 
-bool Inventory::apply(const Recipe* recipe)
+bool Inventory::apply(const Recipe* recipe, bool already_started)
 {
 	Inventory& self = *this;
 
-	for (const auto& ingredient : recipe->ingredients)
+	if (!already_started)
 	{
-		if (self[ingredient.item] < ingredient.amount)
-			return false;
-	}
+		for (const auto& ingredient : recipe->ingredients)
+		{
+			if (self[ingredient.item] < ingredient.amount)
+				return false;
+		}
 	
-	for (const auto& ingredient : recipe->ingredients)
-		self[ingredient.item] += ingredient.amount;
+		for (const auto& ingredient : recipe->ingredients)
+			self[ingredient.item] += ingredient.amount;
+	}
 
 	for (const auto& product : recipe->products)
 		self[product.item] += product.amount;

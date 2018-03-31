@@ -49,7 +49,7 @@ struct {
 			}
 		};
 	Recipe furnace =
-		{"furnace", true, 4.5,
+		{"furnace", true, 14.5,
 			vector<Recipe::ItemAmount>{
 				{&items.stone, 10},
 				{&items.iron, 4}
@@ -71,40 +71,54 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 	tasks[0] = make_shared<sched::Task>(game, playerid, "task #0");
 	tasks[0]->priority_ = 42;
 	for (int i=0; i<10; i++)
-		tasks[0]->crafting_list.recipes.push_back({false, &recipes.circuit});
+		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
 	for (int i=0; i<2; i++)
-		tasks[0]->crafting_list.recipes.push_back({false, &recipes.machine});
+		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.machine});
 	
 	tasks[1] = make_shared<sched::Task>(game, playerid, "task #1");
 	tasks[1]->priority_ = 17;
-	for (int i=0; i<10; i++)
-		tasks[1]->crafting_list.recipes.push_back({false, &recipes.circuit});
-	for (int i=0; i<2; i++)
-		tasks[1]->crafting_list.recipes.push_back({false, &recipes.furnace});
+	for (int i=0; i<20; i++)
+		tasks[1]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.furnace});
 	
 	tasks[2] = make_shared<sched::Task>(game, playerid, "task #2");
 	tasks[2]->priority_ = 99;
 	for (int i=0; i<5; i++)
-		tasks[2]->crafting_list.recipes.push_back({false, &recipes.circuit});
+		tasks[2]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
 
-	p.inventory[&items.iron].amount += 50;
-	p.inventory[&items.iron].claims.push_back({tasks[0],20});
-	p.inventory[&items.iron].claims.push_back({tasks[1],15});
+	p.inventory[&items.iron].amount += 135;
+	p.inventory[&items.iron].claims.push_back({tasks[0],40});
+	p.inventory[&items.iron].claims.push_back({tasks[1],80});
 	p.inventory[&items.iron].claims.push_back({tasks[2],15});
-	p.inventory[&items.coppercable].amount += 40;
-	p.inventory[&items.coppercable].claims.push_back({tasks[0],19});
+	p.inventory[&items.coppercable].amount += 83;
+	p.inventory[&items.coppercable].claims.push_back({tasks[0],40});
 	p.inventory[&items.coppercable].claims.push_back({tasks[2],5});
-	p.inventory[&items.stone].amount += 152;
-	p.inventory[&items.stone].claims.push_back({tasks[1],52});
+	p.inventory[&items.stone].amount += 252;
+	p.inventory[&items.stone].claims.push_back({tasks[1],230});
 
 
 	for (auto& task : tasks)
 	{
-		cout << "task->crafting_list.time_remaining() = " << chrono::duration_cast<chrono::milliseconds>(task->crafting_list.time_remaining()).count() << "ms" << endl;
+		cout << task->name << " -> crafting_list.time_remaining() = " << chrono::duration_cast<chrono::milliseconds>(task->crafting_list.time_remaining()).count() << "ms" << endl;
 	}
 	
 	for (auto& task : tasks)
 		sched.pending_tasks.insert({task->priority(), task});
+
+
+	sched.update_crafting_order();
+
+	cout << "dumping crafting_order:" << endl;
+	for (auto task_w : sched.crafting_order)
+	{
+		if (auto task = task_w.lock())
+		{
+			cout << "\ttask " << task->name << " with priority " << task->priority() << " has ";
+			if (task->eventually_runnable())
+				cout << "eta = " << chrono::duration_cast<chrono::seconds>(task->crafting_eta->eta).count() << "s of which " << chrono::duration_cast<chrono::seconds>(sched::Clock::now() - task->crafting_eta->reference).count() << "s have already passed" << endl;
+			else
+				cout << "no eta yet" << endl;
+		}
+	}
 
 	auto result = sched.get_next_crafts(20);
 	cout << "got " << result.size() << " crafts" << endl;
