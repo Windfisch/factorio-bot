@@ -20,5 +20,5 @@ clean:
 	@./$< > $@.out
 	@if ! diff -u $@.out.desired $@.out; then echo "TEST $@ FAILED, see above"; false; else echo "TEST $@ PASSED"; true; fi
 
-%.bin: %.cpp
-	$(CXX) $(CXXFLAGS) $< ../area.o -o $@
+%.bin: %.cpp ../area.o
+	$(CXX) $(CXXFLAGS) $^ -o $@

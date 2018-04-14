@@ -868,4 +868,3 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 
 	cout << "we now have " << resource_patches.size() << " patches" << endl;
 }
-

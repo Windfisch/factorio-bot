@@ -30,6 +30,7 @@
 #include "pos.hpp"
 #include "area.hpp"
 #include "rcon.h"
+#include "player.h"
 #include "resource.hpp"
 #include "entity.h"
 #include "item.h"
@@ -118,13 +119,6 @@ class FactorioGame
 		void resource_bookkeeping(const Area& area, WorldMap<Resource>::Viewport resview);
 		void assert_resource_consistency() const; // only for debugging purposes
 		
-		struct Player
-		{
-			size_t id; // TODO this should be a string (the player's name) probably?
-			Pos_f position;
-			bool connected;
-			std::unique_ptr<action::CompoundGoal> goals;
-		};
 		std::vector<Player> players;
 
 		const EntityPrototype& get_entity_prototype(std::string name) const { return *entity_prototypes.at(name); }

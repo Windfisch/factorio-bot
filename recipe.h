@@ -16,8 +16,13 @@
  * along with factorio-bot. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
+#include <chrono>
+
+#include "item.h"
 
 struct Recipe
 {
@@ -33,6 +38,10 @@ struct Recipe
 	std::string name;
 	bool enabled;
 	double energy;
+
+	std::chrono::milliseconds crafting_duration() const {
+		return std::chrono::milliseconds(int(energy*1000.));
+	}
 
 	std::vector<ItemAmount> ingredients;
 	std::vector<ItemAmount> products;

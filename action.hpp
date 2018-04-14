@@ -30,6 +30,7 @@
 #include "defines.h"
 
 class FactorioGame;
+namespace sched { struct Task; }
 
 namespace action
 {

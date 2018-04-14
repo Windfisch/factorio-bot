@@ -181,7 +181,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 								break;
 							// else stay at this end() position.
 						}
-					} while (!range.contains(iter->pos));
+					} while (!range.contains(iter->get_pos()));
 				}
 
 				// retreats iter one or more times until the next valid entry has been found.
@@ -197,7 +197,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 							if (!prev_chunk())
 								assert(false);
 						}
-					} while (!range.contains(iter->pos));
+					} while (!range.contains(iter->get_pos()));
 				}
 
 				range_iterator(parentptr parent_, const Area_f& range_, bool give_end=false) :
@@ -216,7 +216,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						if (curr_vec)
 						{
 							iter = curr_vec->begin();
-							if (!range.contains(iter->pos) )
+							if (!range.contains(iter->get_pos()) )
 								incr();
 						}
 					}
@@ -396,7 +396,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						{
 							reftype item = *it;
 
-							double distance = (item.pos - center).len();
+							double distance = (item.get_pos() - center).len();
 							if (!(inner_radius <= distance && distance < outer_radius))
 								continue;
 
@@ -565,7 +565,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		/** inserts `thing` to the WorldList */
 		void insert(const T& thing)
 		{
-			(*this)[Pos::tile_to_chunk(thing.pos.to_int_floor())].emplace_back(std::move(thing));
+			(*this)[Pos::tile_to_chunk(thing.get_pos().to_int_floor())].emplace_back(std::move(thing));
 		}
 
 		/** inserts all objects in the `things` container to the WorldList */
@@ -642,7 +642,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				// we need to check whether that element fulfills the filter criteria of the iterator
 				// and if not, advance the iterator.
 				typename Range::iterator result = iter;
-				if (!result.range.contains(result.iter->pos) )
+				if (!result.range.contains(result.iter->get_pos()) )
 					result.incr();
 				
 				return result;

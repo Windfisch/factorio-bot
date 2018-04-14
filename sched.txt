@@ -1,0 +1,49 @@
+list< pair<Item, lock_owner_t> > inventory;
+
+prio_queue<Task> pending; Task active;
+	für pending[0] -> active:
+
+	- auflösen, wie wir an rohstoffe kommen (betrachte das inventar
+	  abzüglich alle fremdgeclaimte sachen aber plus alles was drin wäre, wenn die
+	  noch schedulededn Crafts durchgelaufen wären.)
+		-> list<Collect>
+			- neuer Actions, direkt als erste, die nur Sachen
+			  einsammeln und ihnen direkt uns als Owner gibt.
+		 + list<Craft>   // aufpassen auf impliziten verbrauch
+		 + änderung am Inventory:
+			- dinge claimen
+			(falls wir interrupted werden, dann wird der
+			einlast-algo sowieso erneut durchlaufen, und ggf
+			geklaute dinge wiederbeschaffen)
+
+	- auflösen, wie wir zum ort des Tasks kommen (und berechnen, wie lang
+	  das dauert) (das ist vermutlich ein TSP zusammen mit "rohstoffe
+	  sammeln")
+	
+	- list<Craft> in die globale CraftPrioQueue einfügen, gemäß unserer
+	  Prio.
+	  	-> es wird immer der oberste umsetzbare Eintrag gecraftet.
+		   es ist garantiert, dass jeder Eintrag irgendwann umgesetzt
+		   wird, weil irgendwann seine Requirements da sind.
+
+	- dann werden sofort alle list<Collect>-einträge abgearbeitet.
+	- sobald fertig: wir kommen von active in waiting_for_craft.
+		-> neuer (niederpriorer) task aus pending wird gesucht, der
+		   innerhalb unserer ETA abgearbeitet werden kann.
+		   (der MUSS entweder keine crafts haben, oder vor unseren
+		   crafts eingereiht werden können)
+		-> der landet evtl. auch in waiting_for_craft... allerdings
+		mit höherer craftingprio, damit wird er garantiert vor uns
+		wieder entnommen
+
+Bei einem Interrupt durch höherprioren Task:
+	- active -> pending gemäß seiner Prio (davor aber alle Collect-Actions
+	  wegräumen)
+	- alle Crafts bleiben in der Crafting-Queue
+	- alle Inventory-Claims bleiben geclaimt
+
+Beim Reschedule:
+	- wir -> active
+	- JETZT clearen wir all unsere ausstehenden Crafts und berechnen sie neu
+	- berechnen Collects neu und fügen sie vorne an
+	- claimen nach bedarf zeug (sollte nie passieren)
