@@ -19,8 +19,12 @@ struct {
 } items;
 
 struct {
+	EntityPrototype chest = EntityPrototype("chest", "", {}, true);
+} entities;
+
+struct {
 	Recipe circuit =
-		{"circuit", true, 1.0,
+		{"circuit", true, 10.0,
 			vector<Recipe::ItemAmount>{
 				{&items.iron, 1},
 				{&items.coppercable, 3}
@@ -129,20 +133,172 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 	}
 }
 
+void test_get_missing_items(const shared_ptr<sched::Task>& task, const Inventory& inv)
+{
+	cout << "task '" << task->name << "' is missing the following items:" << endl;
+	for (const ItemStack& is : task->get_missing_items(inv))
+		cout << "\t" << is.proto->name << ": " << is.amount << endl;
+	cout << "\t(end)" << endl << endl;
+}
+
+void test_get_next_task_internal(sched::Scheduler& sched, vector<shared_ptr<sched::Task>> tasks)
+{
+	sched.pending_tasks.clear();
+	cout << string(80,'-') << "\ntesting with the following tasks: ";
+	for (auto t : tasks)
+	{
+		sched.pending_tasks.insert({t->priority(), t});
+		cout << t->name << "(" << t ->priority() << ") ";
+	}
+	cout << endl;
+	sched.update_crafting_order();
+	
+	auto next_task = sched.get_next_task();
+	cout << "next task is " << ((next_task == nullptr) ? "<null>" : next_task->name) << "\n\n"
+	     << string(80, '-') << endl << endl;
+}
+
+void test_get_next_task(FactorioGame* game, int playerid)
+{
+	sched::Scheduler sched(game, playerid);
+	Player& p = game->players[playerid];
+	p.inventory.clear();
+
+	auto greedy_task = make_shared<sched::Task>(game, playerid, "greedy task");
+	greedy_task->priority_ = 42;
+	greedy_task->start_location = greedy_task->end_location = Pos(10,10);
+	greedy_task->start_radius = 1;
+	greedy_task->duration = chrono::minutes(2);
+	greedy_task->required_items = { {&items.iron, 17}, {&items.belt, 42} };
+	
+	auto crafting_task = make_shared<sched::Task>(game, playerid, "crafting task");
+	crafting_task->priority_ = 44;
+	crafting_task->start_location = crafting_task->end_location = Pos(10,10);
+	crafting_task->start_radius = 1;
+	crafting_task->duration = chrono::minutes(2);
+	crafting_task->required_items = { {&items.circuit, 4}, {&items.iron, 42} };
+	crafting_task->crafting_list.recipes = {
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit}
+	};
+
+	auto overcrafting_task = make_shared<sched::Task>(game, playerid, "overcrafting task");
+	overcrafting_task->priority_ = 44;
+	overcrafting_task->start_location = overcrafting_task->end_location = Pos(10,10);
+	overcrafting_task->start_radius = 1;
+	overcrafting_task->duration = chrono::minutes(2);
+	overcrafting_task->required_items = { {&items.circuit, 4}, {&items.iron, 42} };
+	overcrafting_task->crafting_list.recipes = {
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit}
+	};
+
+	auto undercrafting_task = make_shared<sched::Task>(game, playerid, "undercrafting task");
+	undercrafting_task->priority_ = 44;
+	undercrafting_task->start_location = undercrafting_task->end_location = Pos(10,10);
+	undercrafting_task->start_radius = 1;
+	undercrafting_task->duration = chrono::minutes(2);
+	undercrafting_task->required_items = { {&items.circuit, 4}, {&items.iron, 42} };
+	undercrafting_task->crafting_list.recipes = {
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.coppercable},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit},
+		{sched::CraftingList::PENDING, &recipes.circuit}
+	};
+
+
+	auto modest_task = make_shared<sched::Task>(game, playerid, "modest task");
+	modest_task->priority_ = 100;
+	modest_task->start_location = modest_task->end_location = Pos(10,10);
+	modest_task->start_radius = 1;
+	modest_task->duration = chrono::minutes(2);
+
+
+	test_get_missing_items(greedy_task, Inventory());
+	test_get_missing_items(crafting_task, Inventory());
+	test_get_missing_items(overcrafting_task, Inventory());
+	test_get_missing_items(undercrafting_task, Inventory());
+	test_get_missing_items(modest_task, Inventory());
+
+	test_get_next_task_internal(sched, {modest_task});
+	test_get_next_task_internal(sched, {crafting_task});
+	test_get_next_task_internal(sched, {greedy_task});
+
+	auto& inv_copper = game->players[playerid].inventory[&items.copper];
+	inv_copper.amount = 200;
+	inv_copper.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
+	auto& inv_iron = game->players[playerid].inventory[&items.iron];
+	inv_iron.amount = 200;
+	inv_iron.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
+
+	cout << "now with some inventory" << endl;
+	test_get_next_task_internal(sched, {modest_task, crafting_task});
+}
+
 int main()
 {
 
 
 	FactorioGame game("dummy");
+
+
+	pathfinding::walk_t walkable;
+	walkable.known=true;
+	walkable.can_walk=true;
+	walkable.can_cross=true;
+	for (double& w : walkable.margins) w=1.;
+
+	for (int x=-1000; x<1000; x++)
+		for (int y=-1000; y<1000; y++)
+			game.walk_map.at(x,y) = walkable;
+
 	const int playerid = 0;
 	game.players.resize(playerid+1);
 	game.players[playerid].id = playerid;
 	game.players[playerid].connected = true;
 
-	sched::Scheduler sched(&game, playerid);
+	game.item_storages.insert( ItemStorage{
+		Entity{ {10.f,-2.f}, &entities.chest},
+		{	{&items.belt, 821},
+		 	{&items.copper, 17} } });
+	game.item_storages.insert( ItemStorage{
+		Entity{ {100.f,30.f}, &entities.chest},
+		{	{&items.iron, 513} } });
+	game.item_storages.insert( ItemStorage{
+		Entity{ {10.f,70.f}, &entities.chest},
+		{	{&items.copper, 513} } });
+	game.item_storages.insert( ItemStorage{
+		Entity{ {1000.f,7000.f}, &entities.chest},
+		{	{&items.stone, 0} } });
+
+	//sched::Scheduler sched(&game, playerid);
 
 
 	test_get_next_craft(&game, playerid);
+	cout << "\n\n" << string(80,'=') << "\n\n";
+	test_get_next_task(&game, playerid);
 	exit(0);
 	
 	/*auto task1 = make_shared<sched::Task>(&game, playerid);

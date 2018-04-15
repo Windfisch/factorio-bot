@@ -3,9 +3,9 @@
 #include "entity.h"
 #include "inventory.hpp"
 
-struct Chest // FIXME move this to somewhere sane
+struct ItemStorage
 {
-	Pos_f get_pos() const { return entity.pos; } // WorldList<Chest> wants to call this.
+	Pos_f get_pos() const { return entity.pos; } // WorldList<ItemStorage> wants to call this.
 	
 	Entity entity;
 	Inventory inventory;

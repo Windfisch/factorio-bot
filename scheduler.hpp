@@ -14,14 +14,6 @@
 
 class FactorioGame;
 
-struct Chest // FIXME move this to somewhere sane
-{
-	Pos_f get_pos() const { return entity.pos; } // WorldList<Chest> wants to call this.
-	
-	Entity entity;
-	Inventory inventory;
-};
-
 
 namespace sched
 {
@@ -73,12 +65,9 @@ struct CraftingList
 
 struct Task
 {
-	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), game(game_), player_idx(player_), actions(game_,player_) {}
+	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), actions(game_,player_) {}
 
 	std::string name;
-
-	FactorioGame* game;
-	int player_idx;
 
 	// if the task is dependent, then this task is a item-collection-task
 	// for "owner" (though it may also collect for some other tasks, because

@@ -39,6 +39,7 @@
 #include "worldlist.hpp"
 #include "defines.h"
 #include "graphics_definitions.h"
+#include "item_storage.h"
 
 class FactorioGame
 {
@@ -115,6 +116,7 @@ class FactorioGame
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
+		WorldList<ItemStorage> item_storages;
 
 		void resource_bookkeeping(const Area& area, WorldMap<Resource>::Viewport resview);
 		void assert_resource_consistency() const; // only for debugging purposes

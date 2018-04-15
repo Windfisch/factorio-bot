@@ -72,7 +72,10 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 
 
 	/** constructs the empty inventory */
-	Inventory();
+	Inventory() : flat_map() {}
+  
+
+	Inventory(std::initializer_list<value_type> il) : flat_map(il) {}
 
 	/** constructs an inventory from a TaggedInventory, considering only items claimed by the specified task */
 	Inventory(const TaggedInventory& inv, const std::shared_ptr<sched::Task>& task)

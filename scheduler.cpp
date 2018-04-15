@@ -213,6 +213,73 @@ finish:
 using schedule_key_t = pair<Clock::duration, Task::priority_t>;
 using schedule_t = multimap< schedule_key_t, shared_ptr<Task> >;
 
+static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
+{
+	if (schedule.empty())
+		return;
+	
+	Clock::duration last_offset = schedule.rbegin()->first.first + schedule.rbegin()->second->duration;
+
+	for (const auto& [key, task] : schedule)
+	{
+		const auto& [begin_offset, priority] = key;
+		Clock::duration end_offset = begin_offset+task->duration;
+		string label = task->name;
+
+		int begin_column = n_columns * begin_offset.count() / last_offset.count();
+		int end_column = n_columns * end_offset.count() / last_offset.count();
+		end_column = max(end_column, begin_column+1);
+
+		string result;
+		if (end_column - begin_column - 4 > int(label.length()))
+		{
+			int pad = end_column - begin_column - 4 - label.length();
+			int padl = pad/2;
+			int padr = pad-padl;
+			result = string(begin_column, ' ') + "<" + string(padl, '=') + " " + label + " " + string(padr, '=') + ">";
+		}
+		else if (end_column - begin_column - 2 > int(label.length()))
+		{
+			int pad = end_column - begin_column - 2 - label.length();
+			int padl = pad/2;
+			int padr = pad-padl;
+			result = string(begin_column, ' ') + "<" + string(padl, '=') + label + string(padr, '=') + ">";
+		}
+		else if (end_column + 1 + int(label.length()) < n_columns)
+			result = string(begin_column, ' ') + "<" + string(end_column-begin_column-2, '=') + "> "+ label;
+		else if (begin_column - 1 >= int(label.length()))
+			result = string(begin_column - 1 - label.length(), ' ') + label + " <" + string(end_column-begin_column-2, '=') + ">";
+		else
+			result = string(begin_column, ' ') + "<" + string(end_column-begin_column-2, '=') + ">\n^ " + label + " ^";
+
+		cout << result << endl;
+	}
+
+
+	int sec = chrono::duration_cast<chrono::seconds>(last_offset).count();
+	int tick_seconds = pow(10,floor(log10(sec/n_ticks)));
+	auto tick_duration = chrono::duration_cast<Clock::duration>(chrono::seconds(tick_seconds));
+	int lastcol = 0;
+	int tickval;
+	int tickid = 0;
+	for (auto i = Clock::duration::zero(); i < last_offset; i+=tick_duration, tickid++)
+	{
+		char tickchr;
+		if (tickid % 10 == 0)
+			tickchr = '|';
+		else if (tickid % 5 == 0)
+			tickchr = ':';
+		else
+			tickchr = '.';
+
+		tickval = chrono::duration_cast<chrono::seconds>(i).count();
+		int col = n_columns * i.count() / last_offset.count();
+		cout << string(col-lastcol, ' ') << tickchr;
+		lastcol = col+1;
+	}
+	cout << " " << tickval << " sec" << endl;
+}
+
 /** Checks a schedule using operator(), while caching and reusing pathfinding results. */
 struct ScheduleChecker
 {
@@ -356,9 +423,9 @@ shared_ptr<Task> Scheduler::get_next_task()
 
 			if (task == nullptr)
 			{
-				cout << "note: tried to build a collector task for task " << task->name << "\n"
+				cout << "note: tried to build a collector task for task '" << pending_task->name << "'\n"
 				        "      with a time limit of " << 
-				        chrono::duration_cast<chrono::seconds>(max_duration).count() << "s"
+				        chrono::duration_cast<chrono::seconds>(max_duration).count() << " sec "
 				        "but failed" << endl;
 				continue;
 			}
@@ -370,14 +437,19 @@ shared_ptr<Task> Scheduler::get_next_task()
 		Clock::duration eta = task->crafting_list.time_remaining();
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
+		cout << "checking schedule:" << endl;
+		dump_schedule(schedule);
+
 		if (!check_schedule(schedule))
 		{
 			// the Task would delay a more important task for too long
 			// => cannot use it
+			cout << "-> not okay, reverting" << endl;
 			schedule.erase(iter);
 		}
 		else
 		{
+			cout << "-> okay :)" << endl;
 			// the Task can be scheduled in `eta`.
 			if (eta <= chrono::seconds(10)) // FIXME magic value
 			{
@@ -429,6 +501,12 @@ static double walk_distance_in_time(Clock::duration time) // FIXME move this som
 	return seconds * WALKING_SPEED;
 }
 
+template <typename Rep, typename Per>
+std::ostream& operator<<(std::ostream& os, const chrono::duration<Rep,Per>& dur)
+{
+	return os << chrono::duration_cast<chrono::seconds>(dur).count();
+}
+
 /** returns a Task containing walking and take_from actions in order to make
  * one or more Tasks eventually_runnable. This is a trivial implementation
  * returning a very suboptimal path which only respects original_task, no
@@ -436,6 +514,7 @@ static double walk_distance_in_time(Clock::duration time) // FIXME move this som
 shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
 {
 	UNUSED(grace); // this is a poor man's implementation
+	const WorldList<ItemStorage>& item_storages = game->item_storages;
 
 	const Player& player = game->players[player_idx];
 
@@ -469,15 +548,18 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 	// the items
 	Pos last_pos = player.position;
 	const int ALLOWED_DISTANCE = 2;
-	for (const auto& chest : world_chests.around(player.position))
+	for (const auto& chest : item_storages.around(player.position))
 	{
 		// exit condition: if the chest is outside of a
 		// (remaining_walktime + walktime(player.pos -> last_pos))-radius
 		// from the center "player.pos", then it's guaranteed to be outside of
 		// a (remaining_walktime)-radius from last_pos as well. in that case,
 		// we're done.
-		if (walk_duration_approx(last_pos, chest.entity.pos) > max_duration - time_spent + walk_duration_approx(player.position, last_pos))
+		if (walk_duration_approx(last_pos, chest.entity.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
+		{
+			cout << "aborting due to duration approximation" << endl;
 			break;
+		}
 
 		bool relevant = false;
 		auto chest_goal = make_unique<action::CompoundGoal>(game, player.id);
@@ -486,10 +568,17 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 		// if so, set relevant = true and construct the chest goal
 		// if not, chest_goal will be deleted at the end of this scope.
 		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player.id, chest.entity.pos, ALLOWED_DISTANCE));
-		for (ItemStack& stack : missing_items)
+
+		auto new_missing_items = missing_items;
+		cout << "missing: ";
+		bool missing_anything = false;
+		for (ItemStack& stack : new_missing_items)
 		{
 			if (stack.amount == 0)
 				continue;
+
+			cout << stack.proto->name << "(" << stack.amount << "), ";
+			missing_anything = true;
 
 			auto iter = chest.inventory.find(stack.proto);
 			if (iter == chest.inventory.end())
@@ -502,26 +591,65 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 				take_amount, chest.entity, INV_CHEST));
 			relevant = true;
 		}
+		cout << endl;
+
+		if (!missing_anything)
+		{
+			cout << "we've got everything we need" << endl;
+			break;
+		}
 
 		if (relevant)
 		{
+			cout << "calculating path from " << last_pos.str() << " to " << chest.entity.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
 			// check if this chest is actually close enough
-			Clock::duration chest_duration = path_walk_duration( a_star(
+			auto path = a_star(
 				last_pos, chest.entity.pos,
 				game->walk_map,
 				ALLOWED_DISTANCE, 0.,
 				walk_distance_in_time(max_duration - time_spent)
-			) ); // FIXME maybe add a constant?
+			);
+			
+			cout << "\t->" << path.size() << endl;
+
+			Clock::duration chest_duration = path_walk_duration(path); // FIXME maybe add a constant?
 			
 			if (time_spent + chest_duration <= max_duration)
 			{
+				cout << "visiting chest at " << chest.entity.pos.str() << " for ";
+				for (const auto& sg : chest_goal->subgoals)
+					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
+						cout << action->item << "(" << action->amount << "), ";
+				cout << "\b\b with a cost of " <<
+					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
+					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
+					" sec remaining)" << endl;
+
 				result->actions.subgoals.push_back(move(chest_goal));
 				result->end_location = chest.entity.pos;
+				last_pos = chest.entity.pos;
 				time_spent += chest_duration;
+
+				missing_items = move(new_missing_items);
 			}
 			// else: we can't afford going there. maybe try somewhere else.
+			else
+			{
+				cout << "not visiting chest at " << chest.entity.pos.str() << " for ";
+				for (const auto& sg : chest_goal->subgoals)
+					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
+						cout << action->item << "(" << action->amount << "), ";
+				cout << "\b\b with a cost of " <<
+					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
+					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
+					" sec remaining)" << endl;
+			}
 		}
 		// else: chest_goal goes out of scope and is deleted
+		else
+		{
+			cout << "not visiting chest at " << chest.entity.pos.str() << " (irrelevant)" << endl;
+		}
 	}
 
 	if (result->actions.subgoals.empty())
@@ -571,7 +699,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 
 	struct Market
 	{
-		struct SubChest
+		struct SubItemStorage
 		{
 			const ItemPrototype* proto;
 			size_t amount;
@@ -579,7 +707,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 		};
 
 		Pos location;
-		vector<SubChest> items;
+		vector<SubItemStorage> items;
 	};
 
 	vector<Market> markets = ...; // TODO: cluster the chests into Markets
