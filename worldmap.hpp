@@ -129,7 +129,7 @@ class WorldMap
 					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
 					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
 
-					if (xlen_chunks <= 0 or ylen_chunks <= 0)
+					if (xlen_chunks < 0 || ylen_chunks < 0)
 						throw std::invalid_argument("invalid Viewport range");
 
 					chunkcache.resize(xlen_chunks * ylen_chunks);
@@ -161,7 +161,7 @@ class WorldMap
 					xlen_chunks = rightbot_chunk.x - lefttop_chunk.x;
 					ylen_chunks = rightbot_chunk.y - lefttop_chunk.y;
 
-					if (xlen_chunks <= 0 or ylen_chunks <= 0)
+					if (xlen_chunks < 0 or ylen_chunks < 0)
 						throw std::invalid_argument("invalid Viewport range");
 
 					chunkcache.resize(xlen_chunks * ylen_chunks);
