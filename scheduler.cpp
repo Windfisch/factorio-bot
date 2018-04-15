@@ -247,7 +247,8 @@ public:
 	 */
 	bool operator()(const schedule_t& schedule)
 	{
-		Clock::duration prev_finished_offset = Clock::duration(0);
+		// TODO: support multiple start/endlocations, greedily select the closest start location
+		Clock::duration prev_finished_offset = Clock::duration::zero();
 		const Clock::duration acceptable_delay = std::chrono::seconds(10);
 		Pos last_location = start_location;
 		for (const auto& entry : schedule)
@@ -288,6 +289,7 @@ private:
 
 };
 
+
 /** returns a pointer (or nullptr) to a task which may or may not be contained in the pending_tasks queue.
   * If it is contained, then this task has or will have its requirements fulfilled at the time
   * it reaches the task location.
@@ -303,7 +305,7 @@ shared_ptr<Task> Scheduler::get_next_task()
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float radius) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
 	
-	/*// TODO maybe move this somewhere else?
+	/*// TODO move this somewhere else!
 	for (auto& entry : pending_tasks)
 	{
 		// Maybe recalculate, our crafting_list. I.e. what items from
@@ -321,10 +323,8 @@ shared_ptr<Task> Scheduler::get_next_task()
 		task.claim_available_items();
 	}*/
 
-	for (auto& entry : pending_tasks)
+	for (const auto& [prio, pending_task]  : pending_tasks)
 	{
-		Task::priority_t prio = entry.first; UNUSED(prio);
-		const shared_ptr<Task>& pending_task = entry.second;
 		shared_ptr<Task> task;
 
 		if (pending_task->eventually_runnable())
@@ -335,16 +335,16 @@ shared_ptr<Task> Scheduler::get_next_task()
 			// runnable)
 			assert(schedule.empty() || schedule.begin()->first.second < prio);
 			
-			// If a task is already scheduled, then it has a higher
-			// priority than the currently considered task. In that
-			// case, the resource-collecting task's duration is
-			// limited by that already-scheduled task plus some
-			// grace time. OTOH, all tasks we may consider
-			// afterwards would have a priority smaller than our
-			// task.  So we try to collect our resources and as
-			// many resources for other tasks as possible within
-			// the available time. (Only limited by some sanity
-			// constant)
+			/* If a task is already scheduled, then it has a higher
+			   priority than the currently considered task. In that
+			   case, the resource-collecting task's duration is
+			   limited by that already-scheduled task plus some
+			   grace time. OTOH, all tasks we may consider
+			   afterwards would have a priority smaller than our
+			   task.  So we try to collect our resources and as
+			   many resources for other tasks as possible within
+			   the available time. (Only limited by some sanity
+			   constant) */
 			const auto grace_duration = std::chrono::duration_cast<Clock::duration>(chrono::seconds(15)); // FIXME magic number, better retrieve this from the task. probably related to task's ETA
 			Clock::duration max_duration;
 			if (schedule.empty())
@@ -353,11 +353,20 @@ shared_ptr<Task> Scheduler::get_next_task()
 				max_duration = schedule.begin()->first.first + grace_duration;
 			
 			task = build_collector_task(pending_task, max_duration);
-			
-			assert(task->crafting_list.time_remaining() == chrono::seconds(0));
-		}
 
-		// FIXME: task can be nullptr!
+			if (task == nullptr)
+			{
+				cout << "note: tried to build a collector task for task " << task->name << "\n"
+				        "      with a time limit of " << 
+				        chrono::duration_cast<chrono::seconds>(max_duration).count() << "s"
+				        "but failed" << endl;
+				continue;
+			}
+			
+			assert(task->crafting_list.time_remaining() == Clock::duration::zero());
+		}
+		assert(task != nullptr);
+
 		Clock::duration eta = task->crafting_list.time_remaining();
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
@@ -381,14 +390,6 @@ shared_ptr<Task> Scheduler::get_next_task()
 	return nullptr;
 }
 
-
-struct Chest // FIXME move this to somewhere sane
-{
-	Pos_f get_pos() const { return entity.pos; } // WorldList<Chest> wants to call this.
-	
-	Entity entity;
-	Inventory inventory;
-};
 
 
 
@@ -438,8 +439,9 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 
 	const Player& player = game->players[player_idx];
 
-	const WorldList<Chest> world_chests; // FIXME actually get them from the world
 	auto missing_items = original_task->get_missing_items(Inventory(player.inventory, original_task));
+	// TODO: desired_items, which are basically missing_items + 200. we consider chests only if
+	// missing_items > 0, but then we take as many items from it so that desired_items is satisfied.
 
 	// assert that missing_items only has unique entries
 	#ifndef NDEBUG
@@ -498,8 +500,6 @@ shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& origina
 			chest_goal->subgoals.push_back(make_unique<action::TakeFromInventory>(
 				game, player.id, stack.proto->name,
 				take_amount, chest.entity, INV_CHEST));
-			// TODO FIXME attribute this to the respective task
-			// (which is currently trivially just original_task)
 			relevant = true;
 		}
 

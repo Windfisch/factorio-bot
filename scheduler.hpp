@@ -10,8 +10,18 @@
 #include "player.h"
 #include "action.hpp"
 #include "recipe.h"
+#include "worldlist.hpp" // FIXME remove
 
 class FactorioGame;
+
+struct Chest // FIXME move this to somewhere sane
+{
+	Pos_f get_pos() const { return entity.pos; } // WorldList<Chest> wants to call this.
+	
+	Entity entity;
+	Inventory inventory;
+};
+
 
 namespace sched
 {

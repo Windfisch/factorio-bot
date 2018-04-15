@@ -23,7 +23,9 @@
 #include <cmath>
 #include <algorithm>
 #include <unordered_set>
+#ifdef DEBUG_PATHFINDING
 #include <iostream>
+#endif
 
 #include <boost/heap/binomial_heap.hpp>
 #include <cassert>
@@ -121,8 +123,10 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 
 			reverse(result.begin(), result.end());
 
+			#ifdef DEBUG_PATHFINDING
 			for (auto pos : result) cout << pos.str() << " - ";
 			cout<<endl;
+			#endif
 
 			goto a_star_cleanup;
 		}
@@ -196,7 +200,9 @@ a_star_cleanup:
 		w->in_closedlist = false;
 	}
 
+	#ifdef DEBUG_PATHFINDING
 	cout << "took " << n_iterations << " iterations or " << (n_iterations / (start-end).len()) << " it/dist" << endl;
+	#endif
 
 	return result;
 }
