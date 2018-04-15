@@ -60,13 +60,16 @@ static double heuristic(const Pos& p, const Pos& goal)
 vector<Pos> cleanup_path(const vector<Pos>& path)
 {
 	vector<Pos> result;
+	
+	if (path.empty())
+		return result;
 
 	Pos dir(0,0);
-	for (size_t i=0; i<path.size()-1; i++)
+	for (size_t i=1; i<path.size(); i++)
 	{
-		Pos newdir = path[i] - path[i+1];
+		Pos newdir = path[i-1] - path[i];
 		if (newdir != dir)
-			result.push_back(path[i]);
+			result.push_back(path[i-1]);
 	}
 	result.push_back(path.back());
 
