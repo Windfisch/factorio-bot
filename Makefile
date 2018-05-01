@@ -12,7 +12,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -O -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -O0 -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++17
 CFLAGS_BASE = -std=c99
