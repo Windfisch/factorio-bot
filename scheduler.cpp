@@ -213,6 +213,11 @@ finish:
 using schedule_key_t = pair<Clock::duration, Task::priority_t>;
 using schedule_t = multimap< schedule_key_t, shared_ptr<Task> >;
 
+static int sec(Clock::duration d)
+{
+	return chrono::duration_cast<chrono::seconds>(d).count();
+}
+
 static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
 {
 	if (schedule.empty())
@@ -224,7 +229,7 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 	{
 		const auto& [begin_offset, priority] = key;
 		Clock::duration end_offset = begin_offset+task->duration;
-		string label = task->name;
+		string label = to_string(sec(begin_offset)) + " " + task->name + " " + to_string(sec(end_offset));
 
 		int begin_column = n_columns * begin_offset.count() / last_offset.count();
 		int end_column = n_columns * end_offset.count() / last_offset.count();
@@ -437,8 +442,10 @@ shared_ptr<Task> Scheduler::get_next_task()
 		Clock::duration eta = task->crafting_list.time_remaining();
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
-		cout << "checking schedule:" << endl;
+		cout << "desired schedule:" << endl;
 		dump_schedule(schedule);
+		cout << "actual schedule:" << endl;
+		dump_schedule(check_schedule.sanitize(schedule));
 
 		if (!check_schedule(schedule))
 		{
