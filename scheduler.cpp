@@ -263,6 +263,7 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 
 	int sec = chrono::duration_cast<chrono::seconds>(last_offset).count();
 	int tick_seconds = pow(10,floor(log10(sec/n_ticks)));
+	tick_seconds = max(tick_seconds, 1);
 	auto tick_duration = chrono::duration_cast<Clock::duration>(chrono::seconds(tick_seconds));
 	int lastcol = 0;
 	int tickval;
