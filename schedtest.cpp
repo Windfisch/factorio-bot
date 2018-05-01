@@ -234,6 +234,29 @@ void test_get_next_task(FactorioGame* game, int playerid)
 	modest_task->start_location = modest_task->end_location = Pos(10,10);
 	modest_task->start_radius = 1;
 	modest_task->duration = chrono::minutes(2);
+	
+	auto quick_modest_task = make_shared<sched::Task>(game, playerid, "quick_modest task");
+	quick_modest_task->priority_ = 100;
+	quick_modest_task->start_location = quick_modest_task->end_location = Pos(10,10);
+	quick_modest_task->start_radius = 1;
+	quick_modest_task->duration = chrono::seconds(47);
+	
+
+	// this task will have a very long way to walk, compared with a very early ETA
+	// and a short actual period of activity.
+	auto far_important_task = make_shared<sched::Task>(game, playerid, "far important task");
+	far_important_task->priority_ = 1;
+	far_important_task->start_location = far_important_task->end_location = Pos(100,100);
+	far_important_task->start_radius = 1;
+	far_important_task->duration = chrono::seconds(4);
+	far_important_task->crafting_list.recipes = { {sched::CraftingList::PENDING, &recipes.coppercable} };
+	
+	auto far_nice_task = make_shared<sched::Task>(game, playerid, "far nice task");
+	far_nice_task->priority_ = 100;
+	far_nice_task->start_location = far_nice_task->end_location = Pos(-100,-100);
+	far_nice_task->start_radius = 1;
+	far_nice_task->duration = chrono::seconds(4);
+	far_nice_task->crafting_list.recipes = { {sched::CraftingList::PENDING, &recipes.coppercable} };
 
 
 	test_get_missing_items(greedy_task, Inventory());
@@ -247,14 +270,22 @@ void test_get_next_task(FactorioGame* game, int playerid)
 	test_get_next_task_internal(sched, {greedy_task});
 
 	auto& inv_copper = game->players[playerid].inventory[&items.copper];
-	inv_copper.amount = 200;
+	inv_copper.amount = 208;
 	inv_copper.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
+	inv_copper.claims.push_back(TaggedAmount::Tag{ far_important_task, 4 });
+	inv_copper.claims.push_back(TaggedAmount::Tag{ far_nice_task, 4 });
 	auto& inv_iron = game->players[playerid].inventory[&items.iron];
 	inv_iron.amount = 200;
 	inv_iron.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
 
 	cout << "now with some inventory" << endl;
 	test_get_next_task_internal(sched, {modest_task, crafting_task});
+	test_get_next_task_internal(sched, {quick_modest_task, crafting_task});
+	
+	test_get_next_task_internal(sched, {far_important_task});
+	test_get_next_task_internal(sched, {crafting_task, far_nice_task});
+
+
 }
 
 int main()

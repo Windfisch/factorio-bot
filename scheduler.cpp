@@ -321,8 +321,47 @@ public:
 	bool operator()(const schedule_t& schedule)
 	{
 		// TODO: support multiple start/endlocations, greedily select the closest start location
+		// task wants to start right now
 		Clock::duration prev_finished_offset = Clock::duration::zero();
 		const Clock::duration acceptable_delay = std::chrono::seconds(10);
+		Pos last_location = start_location;
+		Task::priority_t prev_prio = Task::HIGHEST_PRIO;
+		for (const auto& entry : schedule)
+		{
+			/** time offset when the task wants to start actually doing its work */
+			const Clock::duration& work_offset = entry.first.first;
+			const shared_ptr<Task>& task = entry.second;
+			
+			/** time offset when the previous task needs to have finished in
+			 *  order to start walking to the current task in order to be on time */
+			Clock::duration walk_duration = get_walk_duration(last_location, task->start_location, task->start_radius);
+			
+			Clock::duration actual_work_offset = max(
+				work_offset,
+				prev_finished_offset + walk_duration
+			);
+
+			// if we're delayed by a lower-priority task preceding us, this is unacceptable.
+			// if the reason for the delay is merely our walking time from what we cannot
+			// change (i.e. the start location or a higher-priority task preceding us), then
+			// it's fine.
+			if (actual_work_offset - work_offset > acceptable_delay &&
+			    prev_prio > task->priority())
+				return false;
+			
+			prev_finished_offset = actual_work_offset + task->duration;
+			prev_prio = task->priority();
+		}
+		return true;
+	}
+	
+	/** returns a real-world-valid timetable, i.e. one where no tasks overlap */
+	schedule_t sanitize(const schedule_t& schedule)
+	{
+		// TODO FIXME duplicate code
+		schedule_t result;
+		// TODO: support multiple start/endlocations, greedily select the closest start location
+		Clock::duration prev_finished_offset = Clock::duration::zero();
 		Pos last_location = start_location;
 		for (const auto& entry : schedule)
 		{
@@ -339,12 +378,11 @@ public:
 				prev_finished_offset + walk_duration
 			);
 
-			if (actual_work_offset - work_offset > acceptable_delay)
-				return false;
+			result.insert(make_pair( make_pair(actual_work_offset, task->priority()), task));
 			
 			prev_finished_offset = actual_work_offset + task->duration;
 		}
-		return true;
+		return result;
 	}
 
 private:

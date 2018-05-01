@@ -95,6 +95,7 @@ struct Task
 	}
 
 	static constexpr int LOWEST_PRIO = 99999;
+	static constexpr int HIGHEST_PRIO = -99999;
 
 	using priority_t = int;
 	
