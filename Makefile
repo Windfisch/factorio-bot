@@ -44,8 +44,8 @@ else
 endif
 
 FLAGS += $(WARNFLAGS)
-CFLAGS = $(CFLAGS_BASE) $(FLAGS) $(shell fltk-config --cflags --use-images)
-CXXFLAGS = $(CXXFLAGS_BASE) $(FLAGS) $(shell fltk-config --cxxflags --use-images)
+CFLAGS = $(shell fltk-config --cflags --use-images) $(CFLAGS_BASE) $(FLAGS)
+CXXFLAGS = $(shell fltk-config --cxxflags --use-images) $(CXXFLAGS_BASE) $(FLAGS)
 LINK=$(CXX)
 LINKFLAGS=$(CXXFLAGS)
 LIBS=$(shell fltk-config --ldflags --use-images)
