@@ -74,9 +74,9 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 
 	tasks[0] = make_shared<sched::Task>(game, playerid, "task #0");
 	tasks[0]->priority_ = 42;
-	for (int i=0; i<10; i++)
+	for (int i=0; i<1; i++)
 		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
-	for (int i=0; i<2; i++)
+	for (int i=0; i<1; i++)
 		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.machine});
 	
 	tasks[1] = make_shared<sched::Task>(game, playerid, "task #1");
@@ -96,6 +96,8 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 	p.inventory[&items.coppercable].amount += 83;
 	p.inventory[&items.coppercable].claims.push_back({tasks[0],40});
 	p.inventory[&items.coppercable].claims.push_back({tasks[2],5});
+	p.inventory[&items.circuit].amount = 3;
+	p.inventory[&items.circuit].claims.push_back({tasks[0],3});
 	p.inventory[&items.stone].amount += 252;
 	p.inventory[&items.stone].claims.push_back({tasks[1],230});
 

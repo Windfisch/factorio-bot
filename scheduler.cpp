@@ -17,14 +17,36 @@
 
 using namespace std;
 
+static int sec(sched::Clock::duration d)
+{
+	return chrono::duration_cast<chrono::seconds>(d).count();
+}
+
 namespace sched
 {
 
 void Scheduler::tick()
 {
-	tick_crafting_queue();
-	
+	auto& player = game->players[player_idx];
+
+
+	//tick_crafting_queue();
+
+	// temporarily assign the player's inventory to the tasks, sorted by their priority
+
+	// calculate crafting order and ETAs
+
+	// calculate next task
+
+	// TODO FIXME: crafting order grocery sort should never allow tasks to skip that can't fully
+	// craft.
 }
+
+
+// need to recalculate next task and next craft on every inventory change, on task completion,
+// on craft completion.
+
+// crafting order is stable upon inventory change.
 
 void Scheduler::tick_crafting_queue()
 {
@@ -104,17 +126,24 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 	// task, enqueue their crafts with their expected total runtime
 	// each task that is enqueued asks their precedessors to let them skip them.
 	// precedessors will approve unless their total time_granted exceeds 10% of
-	// their own_duration.
+	// their own waittime until completion (which is the sum of the time_remaining()
+	// of themselves and all their predecessors)
+	auto cumulative_time_remaining = Clock::duration::zero();
+
 	for (auto& iter : pending_tasks)
 	{
 		auto& task = iter.second;
 
+		cumulative_time_remaining += task->crafting_list.time_remaining();
+
 		queue.push_back({
 			task,
 			Clock::duration::zero(),
-			task->crafting_list.time_remaining()/10, // magic number
+			cumulative_time_remaining/10, // magic number
 			task->crafting_list.time_remaining()
 		});
+
+		cout << "queueing task '" << task->name << "' with duration " << sec(queue.back().own_duration) << "s and max_granted " << sec(queue.back().max_granted) << "s" << endl;
 		
 		// jump the queue
 		for (size_t i = queue.size(); i --> 1;)
@@ -125,12 +154,14 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 			{
 				// we may skip that one
 				pred.time_granted += curr.own_duration;
+				cout << "\t" << curr.task->name << " skips " << pred.task->name << " which now has granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s" << endl;
 				std::swap(curr,pred);
 				continue;
 			}
 			else
 			{
 				// nope
+				cout << "\t" << curr.task->name << " may not skip " << pred.task->name << " which has already granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s. we have requested " << sec(curr.own_duration) << "s more" << endl;
 				break;
 			}
 		}
@@ -212,11 +243,6 @@ finish:
 
 using schedule_key_t = pair<Clock::duration, Task::priority_t>;
 using schedule_t = multimap< schedule_key_t, shared_ptr<Task> >;
-
-static int sec(Clock::duration d)
-{
-	return chrono::duration_cast<chrono::seconds>(d).count();
-}
 
 static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
 {
