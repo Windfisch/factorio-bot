@@ -64,8 +64,6 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 
 void Scheduler::tick()
 {
-	//tick_crafting_queue();
-	
 	auto item_allocation = allocate_items_to_tasks();
 
 	// calculate crafting order and ETAs
@@ -84,11 +82,6 @@ void Scheduler::tick()
 // on craft completion.
 
 // crafting order is stable upon inventory change.
-
-void Scheduler::tick_crafting_queue()
-{
-	
-}
 
 map<const ItemPrototype*, signed int> Task::missing_items() const
 {

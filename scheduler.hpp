@@ -242,9 +242,6 @@ struct Scheduler
 
 
 	void tick();
-
-private:
-	void tick_crafting_queue();
 };
 
 }
