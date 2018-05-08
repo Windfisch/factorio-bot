@@ -28,7 +28,6 @@ namespace sched
 // allocate inventory content to the tasks, based on their priority
 Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 {
-	// TODO FIXME: there should be a TaggedInventory (which usually contains few to none claims)
 	// rules: if a task crafts something (more generally: does work to have something, with the risk
 	// of a higher-prio-task to steal it), it claims the result.
 
@@ -287,29 +286,30 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 		Clock::duration end_offset = begin_offset+task->duration;
 		string label = to_string(sec(begin_offset)) + " " + task->name + " " + to_string(sec(end_offset));
 
-		int begin_column = n_columns * begin_offset.count() / last_offset.count();
-		int end_column = n_columns * end_offset.count() / last_offset.count();
+		int begin_column = int(n_columns * begin_offset.count() / last_offset.count());
+		int end_column = int(n_columns * end_offset.count() / last_offset.count());
 		end_column = max(end_column, begin_column+1);
 
 		string result;
-		if (end_column - begin_column - 4 > int(label.length()))
+		int label_len = safe_cast<int>(label.length());
+		if (end_column - begin_column - 4 > int(label_len))
 		{
-			int pad = end_column - begin_column - 4 - label.length();
+			int pad = end_column - begin_column - 4 - label_len;
 			int padl = pad/2;
 			int padr = pad-padl;
 			result = string(begin_column, ' ') + "<" + string(padl, '=') + " " + label + " " + string(padr, '=') + ">";
 		}
-		else if (end_column - begin_column - 2 > int(label.length()))
+		else if (end_column - begin_column - 2 > int(label_len))
 		{
-			int pad = end_column - begin_column - 2 - label.length();
+			int pad = end_column - begin_column - 2 - label_len;
 			int padl = pad/2;
 			int padr = pad-padl;
 			result = string(begin_column, ' ') + "<" + string(padl, '=') + label + string(padr, '=') + ">";
 		}
-		else if (end_column + 1 + int(label.length()) < n_columns)
+		else if (end_column + 1 + int(label_len) < n_columns)
 			result = string(begin_column, ' ') + "<" + string(end_column-begin_column-2, '=') + "> "+ label;
-		else if (begin_column - 1 >= int(label.length()))
-			result = string(begin_column - 1 - label.length(), ' ') + label + " <" + string(end_column-begin_column-2, '=') + ">";
+		else if (begin_column - 1 >= int(label_len))
+			result = string(begin_column - 1 - label_len, ' ') + label + " <" + string(end_column-begin_column-2, '=') + ">";
 		else
 			result = string(begin_column, ' ') + "<" + string(end_column-begin_column-2, '=') + ">\n^ " + label + " ^";
 
@@ -318,7 +318,7 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 
 
 	int sec = chrono::duration_cast<chrono::seconds>(last_offset).count();
-	int tick_seconds = pow(10,floor(log10(sec/n_ticks)));
+	int tick_seconds = int(pow(10,floor(log10(sec/n_ticks))));
 	tick_seconds = max(tick_seconds, 1);
 	auto tick_duration = chrono::duration_cast<Clock::duration>(chrono::seconds(tick_seconds));
 	int lastcol = 0;
@@ -335,7 +335,7 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 			tickchr = '.';
 
 		tickval = chrono::duration_cast<chrono::seconds>(i).count();
-		int col = n_columns * i.count() / last_offset.count();
+		int col = int(n_columns * i.count() / last_offset.count());
 		cout << string(col-lastcol, ' ') << tickchr;
 		lastcol = col+1;
 	}

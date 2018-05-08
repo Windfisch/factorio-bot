@@ -64,7 +64,7 @@ struct {
 		};
 } recipes;
 
-void test_get_next_craft(FactorioGame* game, int playerid)
+static void test_get_next_craft(FactorioGame* game, int playerid)
 {
 	sched::Scheduler sched(game, playerid);
 	Player& p = game->players[playerid];
@@ -136,7 +136,7 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 	}
 }
 
-void test_get_missing_items(const shared_ptr<sched::Task>& task, const Inventory& inv)
+static void test_get_missing_items(const shared_ptr<sched::Task>& task, const Inventory& inv)
 {
 	cout << "task '" << task->name << "' is missing the following items:" << endl;
 	for (const ItemStack& is : task->get_missing_items(inv))
@@ -144,7 +144,7 @@ void test_get_missing_items(const shared_ptr<sched::Task>& task, const Inventory
 	cout << "\t(end)" << endl << endl;
 }
 
-void test_get_next_task_internal(sched::Scheduler& sched, vector<shared_ptr<sched::Task>> tasks)
+static void test_get_next_task_internal(sched::Scheduler& sched, vector<shared_ptr<sched::Task>> tasks)
 {
 	sched.pending_tasks.clear();
 	cout << string(80,'-') << "\ntesting with the following tasks: ";
@@ -163,7 +163,7 @@ void test_get_next_task_internal(sched::Scheduler& sched, vector<shared_ptr<sche
 	     << string(80, '-') << endl << endl;
 }
 
-void test_get_next_task(FactorioGame* game, int playerid)
+static void test_get_next_task(FactorioGame* game, int playerid)
 {
 	sched::Scheduler sched(game, playerid);
 	Player& p = game->players[playerid];
@@ -316,17 +316,17 @@ int main()
 	game.players[playerid].connected = true;
 
 	game.item_storages.insert( ItemStorage{
-		Entity{ {10.f,-2.f}, &entities.chest},
+		Entity{ {10,-2}, &entities.chest},
 		{	{&items.belt, 821},
 		 	{&items.copper, 17} } });
 	game.item_storages.insert( ItemStorage{
-		Entity{ {100.f,30.f}, &entities.chest},
+		Entity{ {100,30}, &entities.chest},
 		{	{&items.iron, 513} } });
 	game.item_storages.insert( ItemStorage{
-		Entity{ {10.f,70.f}, &entities.chest},
+		Entity{ {10,70}, &entities.chest},
 		{	{&items.copper, 513} } });
 	game.item_storages.insert( ItemStorage{
-		Entity{ {1000.f,7000.f}, &entities.chest},
+		Entity{ {1000,7000}, &entities.chest},
 		{	{&items.stone, 0} } });
 
 	//sched::Scheduler sched(&game, playerid);

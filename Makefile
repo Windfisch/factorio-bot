@@ -29,7 +29,7 @@ ifeq ($(COMPILER),GCC)
 else
 	CC=clang
 	CXX=clang++
-	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-weak-vtables -Wno-switch-enum -Wswitch
+	WARNFLAGS=-Weverything -pedantic -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++98-c++11-compat -Wno-sign-conversion -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-weak-vtables -Wno-switch-enum -Wswitch -Wno-double-promotion
 	WARNFLAGS+=-Werror=return-type -Werror=header-hygiene
 	# -Wswitch-enum complains, even if there's a default: label. -Wswitch does not.
 	GUIFLAGS += 
@@ -55,7 +55,7 @@ MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 # Pseudotargets
 .PHONY: all clean run info mod help test
 
-all: compile_commands.json $(EXE) rcon-client
+all: compile_commands.json $(EXE) rcon-client schedtest
 
 clean:
 	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend compile_commands.json
