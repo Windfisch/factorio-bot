@@ -111,7 +111,8 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 		sched.pending_tasks.insert({task->priority(), task});
 
 
-	sched.update_crafting_order();
+	auto allocation = sched.allocate_items_to_tasks();
+	sched.update_crafting_order(allocation);
 
 	cout << "dumping crafting_order:" << endl;
 	for (auto task_w : sched.crafting_order)
@@ -126,7 +127,7 @@ void test_get_next_craft(FactorioGame* game, int playerid)
 		}
 	}
 
-	auto result = sched.get_next_crafts(20);
+	auto result = sched.get_next_crafts(allocation, 20);
 	cout << "got " << result.size() << " crafts" << endl;
 
 	for (const auto& [task, recipe] : result)
@@ -153,9 +154,11 @@ void test_get_next_task_internal(sched::Scheduler& sched, vector<shared_ptr<sche
 		cout << t->name << "(" << t ->priority() << ") ";
 	}
 	cout << endl;
-	sched.update_crafting_order();
 	
-	auto next_task = sched.get_next_task();
+	auto allocation = sched.allocate_items_to_tasks();
+	sched.update_crafting_order(allocation);
+	
+	auto next_task = sched.get_next_task(allocation);
 	cout << "next task is " << ((next_task == nullptr) ? "<null>" : next_task->name) << "\n\n"
 	     << string(80, '-') << endl << endl;
 }

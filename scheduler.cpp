@@ -25,21 +25,58 @@ static int sec(sched::Clock::duration d)
 namespace sched
 {
 
+// allocate inventory content to the tasks, based on their priority
+Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
+{
+	// TODO FIXME: there should be a TaggedInventory (which usually contains few to none claims)
+	// rules: if a task crafts something (more generally: does work to have something, with the risk
+	// of a higher-prio-task to steal it), it claims the result.
+
+	// examples: a low-prio task skips the queue and crafts first el.circ, then inserter. But another
+	// task needing (lots of) circuits instantly grabs them, the low-prio task starves (it won't re-craft
+	// either)
+	// also: a task that actually mines stuff, chops wood, etc because its later work depends on it (e.g.
+	// refactoring: remove stuff, then re-place it somewhere else)
+	
+	// if a claim is yet stolen, it must be given back later.
+	item_allocation_t task_inventories;
+
+	// each task may use all its claimed items, plus the unclaimed items, if available.
+	// the latter are allocated to the high prio tasks first.
+	const TaggedInventory& inv = game->players[player_idx].inventory;
+	Inventory free_for_all_inventory = Inventory::get_unclaimed(inv);
+	for (auto& [prio, task] : pending_tasks)
+	{
+		Inventory task_inv = Inventory::get_claimed_by(inv, task);
+
+		for (auto [item_prototype, amount] : task->get_missing_items(task_inv))
+		{
+			size_t avail = min(free_for_all_inventory[item_prototype], amount);
+			free_for_all_inventory[item_prototype] -= avail;
+			task_inv[item_prototype] = avail;
+		}
+
+		task_inventories[task.get()] = move(task_inv);
+	}
+
+	return task_inventories;
+}
+
 void Scheduler::tick()
 {
-	auto& player = game->players[player_idx];
-
-
 	//tick_crafting_queue();
-
-	// temporarily assign the player's inventory to the tasks, sorted by their priority
+	
+	auto item_allocation = allocate_items_to_tasks();
 
 	// calculate crafting order and ETAs
+	update_crafting_order(item_allocation);
 
 	// calculate next task
+	get_next_task(item_allocation);
 
 	// TODO FIXME: crafting order grocery sort should never allow tasks to skip that can't fully
 	// craft.
+	// TODO FIXME: crafting order update may not change the currently running craft.
 }
 
 
@@ -53,7 +90,7 @@ void Scheduler::tick_crafting_queue()
 	
 }
 
-static map<const ItemPrototype*, signed int> needed_items(const vector<ItemStack>& required_items, const CraftingList& crafting_list)
+map<const ItemPrototype*, signed int> Task::missing_items() const
 {
 	map<const ItemPrototype*, signed int> needed;
 
@@ -86,7 +123,7 @@ static map<const ItemPrototype*, signed int> needed_items(const vector<ItemStack
 
 std::vector<ItemStack> Task::get_missing_items(Inventory inventory) const
 {
-	auto needed = needed_items(required_items, crafting_list);
+	auto needed = missing_items();
 	
 	vector<ItemStack> missing;
 	for (auto [item, needed_amount] : needed)
@@ -97,9 +134,9 @@ std::vector<ItemStack> Task::get_missing_items(Inventory inventory) const
 	return missing;
 }
 
-bool Task::check_inventory(Inventory inventory)
+bool Task::check_inventory(Inventory inventory) const
 {
-	auto needed = needed_items(required_items, crafting_list);
+	auto needed = missing_items();
 	
 	for (auto [item, needed_amount] : needed)
 	{
@@ -174,7 +211,7 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 }
 
 // updates the crafting order and the tasks' ETAs
-void Scheduler::update_crafting_order()
+void Scheduler::update_crafting_order(const item_allocation_t& task_inventories)
 {
 	for (auto task_w : crafting_order)
 		if (auto task = task_w.lock()) // silently ignore expired weak_ptrs
@@ -188,8 +225,8 @@ void Scheduler::update_crafting_order()
 		auto task = shared_ptr<Task>(task_w); // loudly crash on expired weak_ptrs
 		eta += task->crafting_list.time_remaining();
 
-		if (task->check_inventory(Inventory(game->players[player_idx].inventory, task)))
-			task->crafting_eta = { eta, Clock::now()};
+		if (task->check_inventory(task_inventories.at(task.get())))
+			task->crafting_eta = { eta, Clock::now() };
 		else
 			task->crafting_eta = nullopt;
 	}
@@ -197,7 +234,7 @@ void Scheduler::update_crafting_order()
 
 /** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
  */
-vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max_n)
+vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(const item_allocation_t& task_inventories, size_t max_n)
 {
 	vector<pair<weak_ptr<Task>,const Recipe*>> result;
 
@@ -205,7 +242,7 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(size_t max
 	{
 		shared_ptr<Task> task(task_w); // fail loudly if the weak_ptr has expired
 		auto& crafts = task->crafting_list;
-		Inventory available_inventory(game->players[player_idx].inventory, task);
+		Inventory available_inventory(task_inventories.at(task.get()));
 		if (crafts.almost_finished())
 			continue;
 
@@ -435,7 +472,7 @@ private:
   * removed from there (which should call its destructor), and will be regenerated if neccessary.
   * TODO: what to do with crafts?
   */
-shared_ptr<Task> Scheduler::get_next_task()
+shared_ptr<Task> Scheduler::get_next_task(const item_allocation_t& task_inventories)
 {
 	const Player& player = game->players[player_idx];
 	// FIXME: use proper calculation function
@@ -489,7 +526,7 @@ shared_ptr<Task> Scheduler::get_next_task()
 			else
 				max_duration = schedule.begin()->first.first + grace_duration;
 			
-			task = build_collector_task(pending_task, max_duration);
+			task = build_collector_task(task_inventories, pending_task, max_duration);
 
 			if (task == nullptr)
 			{
@@ -583,14 +620,14 @@ std::ostream& operator<<(std::ostream& os, const chrono::duration<Rep,Per>& dur)
  * one or more Tasks eventually_runnable. This is a trivial implementation
  * returning a very suboptimal path which only respects original_task, no
  * opportunistic detours are made. But it gets the stuff done.*/
-shared_ptr<Task> Scheduler::build_collector_task(const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
+shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_inventories, const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
 {
 	UNUSED(grace); // this is a poor man's implementation
 	const WorldList<ItemStorage>& item_storages = game->item_storages;
 
 	const Player& player = game->players[player_idx];
 
-	auto missing_items = original_task->get_missing_items(Inventory(player.inventory, original_task));
+	auto missing_items = original_task->get_missing_items(task_inventories.at(original_task.get()));
 	// TODO: desired_items, which are basically missing_items + 200. we consider chests only if
 	// missing_items > 0, but then we take as many items from it so that desired_items is satisfied.
 

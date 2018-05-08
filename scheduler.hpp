@@ -124,9 +124,14 @@ struct Task
 	
 	// returns true if the given inventory is sufficient to execute all crafts from
 	// crafting_list, and then supply all items listed in required_items
-	bool check_inventory(Inventory inventory);
-	// returns a list of missing items that are required to a) fully execute the
-	// crafting_list and b) have all required_items
+	bool check_inventory(Inventory inventory) const;
+	
+	// returns a list of items needed to a) fully execute the crafting_list and
+	// b) have all required_items afterwards.
+	std::map<const ItemPrototype*, signed int> missing_items() const;
+
+	// returns a list of items missing from the given inventory, that are required
+	// to a) fully execute the crafting_list and b) have all required_items afterwards.
 	std::vector<ItemStack> get_missing_items(Inventory inventory) const;
 
 	action::CompoundGoal actions;
@@ -165,6 +170,12 @@ struct Scheduler
 
 	// list of all tasks known to the scheduler
 	std::multimap<int, std::shared_ptr<Task>> pending_tasks;
+
+
+	using item_allocation_t = std::map<const Task*, Inventory>;
+
+	// allocation of the player's inventory to the tasks
+	item_allocation_t allocate_items_to_tasks() const;
 	
 	// list of the first N tasks (or all tasks? TODO) in their order
 	// the grocery store queue sort has determined
@@ -175,10 +186,10 @@ struct Scheduler
 	std::vector<std::weak_ptr<Task>> calc_crafting_order();
 	
 	// updates the crafting order and the tasks' ETAs
-	void update_crafting_order();
+	void update_crafting_order(const item_allocation_t& task_inventories);
 
-	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(size_t max_n = 20);
-	std::shared_ptr<Task> get_next_task();
+	std::vector<std::pair<std::weak_ptr<Task>,const Recipe*>> get_next_crafts(const item_allocation_t& task_inventories, size_t max_n = 20);
+	std::shared_ptr<Task> get_next_task(const item_allocation_t& task_inventories);
 
 	void invariant() const
 	{
@@ -227,7 +238,7 @@ struct Scheduler
 	 * collection duration by no more than `grace` percent and will not take longer
 	 * than max_duration.
 	 */
-	std::shared_ptr<Task> build_collector_task(const std::shared_ptr<Task>& original_task, Clock::duration max_duration, float grace = 10.f);
+	std::shared_ptr<Task> build_collector_task(const item_allocation_t& task_inventories, const std::shared_ptr<Task>& original_task, Clock::duration max_duration, float grace = 10.f);
 
 
 	void tick();

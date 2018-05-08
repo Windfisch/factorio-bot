@@ -44,7 +44,7 @@ struct ItemStack
 	size_t amount;
 };
 
-struct OwnedItemStack : public ItemStack
+struct [[deprecated]] OwnedItemStack : public ItemStack
 {
 	
 };

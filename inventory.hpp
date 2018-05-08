@@ -10,7 +10,7 @@
 struct Recipe;
 
 namespace sched {
-struct Task;
+struct Task; // deprecated
 }
 struct ItemPrototype;
 
@@ -52,15 +52,22 @@ struct TaggedAmount
 			return claims[idx].amount;
 	}
 	
+	/** returns the amount of items that is unclaimed */
+	size_t unclaimed() const
+	{
+		assert(n_claimed() <= amount);
+		return amount - n_claimed();
+	}
+	
 	/** returns the amount of items available to the specified task. This includes claimed and free-for-use items. */
 	size_t available_for(const std::shared_ptr<sched::Task>& task) const
 	{
-		return amount - n_claimed() + claimed_by(task);
+		return unclaimed() + claimed_by(task);
 	}
 };
 
 // this is a glorified vector<pair<>>
-using TaggedInventory = boost::container::flat_map<const ItemPrototype*, TaggedAmount>;
+typedef boost::container::flat_map<const ItemPrototype*, TaggedAmount> TaggedInventory;
 
 struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_t>
 {
@@ -78,10 +85,21 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 	Inventory(std::initializer_list<value_type> il) : flat_map(il) {}
 
 	/** constructs an inventory from a TaggedInventory, considering only items claimed by the specified task */
-	Inventory(const TaggedInventory& inv, const std::shared_ptr<sched::Task>& task)
+	static Inventory get_claimed_by(const TaggedInventory& inv, const std::shared_ptr<sched::Task>& task)
 	{
+		Inventory result;
 		for (const auto& entry : inv)
 			if (size_t claimed = entry.second.claimed_by(task))
-				(*this)[entry.first] = claimed;
+				result[entry.first] = claimed;
+		return result;
+	}
+	/** constructs an inventory from a TaggedInventory, considering only unclaimed items */
+	static Inventory get_unclaimed(const TaggedInventory& inv)
+	{
+		Inventory result;
+		for (const auto& entry : inv)
+			if (size_t claimed = entry.second.unclaimed())
+				result[entry.first] = claimed;
+		return result;
 	}
 };
