@@ -233,6 +233,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_action_completed(data);
 	else if (type=="mined_item")
 		parse_mined_item(data);
+	else if (type=="inventory_changed")
+		parse_inventory_changed(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
@@ -311,6 +313,46 @@ void FactorioGame::parse_mined_item(const string& data)
 
 	if (players[id].goals)
 		players[id].goals->on_mined_item(itemname, amount);
+}
+
+void FactorioGame::parse_inventory_changed(const string& data)
+{
+	vector<string> updates = split(data, ' ');
+
+	for (const string& update : updates)
+	{
+		vector<string> fields = split(update, ',');
+
+		if (fields.size() != 4)
+			throw runtime_error("malformed parse_inventory_changed packet");
+
+		int player_id = stoi(fields[0]);
+		const string& item = fields[1];
+		int diff = stoi(fields[2]);
+		bool has_owner = fields[3]!="x";
+		int owning_action_id = has_owner ? stoi(fields[3]) : -1;
+		const ItemPrototype* proto = item_prototypes.at(item);
+
+		TaggedAmount content = players[player_id].inventory[proto];
+
+		if ((signed long) content.amount < -diff)
+			throw runtime_error("inventory desync detected: game removed more '"+item+"' items ("+to_string(diff)+") than we actually have ("+to_string(content.amount)+")");
+
+		content.amount += diff;
+		if (has_owner && diff > 0)
+		{
+			auto owner_task = action::registry.get(owning_action_id);
+			
+			if (owner_task)
+			{
+				size_t added = content.add_claim(owner_task, diff);
+				if (added != diff)
+					throw runtime_error("inventory desync detected: game added "+to_string(diff)+"x '"+item+"' with an owning task, but only "+to_string(added)+" could be claimed");
+			}
+			else
+				cout << "could not find task associated with action id " << owning_action_id << endl;
+		}
+	}
 }
 
 void FactorioGame::parse_players(const string& data)

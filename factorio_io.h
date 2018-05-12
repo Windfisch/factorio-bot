@@ -88,6 +88,7 @@ class FactorioGame
 		void parse_objects(const Area& area, const std::string& data);
 		void update_walkmap(const Area& area);
 		void parse_mined_item(const std::string& data);
+		void parse_inventory_changed(const std::string& data);
 		
 		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 		int next_free_resource_id = 1;

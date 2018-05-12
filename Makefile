@@ -1,9 +1,9 @@
 include config.mk
 
 EXE=bot
-COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o gui/gui.o # objects used for $(EXE)
+COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o gui/gui.o # objects used for $(EXE)
 
-ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o inventory.o schedtest.o scheduler.o  # all objects, including those for other targets (i.e. rcon-client)
+ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o schedtest.o scheduler.o  # all objects, including those for other targets (i.e. rcon-client)
 DEBUG=1
 
 
@@ -12,7 +12,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -O0 -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -Og -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++17
 CFLAGS_BASE = -std=c99

@@ -41,6 +41,9 @@ struct TaggedAmount
 
 	/** claims up to n items for `task`, possibly stealing them from lower-priority tasks */
 	size_t claim(const std::shared_ptr<sched::Task>& task, size_t n);
+	
+	/** claims up to n items for `task`, only considering unclaimed items */
+	size_t add_claim(const std::shared_ptr<sched::Task>& task, size_t n);
 
 	/** returns the amount of items claimed for the specified task. */
 	size_t claimed_by(const std::shared_ptr<sched::Task>& task) const

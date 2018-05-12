@@ -50,6 +50,17 @@ size_t TaggedAmount::n_claimed() const
 	return claimed;
 }
 
+size_t TaggedAmount::add_claim(const std::shared_ptr<Task>& task, size_t n)
+{
+	size_t available = amount - n_claimed();
+	if (available < n)
+		n = available;
+	
+	claims.get(task).amount += n;
+
+	return n;
+}
+
 size_t TaggedAmount::claim(const std::shared_ptr<Task>& task, size_t n)
 {
 	size_t available = amount - n_claimed();

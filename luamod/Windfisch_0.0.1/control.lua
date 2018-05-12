@@ -927,9 +927,13 @@ function on_inventory_changed(event)
 		end
 	end
 
+	local invstring
+	local invstrings = {}
 	for _,att in ipairs(attribution) do
 		print("\t"..att.amount.."x "..att.item.." -> "..(att.id or "unowned"))
+		table.insert(invstrings, player_idx..","..att.item..","..att.amount..","..(att.id or "x"))
 	end
+	write_file("inventory_changed: "..table.concat(invstrings, " ").."\n")
 	print("-------------")
 	print("")
 	player_inventories[player_idx] = player_inv
