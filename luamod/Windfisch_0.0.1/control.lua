@@ -502,7 +502,7 @@ function on_tick(event)
 						print("wtf, not mining any target")
 					elseif (ent.name ~= ent2.name or ent.position.x ~= ent2.position.x or ent.position.y ~= ent2.position.y) then
 						if ent2.type == "tree" then
-							print("mining: there's a tree in our way. deforesting...")
+							print("mining: there's a tree in our way. deforesting...") -- HACK
 							player.mining_state = { mining=true, position=ent.position }
 						else
 							print("wtf, not mining the expected target (expected: "..ent.name..", found: "..ent2.name..")")
