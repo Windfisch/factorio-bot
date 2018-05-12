@@ -40,7 +40,7 @@ struct TaggedAmount
 	size_t n_claimed() const;
 
 	/** claims up to n items for `task`, possibly stealing them from lower-priority tasks */
-	size_t claim(const std::shared_ptr<sched::Task>& task, size_t n);
+	[[deprecated]] size_t claim(const std::shared_ptr<sched::Task>& task, size_t n);
 	
 	/** claims up to n items for `task`, only considering unclaimed items */
 	size_t add_claim(const std::shared_ptr<sched::Task>& task, size_t n);
@@ -63,7 +63,7 @@ struct TaggedAmount
 	}
 	
 	/** returns the amount of items available to the specified task. This includes claimed and free-for-use items. */
-	size_t available_for(const std::shared_ptr<sched::Task>& task) const
+	[[deprecated]] size_t available_for_deprecated(const std::shared_ptr<sched::Task>& task) const
 	{
 		return unclaimed() + claimed_by(task);
 	}

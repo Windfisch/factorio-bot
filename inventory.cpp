@@ -61,7 +61,7 @@ size_t TaggedAmount::add_claim(const std::shared_ptr<Task>& task, size_t n)
 	return n;
 }
 
-size_t TaggedAmount::claim(const std::shared_ptr<Task>& task, size_t n)
+[[deprecated]] size_t TaggedAmount::claim(const std::shared_ptr<Task>& task, size_t n)
 {
 	size_t available = amount - n_claimed();
 	
