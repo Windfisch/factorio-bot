@@ -60,6 +60,8 @@ must_write_initstuff = true
 
 local todo_next_tick = {}
 local crafting_queue = {} -- array of lists. crafting_queue[player_idx] is a list
+local recent_item_additions   = {} -- recent_item_additions[player_index].{tick,itemlist,recipe?,action_id?}, itemlist = { {"foo",2}, {"bar",17} }
+local player_inventories = {} -- array of dicts ("itemname" -> amount)
 
 function complain(text)
 	print(text)
@@ -511,8 +513,11 @@ function on_tick(event)
 						player.mining_state = { mining=true, position=ent.position }
 					end
 				else
-					--write_file("complete: mining "..idx.."\n")
-					action_completed(global.p[idx].mining.action_id)
+					-- the entity to be mined has been deleted, but p[idx].mining is still true.
+					-- this means that on_mined_entity() has *not* been called, indicating that something
+					-- else has "stolen" what we actually wanted to mine :(
+					action_failed(global.p[idx].mining.action_id)
+					complain("failed to mine " .. global.p[idx].mining.prototype.name)
 					global.p[idx].mining = nil
 				end
 			end
@@ -552,6 +557,35 @@ function on_tick(event)
 			func()
 		end
 		todo_next_tick = {}
+	end
+end
+
+function on_mined_entity(event)
+	for idx, player in pairs(game.players) do
+		-- if global.p[idx].walking and player.connected then
+		if global.p[idx] and player.connected and player.character then -- TODO FIXME
+			local mining = global.p[idx].mining
+			if mining then
+				if mining.entity == event.entity then
+					complain("on_mined_entity mined the desired entity")
+					--write_file("complete: mining "..idx.."\n")
+					action_completed(mining.action_id)
+					complain("mined " .. mining.prototype.name)
+					
+					local proto = mining.prototype
+					local mining_results = products_to_dict(proto.mineable_properties.products)
+					local tmp_recent_item_addition = {}
+					tmp_recent_item_addition.tick = event.tick
+					tmp_recent_item_addition.action_id = mining.action_id
+					tmp_recent_item_addition.itemlist = mining_results
+					if recent_item_additions[idx] == nil then recent_item_additions[idx] = {} end
+					table.insert(recent_item_additions[idx], tmp_recent_item_addition)
+					dump_dict(mining_results)
+
+					global.p[idx].mining = nil
+				end
+			end
+		end
 	end
 end
 
@@ -787,6 +821,12 @@ end
 
 function on_player_crafted_item(event)
 	queue = crafting_queue[event.player_index]
+
+	local tmp_recent_item_addition = {}
+	tmp_recent_item_addition.tick = event.tick
+	tmp_recent_item_addition.recipe = event.recipe
+	tmp_recent_item_addition.itemlist = products_to_dict(event.recipe.products)
+
 	if queue == nil then
 		complain("player "..game.players[event.player_index].name.." unexpectedly crafted "..event.recipe.name)
 	else
@@ -796,6 +836,7 @@ function on_player_crafted_item(event)
 			else
 				complain("player "..game.players[event.player_index].name.." has finished crafting "..queue[1].recipe.." with id "..queue[1].id)
 				action_completed(queue[1].id)
+				tmp_recent_item_addition.action_id = queue[1].id
 			end
 			table.remove(queue,1)
 			if #queue == 0 then
@@ -806,6 +847,9 @@ function on_player_crafted_item(event)
 			complain("player "..game.players[event.player_index].name.." crafted "..event.recipe.name.." which is probably an intermediate product")
 		end
 	end
+
+	if recent_item_additions[event.player_index] == nil then recent_item_additions[event.player_index] = {} end
+	table.insert(recent_item_additions[event.player_index], tmp_recent_item_addition)
 end
 
 function total_inventory(player_id)
@@ -843,6 +887,55 @@ function dump_dict(dict)
 	end
 end
 
+function on_inventory_changed(event)
+	local tick = event.tick
+	local player_idx = event.player_index
+	complain("some player inventory has changed at tick "..tick)
+
+	local player_inv = total_inventory(player_idx)
+
+	local diff = inventory_diff(player_inv, player_inventories[player_idx] or {})
+	print("diff is")
+	dump_dict(diff)
+	print("")
+	local attribution = {}
+	for _,recent in ipairs(recent_item_additions[player_idx] or {}) do
+		if recent.tick ~= tick then
+			local reason = ""
+			if recent.recipe then
+				reason = "This is probably because of an intermediate recipe "..recent.recipe.name.."."
+			end
+			complain("wtf, got a recent-event from tick "..recent.tick.." while the inventory has changed at tick " .. tick.."." .. reason)
+		else
+			for item,amount in pairs(recent.itemlist) do
+				local avail = diff[item] or 0
+				if avail < amount then
+					complain("warning: action "..recent.action_id.." (which has completed recently) has granted more "..item.." ("..amount..") than was added to the inventory ("..avail..")")
+					amount = avail
+				end
+				
+				if amount > 0 then
+					table.insert(attribution, {item = item, amount = amount, id = recent.action_id})
+					diff[item] = diff[item] - amount
+				end
+			end
+		end
+	end
+	for item,amount in pairs(diff) do
+		if amount > 0 then
+			table.insert(attribution, {item = item, amount = amount, id = nil})
+		end
+	end
+
+	for _,att in ipairs(attribution) do
+		print("\t"..att.amount.."x "..att.item.." -> "..(att.id or "unowned"))
+	end
+	print("-------------")
+	print("")
+	player_inventories[player_idx] = player_inv
+	recent_item_additions[player_idx] = {}
+end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_event(defines.events.on_tick, on_tick)
@@ -857,9 +950,12 @@ script.on_event(defines.events.on_robot_built_entity, on_some_entity_created) --
 script.on_event(defines.events.on_player_rotated_entity, on_some_entity_created) --entity
 
 script.on_event(defines.events.on_entity_died, on_some_entity_deleted) --entity
-script.on_event(defines.events.on_player_mined_entity, on_some_entity_deleted) --entity
+script.on_event(defines.events.on_player_mined_entity, function (event) on_mined_entity(event); on_some_entity_deleted(event) end) --entity
 script.on_event(defines.events.on_robot_mined_entity, on_some_entity_deleted) --entity
 script.on_event(defines.events.on_resource_depleted, on_some_entity_deleted) --entity
+
+script.on_event(defines.events.on_player_main_inventory_changed, on_inventory_changed)
+script.on_event(defines.events.on_player_quickbar_inventory_changed, on_inventory_changed)
 
 script.on_event(defines.events.on_player_crafted_item, on_player_crafted_item)
 
@@ -886,7 +982,7 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 	end
 
 	if ent and ent.minable then
-		global.p[player_id].mining = { entity = ent, action_id = action_id}
+		global.p[player_id].mining = { entity = ent, action_id = action_id, prototype = ent.prototype }
 	elseif name == "stop" then
 		global.p[player_id].mining = nil
 	else
