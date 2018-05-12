@@ -66,6 +66,16 @@ function complain(text)
 	game.forces["player"].print(text)
 end
 
+function products_to_dict(products) -- input: array of products, output: dict["item"] = amount
+	local result = {}
+	for _,product in ipairs(products) do
+		if product.amount then
+			result[product.name] = (result[product.name] or 0) + product.amount
+		end
+	end
+	return result
+end
+
 function on_init()
 	print("on init")
 	global.resources = {}
@@ -798,6 +808,41 @@ function on_player_crafted_item(event)
 	end
 end
 
+function total_inventory(player_id)
+	local i = defines.inventory
+	local is = { i.player_quickbar, i.player_main } -- TODO: maybe more?
+	local sum = {}
+	for _,inv_type in ipairs(is) do
+		inv = game.players[player_id].get_inventory(inv_type)
+		for item,amount in pairs(inv.get_contents()) do
+			sum[item] = (sum[item] or 0) + amount
+		end
+	end
+	return sum
+end
+
+function inventory_diff(inv1, inv2)
+	local diff = {}
+	for item,amount in pairs(inv1) do
+		temp = amount - (inv2[item] or 0)
+		if temp ~= 0 then
+			diff[item] = temp
+		end
+	end
+	for item,amount in pairs(inv2) do
+		if inv1[item] == nil then
+			diff[item] = -inv2[item]
+		end
+	end
+	return diff
+end
+
+function dump_dict(dict)
+	for key,val in pairs(dict) do
+		print("> "..key.." -> "..val)
+	end
+end
+
 script.on_init(on_init)
 script.on_load(on_load)
 script.on_event(defines.events.on_tick, on_tick)
@@ -948,6 +993,10 @@ function rcon_start_crafting(action_id, player_id, recipe, count)
 	end
 end
 
+function rcon_debug_mine_selected(action_id)
+	rcon_set_mining_target(action_id, game.player.index, game.player.selected.prototype.name, game.player.selected.position)
+end
+
 remote.add_interface("windfisch", {
 	test=rcon_test,
 	set_waypoints=rcon_set_waypoints,
@@ -956,5 +1005,6 @@ remote.add_interface("windfisch", {
 	start_crafting=rcon_start_crafting,
 	insert_to_inventory=rcon_insert_to_inventory,
 	remove_from_inventory=rcon_remove_from_inventory,
+	debug_mine_selected=rcon_debug_mine_selected,
 	whoami=rcon_whoami
 })
