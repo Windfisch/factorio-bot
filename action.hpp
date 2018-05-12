@@ -34,6 +34,13 @@ namespace sched { struct Task; }
 
 namespace action
 {
+	struct Registry : public std::unordered_map<int, std::weak_ptr<sched::Task>>
+	{
+		void cleanup();
+		std::shared_ptr<sched::Task> get(int id);
+	};
+	extern Registry registry;
+
 	struct PlayerGoal
 	{
 		int player;

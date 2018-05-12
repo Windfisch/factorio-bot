@@ -28,6 +28,28 @@ using namespace std;
 constexpr int MINING_DISTANCE = 1;
 
 namespace action {
+	Registry registry;
+
+	void Registry::cleanup()
+	{
+		for (iterator iter = begin(); iter != end();)
+		{
+			if (iter->second.expired())
+				iter = erase(iter);
+			else
+				++iter;
+		}
+	}
+
+	shared_ptr<sched::Task> Registry::get(int id)
+	{
+		auto iter = find(id);
+		if (iter == end())
+			return nullptr;
+		else
+			return iter->second.lock();
+	}
+
 	int PrimitiveAction::id_counter;
 	std::unordered_set<int> PrimitiveAction::pending;
 	std::unordered_set<int> PrimitiveAction::finished;
