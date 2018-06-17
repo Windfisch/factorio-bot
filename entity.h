@@ -19,9 +19,16 @@
 #pragma once
 #include "area.hpp"
 #include "pos.hpp"
+#include "multivariant.hpp"
 #include "defines.h"
 #include <string>
 #include <memory>
+
+struct ContainerData {};
+struct MachineData {};
+struct MiningDrillData {};
+
+using mvu = multivariant_utils<typelist<ContainerData, MachineData, MiningDrillData>>;
 
 struct EntityPrototype
 {
@@ -30,30 +37,131 @@ struct EntityPrototype
 	bool collides_object;
 	Area_f collision_box;
 	bool mineable;
+	size_t data_kind;
 
-	EntityPrototype(const std::string& name_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_) :
+	EntityPrototype(const std::string& name_, const std::string& type_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_) :
 		name(name_),
 		collides_player(collision_str.find('P') != std::string::npos),
 		collides_object(collision_str.find('O') != std::string::npos),
 		collision_box(collision_box_),
-		mineable(mineable_)
-		{}
+		mineable(mineable_),
+		data_kind(mvu::invalid_index)
+		{
+			if (type_ == "container" || type_ == "logistic-container")
+				data_kind = mvu::index<ContainerData>();
+			else if (type_ == "mining-drill")
+				data_kind = mvu::index<MiningDrillData>();
+			else if (type_ == "assembling-machine")
+				data_kind = mvu::index<MachineData>();
+		}
 };
 
 struct Entity
 {
+
 	Pos_f get_pos() const { return pos; } // WorldList<Entity> wants to call this.
 
 	Pos_f pos;
 	const EntityPrototype* proto;
 	dir4_t direction;
 
-	bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction; }
+private:
+	refcount_base* data_ptr;
+public:
+
+	//bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction && this->data_ptr == that.data_ptr; }
+	bool mostly_equals(const Entity& that) { return this->pos==that.pos && this->proto==that.proto; }
+
+	void takeover_data(Entity& that)
+	{
+		assert (this->proto == that.proto);
+
+		release_data();
+		this->data_ptr = that.data_ptr;
+		that.data_ptr = nullptr;
+	}
 
 	Area_f collision_box() const { return proto->collision_box.rotate(direction).shift(pos); }
 
+	template <typename T> T& data()
+	{
+		return *mvu::get<T>(proto->data_kind, data_ptr);
+	}
+
+	~Entity()
+	{
+		release_data();
+	}
+
+
+	struct nullent_tag {};
+
+	Entity(nullent_tag, const Pos_f& pos_ = Pos_f()) : pos(pos_), proto(nullptr), data_ptr(nullptr)
+	{
+	}
+
 	Entity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
-		: pos(pos_), proto(proto_), direction(direction_) {}
+		: pos(pos_), proto(proto_), direction(direction_), data_ptr(mvu::make(proto_->data_kind))
+	{
+		if (data_ptr)
+			data_ptr->refcount = 1;
+	}
+
+	Entity(const Entity& e)
+	{
+		pos = e.pos;
+		proto = e.proto;
+		direction = e.direction;
+		data_ptr = e.data_ptr;
+		if (data_ptr)
+			data_ptr->refcount++;
+	}
+
+	Entity(Entity&& e) noexcept
+	{
+		pos = std::move(e.pos);
+		proto = std::move(e.proto);
+		direction = std::move(e.direction);
+		data_ptr = e.data_ptr;
+		e.data_ptr = nullptr;
+	}
+
+	Entity& operator=(const Entity& e)
+	{
+		release_data();
+
+		pos = e.pos;
+		proto = e.proto;
+		direction = e.direction;
+		data_ptr = e.data_ptr;
+		if (data_ptr)
+			data_ptr->refcount++;
+
+		return *this;
+	}
+	Entity& operator=(Entity&& e)
+	{
+		release_data();
+
+		pos = std::move(e.pos);
+		proto = std::move(e.proto);
+		direction = std::move(e.direction);
+		data_ptr = e.data_ptr;
+		e.data_ptr = nullptr;
+
+		return *this;
+	}
+
+	private:
+		void release_data()
+		{
+			if (data_ptr)
+			{
+				data_ptr->refcount--;
+				if (data_ptr->refcount == 0)
+					mvu::del(proto->data_kind, data_ptr);
+			}
+		}
 };
 
 struct DesiredEntity : public Entity

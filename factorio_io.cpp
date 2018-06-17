@@ -404,15 +404,16 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 	{
 		vector<string> fields = split(entry);
 
-		if (fields.size() != 4)
+		if (fields.size() != 5)
 			throw runtime_error("malformed parse_entity_prototypes packet");
 
 		const string& name = fields[0];
-		const string& collision = fields[1];
-		Area_f collision_box = Area_f(fields[2]);
-		bool mineable = stoi(fields[3]);
+		const string& type = fields[1];
+		const string& collision = fields[2];
+		Area_f collision_box = Area_f(fields[3]);
+		bool mineable = stoi(fields[4]);
 
-		entity_prototypes[name] = new EntityPrototype(name, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+		entity_prototypes[name] = new EntityPrototype(name, type, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
 		max_entity_radius = max(max_entity_radius, collision_box.radius());
 	}
 }
@@ -518,7 +519,7 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 			else
 			{
 				assert(resview.at(abspos).resource_patch.lock() == nullptr);
-				resview.at(abspos) = Resource(Resource::OCEAN, NOT_YET_ASSIGNED, Entity(abspos, nullptr));
+				resview.at(abspos) = Resource(Resource::OCEAN, NOT_YET_ASSIGNED, Entity(Entity::nullent_tag{}, abspos));
 			}
 		}
 	}
@@ -551,7 +552,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	auto range = actual_entities.range(area);
 	for (auto it = range.begin(); it != range.end();)
 	{
-		pending_entities.push_back(*it);
+		pending_entities.push_back(std::move(*it));
 		it = actual_entities.erase(it);
 	}
 
@@ -598,9 +599,9 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		// try to find ent in pending_entities
 		stats.total++;
 		for (auto it = pending_entities.begin(); it != pending_entities.end(); )
-			if (*it == ent) // found
+			if (it->mostly_equals(ent)) // found (modulo rotation and data_ptr)
 			{
-				ent = *it;
+				ent.takeover_data(*it);
 				it = unordered_erase(pending_entities, it);
 				stats.reused++;
 				break;
@@ -609,7 +610,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 				it++;
 
 		// now place ent_ptr in the appropriate list.
-		actual_entities.insert(ent);
+		actual_entities.insert(std::move(ent));
 	}
 
 	if (pending_entities.size() > 0)

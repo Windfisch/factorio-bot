@@ -562,8 +562,14 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		/** returns an iterable wrapper that enumerates all items contained in `area` in arbitrary order */
 		Range range(const Area_f& area) { return Range(this, area); }
 		
-		/** inserts `thing` to the WorldList */
+		/** inserts `thing` to the WorldList, copy */
 		void insert(const T& thing)
+		{
+			(*this)[Pos::tile_to_chunk(thing.get_pos().to_int_floor())].emplace_back(thing);
+		}
+
+		/** inserts `thing` to the WorldList, move */
+		void insert(T&& thing)
 		{
 			(*this)[Pos::tile_to_chunk(thing.get_pos().to_int_floor())].emplace_back(std::move(thing));
 		}

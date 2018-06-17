@@ -63,7 +63,7 @@ struct Resource
 	Entity entity;
 
 	Resource(type_t t, int parent, Entity e) : type(t), patch_id(parent), entity(e) {}
-	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED), entity(Pos_f(0,0), nullptr) {}
+	Resource() : type(NONE), patch_id(NOT_YET_ASSIGNED), entity(Entity::nullent_tag{}) {}
 };
 
 struct ResourcePatch

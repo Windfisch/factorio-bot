@@ -19,7 +19,7 @@ struct {
 } items;
 
 struct {
-	EntityPrototype chest = EntityPrototype("chest", "", {}, true);
+	EntityPrototype chest = EntityPrototype("chest", "container", "", {}, true);
 } entities;
 
 struct {

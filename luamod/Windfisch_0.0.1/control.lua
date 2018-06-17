@@ -345,7 +345,7 @@ function writeout_entity_prototypes()
 			if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
 		end
 		if prot.mineable_properties.mineable then mineable = "1" else mineable = "0" end
-		table.insert(lines, prot.name.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
+		table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
 	end
 	write_file(header..table.concat(lines, "$").."\n")
 end
