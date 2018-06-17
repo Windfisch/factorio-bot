@@ -331,7 +331,7 @@ void FactorioGame::parse_inventory_changed(const string& data)
 		int diff = stoi(fields[2]);
 		bool has_owner = fields[3]!="x";
 		int owning_action_id = has_owner ? stoi(fields[3]) : -1;
-		const ItemPrototype* proto = item_prototypes.at(item);
+		const ItemPrototype* proto = item_prototypes.at(item).get();
 
 		TaggedAmount content = players[player_id].inventory[proto];
 
@@ -413,7 +413,7 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 		Area_f collision_box = Area_f(fields[3]);
 		bool mineable = stoi(fields[4]);
 
-		entity_prototypes[name] = new EntityPrototype(name, type, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
 		max_entity_radius = max(max_entity_radius, collision_box.radius());
 	}
 }
@@ -440,11 +440,11 @@ void FactorioGame::parse_item_prototypes(const string& data)
 
 		const EntityPrototype* place_result;
 		if (place_result_str != "nil")
-			place_result = entity_prototypes.at(place_result_str);
+			place_result = entity_prototypes.at(place_result_str).get();
 		else
 			place_result = nullptr;
 
-		item_prototypes[name] = new ItemPrototype(name, type, place_result, stack_size, fuel_value, speed, durability); // no automatic memory management, because prototypes never change.
+		item_prototypes[name] = make_unique<ItemPrototype>(name, type, place_result, stack_size, fuel_value, speed, durability); // no automatic memory management, because prototypes never change.
 	}
 }
 
@@ -452,7 +452,7 @@ void FactorioGame::parse_recipes(const string& data)
 {
 	for (string recipestr : split(data,'$'))
 	{
-		Recipe* recipe = new Recipe(); // no automatic memory management, because prototypes never change.
+		auto recipe = make_unique<Recipe>();
 
 		vector<string> fields = split(recipestr,' ');
 		if (fields.size() != 5)
@@ -473,7 +473,7 @@ void FactorioGame::parse_recipes(const string& data)
 			const string& ingredient = fields2[0];
 			int amount = stoi(fields2[1]);
 
-			recipe->ingredients.emplace_back(item_prototypes.at(ingredient), amount);
+			recipe->ingredients.emplace_back(item_prototypes.at(ingredient).get(), amount);
 		}
 
 		for (string prodstr : split(products, ','))
@@ -485,10 +485,10 @@ void FactorioGame::parse_recipes(const string& data)
 			const string& product = fields2[0];
 			double amount = stod(fields2[1]);
 
-			recipe->products.emplace_back(item_prototypes.at(product), amount);
+			recipe->products.emplace_back(item_prototypes.at(product).get(), amount);
 		}
 
-		recipes[recipe->name] = recipe;
+		recipes[recipe->name] = move(recipe);
 	}
 }
 
@@ -583,7 +583,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 			default: throw runtime_error("invalid direction '"+dir+"' in parse_objects");
 		};
 
-		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name), dir4);
+		Entity ent(Pos_f(ent_x,ent_y), entity_prototypes.at(name).get(), dir4);
 
 		// ignore various ever-moving entities that need to be handled specially
 		if (name == "player")
@@ -805,7 +805,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 				continue;
 		}
 
-		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str)));
+		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str).get()));
 	}
 
 	resource_bookkeeping(area, view);

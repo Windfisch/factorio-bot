@@ -57,9 +57,9 @@ class FactorioGame
 		std::string remove_line_from_buffer();
 
 		double max_entity_radius = 0.;
-		std::unordered_map< std::string, const EntityPrototype* > entity_prototypes;
-		std::unordered_map< std::string, const ItemPrototype* > item_prototypes;
-		std::unordered_map< std::string, const Recipe* > recipes;
+		std::unordered_map< std::string, std::unique_ptr<const EntityPrototype> > entity_prototypes;
+		std::unordered_map< std::string, std::unique_ptr<const ItemPrototype> > item_prototypes;
+		std::unordered_map< std::string, std::unique_ptr<const Recipe> > recipes;
 	
 	public:
 		WorldList<Entity> actual_entities; // list of entities that are actually there per chunk
