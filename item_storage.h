@@ -9,4 +9,7 @@ struct ItemStorage
 	
 	Entity entity;
 	Inventory inventory;
+
+	// TODO: last_update timestamp; prediction; distance-based updating (more frequently if close)
+	// currently, we transmit all inventories of all chests with a fixed period; this will not scale.
 };

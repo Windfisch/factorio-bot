@@ -742,6 +742,46 @@ function writeout_objects(surface, area)
 	line=nil
 end
 
+function writeout_item_storages(surface)
+	header = "item_storages *: " -- fixme: only writeout per area
+	line = ''
+	lines={}
+	
+	local i=defines.inventory
+	local inventory_types = { i.chest_inventory, i.assembling_machine_output, i.furnace_result }
+
+	-- TODO FIXME this is inefficient as hell
+	for idx, ent in pairs(surface.find_entities()) do
+		--if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
+			local invtypes_present = {}
+			for _,inventory_type in ipairs(inventory_types) do
+				if ent.get_inventory(inventory_type) ~= nil then
+					table.append(invtypes_present, inventory_type)
+				end
+			end
+			if #invtypes_present > 0 then
+				local items = sum_inventory(ent, invtypes_present)
+				local itemstrs = {}
+
+				for item,amount in pairs(items) do
+					table.append(itemstrs, item.name..":"..amount)
+				end
+
+				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..table.concat(itemstrs,"%")
+
+				if idx % 100 == 0 then
+					table.insert(lines,line)
+					line=''
+				end
+			end
+		--end
+	end
+	table.insert(lines,line)
+	write_file(header..table.concat(lines,"").."\n")
+
+	line=nil
+end
+
 function rangestr(area)
 	return coord({x=area.x1, y=area.y1}).." -- "..coord({x=area.x2, y=area.y2})
 end
@@ -852,17 +892,21 @@ function on_player_crafted_item(event)
 	table.insert(recent_item_additions[event.player_index], tmp_recent_item_addition)
 end
 
-function total_inventory(player_id)
-	local i = defines.inventory
-	local is = { i.player_quickbar, i.player_main } -- TODO: maybe more?
+function sum_inventory(ent, is)
 	local sum = {}
 	for _,inv_type in ipairs(is) do
-		inv = game.players[player_id].get_inventory(inv_type)
+		inv = ent.get_inventory(inv_type)
 		for item,amount in pairs(inv.get_contents()) do
 			sum[item] = (sum[item] or 0) + amount
 		end
 	end
 	return sum
+end
+
+function player_total_inventory(player_id)
+	local i = defines.inventory
+	local is = { i.player_quickbar, i.player_main } -- TODO: maybe more?
+	return sum_inventory(game.players[player_id], is)
 end
 
 function inventory_diff(inv1, inv2)
@@ -892,7 +936,7 @@ function on_inventory_changed(event)
 	local player_idx = event.player_index
 	complain("some player inventory has changed at tick "..tick)
 
-	local player_inv = total_inventory(player_idx)
+	local player_inv = player_total_inventory(player_idx)
 
 	local diff = inventory_diff(player_inv, player_inventories[player_idx] or {})
 	print("diff is")
