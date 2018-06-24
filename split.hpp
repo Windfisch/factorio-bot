@@ -3,6 +3,8 @@
 #include <sstream>
 #include <tuple>
 
+// TODO FIXME: iterable thingy
+
 static std::vector<std::string> split(const std::string& data, char delim=' ')
 {
 	std::istringstream str(data);

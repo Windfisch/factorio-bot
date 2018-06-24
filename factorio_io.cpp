@@ -18,7 +18,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <stdexcept>
 #include <cstring>
 #include <set>
@@ -314,9 +313,7 @@ void FactorioGame::parse_mined_item(const string& data)
 
 void FactorioGame::parse_inventory_changed(const string& data)
 {
-	vector<string> updates = split(data, ' ');
-
-	for (const string& update : updates)
+	for (const string& update : split(data, ' '))
 	{
 		auto [player_id, item, diff, owner_str] = unpack<int,string,int,string>(update, ',');
 		bool has_owner = owner_str!="x";
@@ -384,26 +381,19 @@ void FactorioGame::parse_action_completed(const string& data)
 
 void FactorioGame::parse_entity_prototypes(const string& data)
 {
-	istringstream str(data);
-	string entry;
-
-	while (getline(str, entry, '$')) if (entry!="")
+	for (string entry : split(data, '$')) if (entry!="")
 	{
 		auto [name, type, collision, collision_box, mineable] = unpack<string,string,string,Area_f,bool>(entry);
 
-		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
+		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable); // prototypes will never change.
 		max_entity_radius = max(max_entity_radius, collision_box.radius());
 	}
 }
 
 void FactorioGame::parse_item_prototypes(const string& data)
 {
-	istringstream str(data);
-	string entry;
-
-	while (getline(str, entry, '$')) if (entry!="")
+	for (string entry : split(data, '$')) if (entry!="")
 	{
-
 		auto [name, type, place_result_str, stack_size, fuel_value, speed, durability] = unpack<string,string,string,int,double,double,double>(entry);
 
 		const EntityPrototype* place_result;
@@ -412,7 +402,7 @@ void FactorioGame::parse_item_prototypes(const string& data)
 		else
 			place_result = nullptr;
 
-		item_prototypes[name] = make_unique<ItemPrototype>(name, type, place_result, stack_size, fuel_value, speed, durability); // no automatic memory management, because prototypes never change.
+		item_prototypes[name] = make_unique<ItemPrototype>(name, type, place_result, stack_size, fuel_value, speed, durability); // prototypes will never change.
 	}
 }
 
@@ -434,25 +424,13 @@ void FactorioGame::parse_recipes(const string& data)
 
 		for (string ingstr : split(ingredients, ','))
 		{
-			vector<string> fields2 = split(ingstr, '*');
-			if (fields2.size() != 2)
-				throw runtime_error("malformed ingredient string in parse_recipes packet");
-
-			const string& ingredient = fields2[0];
-			int amount = stoi(fields2[1]);
-
+			auto [ingredient, amount] = unpack<string,int>(ingstr, '*');
 			recipe->ingredients.emplace_back(item_prototypes.at(ingredient).get(), amount);
 		}
 
 		for (string prodstr : split(products, ','))
 		{
-			vector<string> fields2 = split(prodstr, '*');
-			if (fields2.size() != 2)
-				throw runtime_error("malformed product string in parse_recipes packet");
-
-			const string& product = fields2[0];
-			double amount = stod(fields2[1]);
-
+			auto [product, amount] = unpack<string,double>(prodstr,'*');
 			recipe->products.emplace_back(item_prototypes.at(product).get(), amount);
 		}
 
@@ -512,9 +490,6 @@ void FactorioGame::resource_bookkeeping(const Area& area, WorldMap<Resource>::Vi
 
 void FactorioGame::parse_objects(const Area& area, const string& data)
 {
-	istringstream str(data);
-	string entry;
-
 	// move all entities in the area from actual_entities to the temporary pending_entities list.
 	vector<Entity> pending_entities;
 	auto range = actual_entities.range(area);
@@ -527,7 +502,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	struct { int reused=0; int total=0; } stats; // DEBUG only
 
 	// parse the packet's list of objects
-	while(getline(str, entry, ',')) if (entry!="")
+	for (string entry : split(data, ',')) if (entry!="")
 	{
 		auto [name,ent_x,ent_y,dir] = unpack<string,double,double,string>(entry);
 
@@ -716,16 +691,13 @@ void FactorioGame::assert_resource_consistency() const // only for debugging pur
 
 void FactorioGame::parse_resources(const Area& area, const string& data)
 {
-	istringstream str(data);
-	string entry;
-	
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
 	// FIXME: clear and un-assign existing entities before
 	// FIXME: handle vanishing resources
 
 	// parse all entities and write them to the WorldMap
-	while (getline(str, entry, ',')) if (entry!="")
+	for (string entry : split(data, ',')) if (entry!="")
 	{
 		auto p1 = entry.find(' ');
 		auto p2 = entry.find(' ', p1+1);
