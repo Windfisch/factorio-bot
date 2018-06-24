@@ -12,7 +12,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -Og -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -O0 -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++17
 CFLAGS_BASE = -std=c99
@@ -121,7 +121,8 @@ $(DATAFILE): $(MODDESTS) $(SAVEGAME) $(SERVERSETTINGS)
 
 config.mk:
 	echo 'FACTORIODIR=/path/to/factorio' > $@
-	echo 'COMPILER=GCC  # possible values: GCC, clang' >> $@
+	echo 'COMPILER=GCC' >> $@
+	echo '# possible values: GCC, clang' >> $@
 
 $(FACTORIODIR)/mods/$(MODNAME)/%: luamod/$(MODNAME)/%
 	mkdir -p $(dir $@)
