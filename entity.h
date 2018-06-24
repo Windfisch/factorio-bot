@@ -58,7 +58,6 @@ struct EntityPrototype
 
 struct Entity
 {
-
 	Pos_f get_pos() const { return pos; } // WorldList<Entity> wants to call this.
 
 	Pos_f pos;
@@ -69,8 +68,16 @@ private:
 	refcount_base* data_ptr;
 public:
 
-	//bool operator==(const Entity& that) { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction && this->data_ptr == that.data_ptr; }
-	bool mostly_equals(const Entity& that) { return this->pos==that.pos && this->proto==that.proto; }
+	//bool operator==(const Entity& that) const { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction && this->data_ptr == that.data_ptr; }
+	constexpr bool mostly_equals(const Entity& that) const { return this->pos==that.pos && this->proto==that.proto; }
+
+	struct mostly_equals_comparator
+	{
+		constexpr bool operator()(const Entity &lhs, const Entity &rhs) const
+		{
+			return lhs.mostly_equals(rhs);
+		}
+	};
 
 	void takeover_data(Entity& that)
 	{

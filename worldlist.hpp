@@ -63,7 +63,7 @@
 #include "pos.hpp"
 #include "area.hpp"
 
-template <class T>
+template <class T, class EqualComparator = std::equal_to<T>>
 class WorldList : public std::unordered_map< Pos, std::vector<T> >
 {
 	public:
@@ -92,7 +92,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
 				typedef typename std::conditional<is_const, const T*, T*>::type ptrtype;
 				typedef std::unordered_map<Pos, std::vector<T>> maptype;
-				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type parentptr;
+				typedef typename std::conditional<is_const, const WorldList<T,EqualComparator>*, WorldList<T,EqualComparator>*>::type parentptr;
 				parentptr parent;
 				Area_f range;
 
@@ -286,13 +286,13 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		{
 			private:
 				friend class WorldList;
-				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type ptr_type;
+				typedef typename std::conditional<is_const, const WorldList<T,EqualComparator>*, WorldList<T,EqualComparator>*>::type ptr_type;
 				ptr_type parent;
 				Area_f area;
 				Range_(ptr_type parent_, Area_f area_) : parent(parent_), area(area_) {}
 			
 			public:
-				typedef WorldList<T>::range_iterator<is_const> iterator;
+				typedef WorldList<T,EqualComparator>::range_iterator<is_const> iterator;
 
 				// allows to construct a ConstRange from a Range
 				Range_( const Range_<false>& other ) : parent(other.parent), area(other.area) {}
@@ -326,7 +326,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				typedef typename std::conditional<is_const, const T&, T&>::type reftype;
 				typedef typename std::conditional<is_const, const T*, T*>::type ptrtype;
 				typedef std::unordered_map<Pos, std::vector<T>> maptype;
-				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type parentptr;
+				typedef typename std::conditional<is_const, const WorldList<T,EqualComparator>*, WorldList<T,EqualComparator>*>::type parentptr;
 
 				typedef typename std::conditional<is_const,
 					typename std::vector<T>::const_iterator,
@@ -525,13 +525,13 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		{
 			private:
 				friend class WorldList;
-				typedef typename std::conditional<is_const, const WorldList<T>*, WorldList<T>*>::type ptr_type;
+				typedef typename std::conditional<is_const, const WorldList<T,EqualComparator>*, WorldList<T,EqualComparator>*>::type ptr_type;
 				ptr_type parent;
 				Pos_f center;
 				Around_(ptr_type parent_, Pos_f center_) : parent(parent_), center(center_) {}
 			
 			public:
-				typedef WorldList<T>::around_iterator<is_const> iterator;
+				typedef WorldList<T,EqualComparator>::around_iterator<is_const> iterator;
 
 				// allows to construct a ConstAround from a Around
 				Around_( const Around_<false>& other ) : parent(other.parent), center(other.center) {}

@@ -36,18 +36,18 @@ template<typename T>
 struct Pos_
 {
 	T x,y;
-	Pos_(T x_, T y_) : x(x_), y(y_) {}
-	Pos_() : x(0), y(0) {}
-	template <typename U> Pos_(const Pos_<U>& other) : x(T(other.x)), y(T(other.y)) {}
+	constexpr Pos_(T x_, T y_) : x(x_), y(y_) {}
+	constexpr Pos_() : x(0), y(0) {}
+	template <typename U> constexpr Pos_(const Pos_<U>& other) : x(T(other.x)), y(T(other.y)) {}
 
-	Pos_<T> operator+(const Pos_<T>& b) const { return Pos_<T>(x+b.x, y+b.y); }
-	Pos_<T> operator-(const Pos_<T>& b) const { return Pos_<T>(x-b.x, y-b.y); }
-	Pos_<T> operator*(T f) const { return Pos_<T>(x*f, y*f); }
+	constexpr Pos_<T> operator+(const Pos_<T>& b) const { return Pos_<T>(x+b.x, y+b.y); }
+	constexpr Pos_<T> operator-(const Pos_<T>& b) const { return Pos_<T>(x-b.x, y-b.y); }
+	constexpr Pos_<T> operator*(T f) const { return Pos_<T>(x*f, y*f); }
 	
 	
 	Pos_<T> operator/(T f) const;
 
-	bool operator==(const Pos_<T> that) const
+	constexpr bool operator==(const Pos_<T> that) const
 	{
 		#pragma GCC diagnostic push
 		#pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -55,19 +55,19 @@ struct Pos_
 		#pragma GCC diagnostic pop
 	}
 
-	bool operator!=(const Pos_<T> that) const { return !operator==(that); }
+	constexpr bool operator!=(const Pos_<T> that) const { return !operator==(that); }
 
-	bool operator< (const Pos_<T>& that) const { return this->x <  that.x && this->y <  that.y; }
-	bool operator<=(const Pos_<T>& that) const { return this->x <= that.x && this->y <= that.y; }
-	bool operator> (const Pos_<T>& that) const { return this->x >  that.x && this->y >  that.y; }
-	bool operator>=(const Pos_<T>& that) const { return this->x >= that.x && this->y >= that.y; }
+	constexpr bool operator< (const Pos_<T>& that) const { return this->x <  that.x && this->y <  that.y; }
+	constexpr bool operator<=(const Pos_<T>& that) const { return this->x <= that.x && this->y <= that.y; }
+	constexpr bool operator> (const Pos_<T>& that) const { return this->x >  that.x && this->y >  that.y; }
+	constexpr bool operator>=(const Pos_<T>& that) const { return this->x >= that.x && this->y >= that.y; }
 
-	bool less_rowwise(const Pos_<T>& that) const {
+	constexpr bool less_rowwise(const Pos_<T>& that) const {
 		if (this->y < that.y) return true;
 		if (this->y > that.y) return false;
 		else return this->x < that.x;
 	}
-	bool less_columnwise(const Pos_<T>& that) const {
+	constexpr bool less_columnwise(const Pos_<T>& that) const {
 		if (this->x < that.x) return true;
 		if (this->x > that.x) return false;
 		else return this->y < that.y;

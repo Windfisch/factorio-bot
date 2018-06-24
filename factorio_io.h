@@ -62,8 +62,8 @@ class FactorioGame
 		std::unordered_map< std::string, std::unique_ptr<const Recipe> > recipes;
 	
 	public:
-		WorldList<Entity> actual_entities; // list of entities that are actually there per chunk
-		WorldList<DesiredEntity> desired_entities; // list of entities that we expect to be there per chunk
+		WorldList<Entity, Entity::mostly_equals_comparator> actual_entities; // list of entities that are actually there per chunk
+		WorldList<DesiredEntity, Entity::mostly_equals_comparator> desired_entities; // list of entities that we expect to be there per chunk
 		
 		// the GraphicsDefinition has either one or four entries: north east south west.
 		std::unordered_map< std::string, std::vector<GraphicsDefinition> > graphics_definitions;
@@ -118,7 +118,7 @@ class FactorioGame
 		WorldMap<pathfinding::walk_t> walk_map;
 		WorldMap<Resource> resource_map;
 		std::set< std::shared_ptr<ResourcePatch> > resource_patches;
-		WorldList<ItemStorage> item_storages;
+		[[deprecated]] WorldList<ItemStorage> item_storages;
 
 		void resource_bookkeeping(const Area& area, WorldMap<Resource>::Viewport resview);
 		void assert_resource_consistency() const; // only for debugging purposes
