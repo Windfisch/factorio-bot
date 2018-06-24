@@ -30,7 +30,7 @@
 #include "pathfinding.hpp"
 #include "action.hpp"
 #include "util.hpp"
-#include "unpack.hpp"
+#include "split.hpp"
 
 #define READ_BUFSIZE 1024
 
@@ -242,39 +242,15 @@ void FactorioGame::parse_packet(const string& pkg)
 		throw runtime_error("unknown packet type '"+type+"'");
 }
 
-static vector<string> split(const string& data, char delim=' ')
-{
-	istringstream str(data);
-	string entry;
-	vector<string> result;
-
-	if (data.empty())
-		return result;
-
-	do {
-		getline(str, entry, delim);
-		result.push_back(std::move(entry));
-	} while (!str.eof());
-	
-	return result;
-}
-
 void FactorioGame::parse_item_containers(const string& data)
 {
 	for (const string& container : split(data, ',')) if (!container.empty())
 	{
-		vector<string> fields = split(container, ' ');
-		if (fields.size() != 4)
-			throw runtime_error("malformed packet in parse_item_containers");
-		
-		const string& name = fields[0];
-		double ent_x = stod(fields[1]);
-		double ent_y = stod(fields[2]);
-		const string& contents = fields[4];
+		auto [name, ent_x, ent_y, contents] = unpack<string,double,double,string>(container, ' ');
 
 		for (const string& content : split(contents, '%'))
 		{
-			auto [item, amount] = unpack<string, size_t>(split(content,':'));
+			auto [item, amount] = unpack<string, size_t>(content,':');
 		}
 	}
 }
@@ -326,18 +302,11 @@ void FactorioGame::parse_graphics(const string& data)
 
 void FactorioGame::parse_mined_item(const string& data)
 {
-	vector<string> fields = split(data, ' ');
+	auto [id_, itemname, amount] = unpack<int, string, int>(data, ' ');
 
-	if (fields.size() != 3)
-		throw runtime_error("malformed mined_item packet");
-	
-	int id_ = stoi(fields[0]);
 	if (id_ < 0 || size_t(id_) >= players.size())
 		throw runtime_error("invalid player id in parse_mined_item()");
 	unsigned id = unsigned(id_);
-
-	string itemname = fields[1];
-	int amount = stoi(fields[2]);
 
 	if (players[id].goals)
 		players[id].goals->on_mined_item(itemname, amount);
@@ -349,16 +318,9 @@ void FactorioGame::parse_inventory_changed(const string& data)
 
 	for (const string& update : updates)
 	{
-		vector<string> fields = split(update, ',');
-
-		if (fields.size() != 4)
-			throw runtime_error("malformed parse_inventory_changed packet");
-
-		int player_id = stoi(fields[0]);
-		const string& item = fields[1];
-		int diff = stoi(fields[2]);
-		bool has_owner = fields[3]!="x";
-		int owning_action_id = has_owner ? stoi(fields[3]) : -1;
+		auto [player_id, item, diff, owner_str] = unpack<int,string,int,string>(update, ',');
+		bool has_owner = owner_str!="x";
+		int owning_action_id = has_owner ? stoi(owner_str) : -1;
 		const ItemPrototype* proto = item_prototypes.at(item).get();
 
 		TaggedAmount content = players[player_id].inventory[proto];
@@ -412,14 +374,11 @@ void FactorioGame::parse_players(const string& data)
 
 void FactorioGame::parse_action_completed(const string& data)
 {
-	vector<string> fields = split(data,' ');
-	if (fields.size() != 2)
-		throw runtime_error("malformed action_completed packet");
-	
-	if (fields[0] != "ok" && fields[0] != "fail")
+	auto [type, action_id] = unpack<string,int>(data,' ');
+
+	if (type != "ok" && type != "fail")
 		throw runtime_error("malformed action_completed packet, expected 'ok' or 'fail'");
 	
-	int action_id = stoi(fields[1]);
 	action::PrimitiveAction::mark_finished(action_id);
 }
 
@@ -430,16 +389,7 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 
 	while (getline(str, entry, '$')) if (entry!="")
 	{
-		vector<string> fields = split(entry);
-
-		if (fields.size() != 5)
-			throw runtime_error("malformed parse_entity_prototypes packet");
-
-		const string& name = fields[0];
-		const string& type = fields[1];
-		const string& collision = fields[2];
-		Area_f collision_box = Area_f(fields[3]);
-		bool mineable = stoi(fields[4]);
+		auto [name, type, collision, collision_box, mineable] = unpack<string,string,string,Area_f,bool>(entry);
 
 		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable); // no automatic memory management, because prototypes never change.
 		max_entity_radius = max(max_entity_radius, collision_box.radius());
@@ -453,18 +403,8 @@ void FactorioGame::parse_item_prototypes(const string& data)
 
 	while (getline(str, entry, '$')) if (entry!="")
 	{
-		vector<string> fields = split(entry);
 
-		if (fields.size() != 7)
-			throw runtime_error("malformed parse_item_prototypes packet");
-
-		const string& name = fields[0];
-		const string& type = fields[1];
-		const string& place_result_str = fields[2];
-		int stack_size = stoi(fields[3]);
-		double fuel_value = stod(fields[4]);
-		double speed = stod(fields[5]);
-		double durability = stod(fields[6]);
+		auto [name, type, place_result_str, stack_size, fuel_value, speed, durability] = unpack<string,string,string,int,double,double,double>(entry);
 
 		const EntityPrototype* place_result;
 		if (place_result_str != "nil")
@@ -589,15 +529,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	// parse the packet's list of objects
 	while(getline(str, entry, ',')) if (entry!="")
 	{
-		vector<string> fields = split(entry);
-
-		if (fields.size() != 4)
-			throw runtime_error("malformed parse_objects packet");
-
-		const string& name = fields[0];
-		double ent_x = stod(fields[1]);
-		double ent_y = stod(fields[2]);
-		const string& dir = fields[3];
+		auto [name,ent_x,ent_y,dir] = unpack<string,double,double,string>(entry);
 
 		if (dir.length() != 1)
 			throw runtime_error("invalid direction '"+dir+"' in parse_objects");
