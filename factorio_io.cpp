@@ -247,9 +247,20 @@ void FactorioGame::parse_item_containers(const string& data)
 	{
 		auto [name, ent_x, ent_y, contents] = unpack<string,double,double,string>(container, ' ');
 
-		for (const string& content : split(contents, '%'))
+		if (auto entity = actual_entities.search_or_null(Entity(Pos_f(ent_x,ent_y),entity_prototypes.at(name).get())))
 		{
-			auto [item, amount] = unpack<string, size_t>(content,':');
+			auto& data = entity->data<ContainerData>();
+			data.items.clear();
+
+			for (const string& content : split(contents, '%'))
+			{
+				auto [item, amount] = unpack<string, size_t>(content,':');
+				data.items.push_back({item_prototypes.at(item).get(), amount});
+			}
+		}
+		else
+		{
+			cout << "WTF, got container update from an entity which we don't know" << endl;
 		}
 	}
 }

@@ -654,4 +654,23 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				return result;
 			}
 		}
+
+		T& search(T what)
+		{
+			T* result = search_or_null(what);
+			if (result)
+				return *result;
+			else
+				throw std::runtime_error("element not present");
+		}
+
+		T* search_or_null(T what)
+		{
+			EqualComparator comp;
+			auto& vec = (*this)[Pos::tile_to_chunk(what.get_pos().to_int_floor())];
+			for (auto& t : vec)
+				if (comp(t,what))
+					return &t;
+			return nullptr;
+		}
 };

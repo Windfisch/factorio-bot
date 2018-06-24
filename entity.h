@@ -24,7 +24,12 @@
 #include <string>
 #include <memory>
 
-struct ContainerData {};
+struct ItemStack;
+struct ContainerData
+{
+	std::vector<ItemStack> items;
+};
+
 struct MachineData {};
 struct MiningDrillData {};
 
