@@ -86,6 +86,7 @@ class FactorioGame
 		void parse_action_completed(const std::string& data);
 		void parse_players(const std::string& data);
 		void parse_objects(const Area& area, const std::string& data);
+		void parse_item_containers(const std::string& data);
 		void update_walkmap(const Area& area);
 		void parse_mined_item(const std::string& data);
 		void parse_inventory_changed(const std::string& data);

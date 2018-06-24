@@ -742,8 +742,8 @@ function writeout_objects(surface, area)
 	line=nil
 end
 
-function writeout_item_storages(surface)
-	header = "item_storages *: " -- fixme: only writeout per area
+function writeout_item_containers(surface)
+	header = "item_containers: " -- fixme: only writeout per area
 	line = ''
 	lines={}
 	

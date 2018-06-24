@@ -30,6 +30,7 @@
 #include "pathfinding.hpp"
 #include "action.hpp"
 #include "util.hpp"
+#include "unpack.hpp"
 
 #define READ_BUFSIZE 1024
 
@@ -235,6 +236,8 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_mined_item(data);
 	else if (type=="inventory_changed")
 		parse_inventory_changed(data);
+	else if (type=="item_containers")
+		parse_item_containers(data);
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
 }
@@ -245,10 +248,35 @@ static vector<string> split(const string& data, char delim=' ')
 	string entry;
 	vector<string> result;
 
-	while (getline(str, entry, delim))
+	if (data.empty())
+		return result;
+
+	do {
+		getline(str, entry, delim);
 		result.push_back(std::move(entry));
+	} while (!str.eof());
 	
 	return result;
+}
+
+void FactorioGame::parse_item_containers(const string& data)
+{
+	for (const string& container : split(data, ',')) if (!container.empty())
+	{
+		vector<string> fields = split(container, ' ');
+		if (fields.size() != 4)
+			throw runtime_error("malformed packet in parse_item_containers");
+		
+		const string& name = fields[0];
+		double ent_x = stod(fields[1]);
+		double ent_y = stod(fields[2]);
+		const string& contents = fields[4];
+
+		for (const string& content : split(contents, '%'))
+		{
+			auto [item, amount] = unpack<string, size_t>(split(content,':'));
+		}
+	}
 }
 
 void FactorioGame::parse_graphics(const string& data)
