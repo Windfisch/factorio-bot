@@ -4,7 +4,7 @@ EXE=bot
 COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o gui/gui.o # objects used for $(EXE)
 
 ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o schedtest.o scheduler.o  # all objects, including those for other targets (i.e. rcon-client)
-DEBUG=1
+DEBUG=0
 
 
 MODNAME=Windfisch_0.0.1
