@@ -534,6 +534,10 @@ function on_tick(event)
 		writeout_players()
 	end
 
+	if event.tick % 120 == 0 then
+		writeout_item_containers(game.surfaces['nauvis']) -- FIXME: trigger this upon actual chest changes!
+	end
+
 	-- periodically update the objects around the player to ensure that nothing is missed
 	-- This is merely a safety net and SHOULD be unnecessary, if all other updates don't miss anything
 	if event.tick % 300 == 0 and false then -- don't do that for now, as it eats up too much cpu on the c++ part
@@ -748,15 +752,16 @@ function writeout_item_containers(surface)
 	lines={}
 	
 	local i=defines.inventory
-	local inventory_types = { i.chest_inventory, i.assembling_machine_output, i.furnace_result }
+	local inventory_types = { i.chest, i.assembling_machine_output, i.furnace_result }
 
 	-- TODO FIXME this is inefficient as hell
 	for idx, ent in pairs(surface.find_entities()) do
 		--if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
+		if ent.name ~= "player" then
 			local invtypes_present = {}
 			for _,inventory_type in ipairs(inventory_types) do
 				if ent.get_inventory(inventory_type) ~= nil then
-					table.append(invtypes_present, inventory_type)
+					table.insert(invtypes_present, inventory_type)
 				end
 			end
 			if #invtypes_present > 0 then
@@ -764,7 +769,7 @@ function writeout_item_containers(surface)
 				local itemstrs = {}
 
 				for item,amount in pairs(items) do
-					table.append(itemstrs, item.name..":"..amount)
+					table.insert(itemstrs, item..":"..amount)
 				end
 
 				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..table.concat(itemstrs,"%")
@@ -774,7 +779,7 @@ function writeout_item_containers(surface)
 					line=''
 				end
 			end
-		--end
+		end
 	end
 	table.insert(lines,line)
 	write_file(header..table.concat(lines,"").."\n")
