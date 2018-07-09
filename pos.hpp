@@ -106,4 +106,4 @@ namespace std {
 	};
 }
 
-static Pos directions4[4] = { Pos(0,-1), Pos(1,0), Pos(0,1), Pos(-1,0) };
+inline Pos directions4[4] = { Pos(0,-1), Pos(1,0), Pos(0,1), Pos(-1,0) };
