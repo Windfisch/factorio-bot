@@ -99,6 +99,18 @@ public:
 	{
 		return *mvu::get<T>(proto->data_kind, data_ptr);
 	}
+	template <typename T> T* data_or_null()
+	{
+		return mvu::get_or_null<T>(proto->data_kind, data_ptr);
+	}
+	template <typename T> const T& data() const
+	{
+		return *mvu::get<const T>(proto->data_kind, data_ptr);
+	}
+	template <typename T> const T* data_or_null() const
+	{
+		return mvu::get_or_null<const T>(proto->data_kind, data_ptr);
+	}
 
 	~Entity()
 	{

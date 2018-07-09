@@ -79,6 +79,29 @@ template <size_t I>
 		}
 	};
 
+template <typename Types, size_t I, typename S> struct is_a_helper;
+template <typename T, typename... Ts, size_t I, typename S>
+	struct is_a_helper<typelist<T, Ts...>, I, S>
+	{
+		static constexpr bool is_a(size_t type_idx)
+		{
+			if (type_idx == I)
+				return std::is_base_of<S,T>::value;
+			else
+				return is_a_helper<typelist<Ts...>, I+1, S>::is_a(type_idx);
+		}
+	};
+template <size_t I, typename S>
+	struct is_a_helper<typelist<>, I, S>
+	{
+		static constexpr bool is_a(size_t)
+		{
+			throw std::out_of_range("invalid type id");
+			return false;
+		}
+	};
+		
+
 
 // get_helper_2 is used to check whether S is convertible to T at all.
 // if yes (ok==true), then magic() checks for that type_idx;
@@ -120,7 +143,6 @@ template <typename T, size_t I>
 	{
 		static constexpr T* magic(refcount_base*, size_t)
 		{
-			throw std::invalid_argument("impossible cast requested");
 			return nullptr;
 		}
 	};
@@ -146,12 +168,21 @@ template <typename... Ts, typename... As>
 		}
 		template<typename T> static constexpr T* get(size_t type_idx, refcount_base* ptr)
 		{
+			if (T* result = detail::get_helper_1<T, 0, typelist<Ts...>>::magic(ptr, type_idx))
+				return result;
+			else
+				throw std::runtime_error("impossible cast requested");
+		}
+		template<typename T> static constexpr T* get_or_null(size_t type_idx, refcount_base* ptr)
+		{
 			return detail::get_helper_1<T, 0, typelist<Ts...>>::magic(ptr, type_idx);
 		}
 		template<typename T> static constexpr size_t index()
 		{
 			return detail::typelist_index<T, typelist<Ts...>>::value;
 		}
+		/** is_a<Foo>( index<Bar>() ) == true iif Bar is derived from or equal to Foo, and false otherwise */
+		template<typename T> static constexpr bool is_a(size_t index);
 
 		static constexpr size_t invalid_index = SIZE_MAX;
 	};
