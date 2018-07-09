@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 #include <assert.h>
+#include <iostream>
 
 using namespace sched;
 
@@ -115,4 +116,10 @@ size_t TaggedAmount::add_claim(const std::shared_ptr<Task>& task, size_t n)
 	claims.get(task).amount += std::min(available, n);
 
 	return std::min(available, n);
+}
+
+void Inventory::dump() const
+{
+	for (auto [proto,amount] : (*this))
+		std::cout << "\t" << proto->name << ": " << amount << std::endl;
 }

@@ -105,4 +105,6 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 				result[entry.first] = claimed;
 		return result;
 	}
+
+	void dump() const;
 };
