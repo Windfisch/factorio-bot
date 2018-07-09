@@ -616,7 +616,7 @@ std::ostream& operator<<(std::ostream& os, const chrono::duration<Rep,Per>& dur)
 shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_inventories, const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
 {
 	UNUSED(grace); // this is a poor man's implementation
-	const WorldList<ItemStorage>& item_storages = game->item_storages;
+	auto& world_entities = game->actual_entities;
 
 	const Player& player = game->players[player_idx];
 
@@ -650,14 +650,19 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 	// the items
 	Pos last_pos = player.position;
 	const int ALLOWED_DISTANCE = 2;
-	for (const auto& chest : item_storages.around(player.position))
+	for (const auto& potential_container : world_entities.around(player.position))
 	{
+		const ContainerData* data = potential_container.data_or_null<ContainerData>();
+		if (!data)
+			continue; // this is not a container
+		const auto& container = potential_container;
+
 		// exit condition: if the chest is outside of a
 		// (remaining_walktime + walktime(player.pos -> last_pos))-radius
 		// from the center "player.pos", then it's guaranteed to be outside of
 		// a (remaining_walktime)-radius from last_pos as well. in that case,
 		// we're done.
-		if (walk_duration_approx(last_pos, chest.entity.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
+		if (walk_duration_approx(last_pos, container.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
 		{
 			cout << "aborting due to duration approximation" << endl;
 			break;
@@ -669,7 +674,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		// check whether the chest is useful for any missing item.
 		// if so, set relevant = true and construct the chest goal
 		// if not, chest_goal will be deleted at the end of this scope.
-		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player.id, chest.entity.pos, ALLOWED_DISTANCE));
+		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
 
 		auto new_missing_items = missing_items;
 		cout << "missing: ";
@@ -682,15 +687,15 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			cout << stack.proto->name << "(" << stack.amount << "), ";
 			missing_anything = true;
 
-			auto iter = chest.inventory.find(stack.proto);
-			if (iter == chest.inventory.end())
+			auto iter = data->items.find(stack.proto);
+			if (iter == data->items.end())
 				continue;
 
 			size_t take_amount = min(iter->second, stack.amount);
 			stack.amount -= take_amount;
 			chest_goal->subgoals.push_back(make_unique<action::TakeFromInventory>(
 				game, player.id, stack.proto->name,
-				take_amount, chest.entity, INV_CHEST));
+				take_amount, container, INV_CHEST));
 			relevant = true;
 		}
 		cout << endl;
@@ -703,10 +708,10 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 		if (relevant)
 		{
-			cout << "calculating path from " << last_pos.str() << " to " << chest.entity.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
+			cout << "calculating path from " << last_pos.str() << " to " << container.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
 			// check if this chest is actually close enough
 			auto path = a_star(
-				last_pos, chest.entity.pos,
+				last_pos, container.pos,
 				game->walk_map,
 				ALLOWED_DISTANCE, 0.,
 				walk_distance_in_time(max_duration - time_spent)
@@ -718,7 +723,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			
 			if (time_spent + chest_duration <= max_duration)
 			{
-				cout << "visiting chest at " << chest.entity.pos.str() << " for ";
+				cout << "visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_goal->subgoals)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
 						cout << action->item << "(" << action->amount << "), ";
@@ -728,8 +733,8 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 					" sec remaining)" << endl;
 
 				result->actions.subgoals.push_back(move(chest_goal));
-				result->end_location = chest.entity.pos;
-				last_pos = chest.entity.pos;
+				result->end_location = container.pos;
+				last_pos = container.pos;
 				time_spent += chest_duration;
 
 				missing_items = move(new_missing_items);
@@ -737,7 +742,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			// else: we can't afford going there. maybe try somewhere else.
 			else
 			{
-				cout << "not visiting chest at " << chest.entity.pos.str() << " for ";
+				cout << "not visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_goal->subgoals)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
 						cout << action->item << "(" << action->amount << "), ";
@@ -750,7 +755,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		// else: chest_goal goes out of scope and is deleted
 		else
 		{
-			cout << "not visiting chest at " << chest.entity.pos.str() << " (irrelevant)" << endl;
+			cout << "not visiting chest at " << container.pos.str() << " (irrelevant)" << endl;
 		}
 	}
 

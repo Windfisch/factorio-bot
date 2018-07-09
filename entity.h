@@ -21,13 +21,14 @@
 #include "pos.hpp"
 #include "multivariant.hpp"
 #include "defines.h"
+#include "inventory.hpp"
 #include <string>
 #include <memory>
 
 struct ItemStack;
 struct ContainerData
 {
-	std::vector<ItemStack> items;
+	Inventory items;
 };
 
 struct MachineData {};

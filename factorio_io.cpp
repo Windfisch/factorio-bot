@@ -255,12 +255,14 @@ void FactorioGame::parse_item_containers(const string& data)
 			for (const string& content : split(contents, '%'))
 			{
 				auto [item, amount] = unpack<string, size_t>(content,':');
-				data.items.push_back({item_prototypes.at(item).get(), amount});
+				auto [_,inserted] = data.items.insert(pair{item_prototypes.at(item).get(), amount});
+				if (!inserted)
+					throw runtime_error("malformed parse_item_containers packet: duplicate item");
 			}
 		}
 		else
 		{
-			cout << "WTF, got container update from an entity which we don't know" << endl;
+			cout << "WTF, got container update from an entity which we don't know... ignoring it for now" << endl;
 		}
 	}
 }
