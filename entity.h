@@ -38,9 +38,9 @@ using mvu = multivariant_utils<typelist<ContainerData, MachineData, MiningDrillD
 struct EntityPrototype
 {
 	std::string name;
+	Area_f collision_box;
 	bool collides_player;
 	bool collides_object;
-	Area_f collision_box;
 	bool mineable;
 	size_t data_kind;
 
