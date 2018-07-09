@@ -158,6 +158,7 @@ class MapBox : public Fl_Box
 		Pos zoom_transform(const Pos& p, int factor);
 		Pos zoom_transform(const Pos_f& p, int factor);
 		void give_info(const Pos& pos);
+		void give_detailed_info(const Pos& pos);
 
 		void draw_box(const Pos& center, int radius, const Color& col);
 
@@ -259,6 +260,21 @@ void MapBox::give_info(const Pos& pos)
 	     cout << endl;
 }
 
+void MapBox::give_detailed_info(const Pos& pos)
+{
+	auto around = gui->game->actual_entities.around(pos);
+	auto first = around.begin();
+	if (first == around.end())
+	{
+		cout << "no entities around the cursor" << endl;
+		return;
+	}
+	const Entity& entity = *first;
+	cout << "Entity of type '" << entity.proto->name << "' at " << entity.pos.str() << endl;
+	if (const auto* data = entity.data_or_null<ContainerData>())
+		data->items.dump();
+}
+
 int MapBox::handle(int event)
 {
 	const Pos mouse = Pos(Fl::event_x(), Fl::event_y()) - Pos(imgwidth/2, imgheight/2) - Pos(x(),y());
@@ -314,6 +330,9 @@ int MapBox::handle(int event)
 				case 'p': // display patch type
 					display_patch_type = !display_patch_type;
 					redraw();
+					break;
+				case 'i': // detailed info
+					give_detailed_info(zoom_transform(mouse-canvas_center, zoom_level));
 					break;
 				case 'm': // debug mine planning
 				{
