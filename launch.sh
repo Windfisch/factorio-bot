@@ -55,7 +55,7 @@ case "$ACTION" in
 esac
 
 
-if ( [ $ACTION == --start ] || [ $ACTION == --stop ] || [ $ACTION == --run ] ) && [ ! -d "$INSTALLPATH/$TARGET" ]; then
+if ( [ $ACTION == --start ] || [ $ACTION == --stop ] || [ $ACTION == --run ] ) && [ ! -d "$INSTALLPATH/$TARGET" ] && [ "$TARGET" != offline ]; then
 	echo "ERROR: target '$TARGET' does not exist."
 	echo -n '      available targets are '; ( cd "$INSTALLPATH" && echo */ | sed 's./..g'; )
 	exit 1
@@ -102,7 +102,12 @@ if [ $ACTION == --start ] || [ $ACTION == --run ]; then
 	echo "launching target '$TARGET'"
 	rm -f "$JOINFILE"
 
-	if [ $TARGET == server ]; then
+	if [ $TARGET == offline ]; then
+		TARGET=server
+		rm -f "$INSTALLPATH/$TARGET/script-output"/*.txt
+		"$INSTALLPATH/$TARGET"/bin/x64/factorio --load-game "$MAP"
+		exit $?
+	elif [ $TARGET == server ]; then
 		rm -f "$INSTALLPATH/$TARGET/script-output"/*.txt
 		"$INSTALLPATH/$TARGET"/bin/x64/factorio --start-server "$MAP" --rcon-port "$RCON_PORT" --rcon-password "$RCON_PASS" --server-settings "$INSTALLPATH/server-settings.json" &
 		PID=$!
