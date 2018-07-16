@@ -76,7 +76,7 @@ struct Task
 	// for some reason.
 	// if de-scheduling this task (i.e. replacing the current task by something
 	// else, then it's only written back to pending_tasks if is_dependent is false.
-	bool is_dependent;
+	bool is_dependent = false;
 	std::weak_ptr<Task> owner;
 
 	CraftingList crafting_list;
