@@ -293,6 +293,13 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 
 }
 
+static Entity make_chest(Pos_f pos, Inventory inventory)
+{
+	Entity result { pos, &entities.chest };
+	result.data<ContainerData>().items = inventory;
+	return result;
+}
+
 int main()
 {
 
@@ -315,19 +322,19 @@ int main()
 	game.players[playerid].id = playerid;
 	game.players[playerid].connected = true;
 
-	game.item_storages.insert( ItemStorage{
-		Entity{ {10,-2}, &entities.chest},
+	game.actual_entities.insert(make_chest(
+		{10,-2},
 		{	{&items.belt, 821},
-		 	{&items.copper, 17} } });
-	game.item_storages.insert( ItemStorage{
-		Entity{ {100,30}, &entities.chest},
-		{	{&items.iron, 513} } });
-	game.item_storages.insert( ItemStorage{
-		Entity{ {10,70}, &entities.chest},
-		{	{&items.copper, 513} } });
-	game.item_storages.insert( ItemStorage{
-		Entity{ {1000,7000}, &entities.chest},
-		{	{&items.stone, 0} } });
+		 	{&items.copper, 17} } ));
+	game.actual_entities.insert(make_chest(
+		{100,30},
+		{	{&items.iron, 513} } ));
+	game.actual_entities.insert(make_chest(
+		{10,70},
+		{	{&items.copper, 513} } ));
+	game.actual_entities.insert(make_chest(
+		{1000,7000},
+		{	{&items.stone, 0} } ));
 
 	//sched::Scheduler sched(&game, playerid);
 
