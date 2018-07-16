@@ -58,7 +58,9 @@ MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 all: compile_commands.json $(EXE) rcon-client schedtest
 
 clean:
-	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d) depend compile_commands.json
+	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d)
+distclean: clean
+	rm -f depend compile_commands.json
 
 test: $(EXE)
 	make -C test clean all
@@ -119,6 +121,7 @@ $(DATAFILE): $(MODDESTS) $(SAVEGAME) $(SERVERSETTINGS)
 
 # Build system
 
+.PRECIOUS: config.mk
 config.mk:
 	echo 'FACTORIODIR=/path/to/factorio' > $@
 	echo 'COMPILER=GCC' >> $@

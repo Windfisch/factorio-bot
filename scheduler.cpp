@@ -322,7 +322,7 @@ static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_
 	tick_seconds = max(tick_seconds, 1);
 	auto tick_duration = chrono::duration_cast<Clock::duration>(chrono::seconds(tick_seconds));
 	int lastcol = 0;
-	int tickval;
+	int tickval = -1;
 	int tickid = 0;
 	for (auto i = Clock::duration::zero(); i < last_offset; i+=tick_duration, tickid++)
 	{
@@ -469,7 +469,7 @@ shared_ptr<Task> Scheduler::get_next_task(const item_allocation_t& task_inventor
 {
 	const Player& player = game->players[player_idx];
 	// FIXME: use proper calculation function
-	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float radius) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
+	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float /*radius*/) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
 	
 	/*// TODO move this somewhere else!

@@ -7,10 +7,8 @@
 
 #include "task.hpp"
 #include "inventory.hpp"
-#include "player.h"
 #include "action.hpp"
 #include "recipe.h"
-#include "worldlist.hpp" // FIXME remove
 
 class FactorioGame;
 

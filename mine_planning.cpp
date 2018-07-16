@@ -229,6 +229,8 @@ template <typename T> void dump(const vector<vector<T>>& vecs, string name = "")
 static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_)
 {
 	assert(-outery < ystart && ystart <= 0);
+	assert(innerx < outerx);
+	assert(innery < outery);
 
 	cout << "laying out with ystart = " << ystart << endl;
 	cout << "  ";
@@ -486,30 +488,3 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 
 	return result;
 }
-
-
-static void rect(vector<bool>& v, Pos size, Pos lt, Pos rb, bool val) //DEBUG
-{
-	for (int x=lt.x; x<rb.x; x++)
-		for (int y=lt.y; y<rb.y; y++)
-			v[x*size.y + y] = val;
-}
-
-#if 0
-FIXME remove this
-typedef vector<size_t> v;
-int main()
-{
-	auto result = plan_belts( { v(5), v(5),    v(6), v(2),   v(1), v(4),   v(3), v(3) }, 11, false);
-	for (auto x : result) cout << x << " ";
-	cout << endl;
-
-	Pos size(25,25);
-	vector<bool> grid(size.x*size.y, true);
-	rect(grid, size, Pos(10,0), Pos(12,7), false);
-	rect(grid, size, Pos(14,0), Pos(20,7), false);
-	rect(grid, size, Pos(13,17), Pos(22,25), false);
-
-	plan_rectgrid_belt_horiz_ystart(grid, size, /*ystart*/ 0, 5, 5, 3, 3, 10, /*preferred_y_out*/ 8, WEST);
-}
-#endif

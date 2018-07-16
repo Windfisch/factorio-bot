@@ -337,7 +337,6 @@ int MapBox::handle(int event)
 				case 'm': // debug mine planning
 				{
 					auto pos = zoom_transform(mouse-canvas_center, zoom_level);
-					const pathfinding::walk_t& info = gui->game->walk_map.at(pos);
 					const Resource& res = gui->game->resource_map.at(pos);
 					auto patch = res.resource_patch.lock();
 					

@@ -106,4 +106,7 @@ namespace std {
 	};
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-variable-declarations"
 inline Pos directions4[4] = { Pos(0,-1), Pos(1,0), Pos(0,1), Pos(-1,0) };
+#pragma GCC diagnostic pop

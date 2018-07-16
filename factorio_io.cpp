@@ -30,6 +30,7 @@
 #include "action.hpp"
 #include "util.hpp"
 #include "split.hpp"
+#include "safe_cast.hpp"
 
 #define READ_BUFSIZE 1024
 
@@ -346,11 +347,11 @@ void FactorioGame::parse_inventory_changed(const string& data)
 			if (owner_task)
 			{
 				size_t added = content.add_claim(owner_task, diff);
-				if (added != diff)
+				if (added != safe_cast<size_t>(diff))
 					throw runtime_error("inventory desync detected: game added "+to_string(diff)+"x '"+item+"' with an owning task, but only "+to_string(added)+" could be claimed");
 			}
 			else
-				cout << "could not find task associated with action id " << owning_action_id << endl;
+				cout << "ERROR: could not find task associated with action id " << owning_action_id << endl;
 		}
 	}
 }
