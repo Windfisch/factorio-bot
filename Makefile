@@ -7,7 +7,7 @@ ALLTESTS=test/worldlist test/scheduler
 
 # all objects, including those for other targets (i.e. rcon-client)
 ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o scheduler.o $(addsuffix .o,$(ALLTESTS))
-DEBUG=1
+DEBUG=0
 
 
 MODNAME=Windfisch_0.0.1
@@ -15,7 +15,7 @@ MODSRCS=$(addprefix luamod/$(MODNAME)/,control.lua data.lua info.json prototypes
 
 
 
-DEBUGFLAGS = -O0 -g -D_GLIBCXX_DEBUG #-fsanitize=undefined,address
+DEBUGFLAGS = -O2 -g -D_GLIBCXX_DEBUG -fsanitize=undefined,address
 FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++17
 CFLAGS_BASE = -std=c99
@@ -56,9 +56,9 @@ LIBS=$(shell fltk-config --ldflags --use-images)
 MODDESTS=$(MODSRCS:luamod/%=$(FACTORIODIR)/mods/%)
 
 # Pseudotargets
-.PHONY: all clean run info mod help test
+.PHONY: all clean run info mod help test build_tests run_tests
 
-all: compile_commands.json $(EXE) rcon-client schedtest
+all: compile_commands.json $(EXE) rcon-client
 
 clean:
 	rm -f $(EXE) $(ALLOBJECTS) $(ALLOBJECTS:.o=.d)

@@ -9,3 +9,4 @@ botconfig.conf
 *.swp
 config.mk
 bot
+compile_commands.json

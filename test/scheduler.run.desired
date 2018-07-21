@@ -1,0 +1,219 @@
+task #0 -> crafting_list.time_remaining() = 15000ms
+task #1 -> crafting_list.time_remaining() = 290000ms
+task #2 -> crafting_list.time_remaining() = 50000ms
+queueing task 'task #1' with duration 290s and max_granted 29s
+queueing task 'task #0' with duration 15s and max_granted 30s
+	task #0 skips task #1 which now has granted 15s of max 29s
+queueing task 'task #2' with duration 50s and max_granted 35s
+	task #2 may not skip task #1 which has already granted 15s of max 29s. we have requested 50s more
+dumping crafting_order:
+	task task #0 with priority 42 has eta = 15s of which 0s have already passed
+	task task #1 with priority 17 has eta = 305s of which 0s have already passed
+	task task #2 with priority 99 has no eta yet
+got 20 crafts
+	craft circuit for task task #0
+	craft machine for task task #0
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+	craft furnace for task task #1
+
+
+================================================================================
+
+task 'greedy task' is missing the following items:
+	iron: 17
+	belt: 42
+	(end)
+
+task 'crafting task' is missing the following items:
+	iron: 46
+	copper: 18
+	(end)
+
+task 'overcrafting task' is missing the following items:
+	iron: 46
+	copper: 24
+	(end)
+
+task 'undercrafting task' is missing the following items:
+	iron: 46
+	copper: 12
+	coppercable: 4
+	(end)
+
+task 'modest task' is missing the following items:
+	(end)
+
+--------------------------------------------------------------------------------
+testing with the following tasks: modest task(100) 
+queueing task 'modest task' with duration 0s and max_granted 0s
+desired schedule:
+<============================= 0 modest task 120 ==============================>
+|     .      .      .     .      :      .     .      .      .     |      . 110 sec
+actual schedule:
+ <============================= 2 modest task 122 =============================>
+|     .      .     .      .     :      .     .      .     .      |     .      . 120 sec
+-> okay :)
+next task is modest task
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+testing with the following tasks: crafting task(44) 
+queueing task 'crafting task' with duration 43s and max_granted 4s
+missing: iron(46), copper(18), 
+calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
+	->10
+visiting chest at 10.000000,-2.000000 for copper(17),  with a cost of 1 sec (9223372036 sec remaining)
+missing: iron(46), copper(1), 
+calculating path from 10,-2 to 10.000000,70.000000 with a length limit of 8.21074e+10
+	->71
+visiting chest at 10.000000,70.000000 for copper(1),  with a cost of 7 sec (9223372035 sec remaining)
+missing: iron(46), 
+calculating path from 10,70 to 100.000000,30.000000 with a length limit of 8.21074e+10
+	->90
+visiting chest at 100.000000,30.000000 for iron(46),  with a cost of 11 sec (9223372027 sec remaining)
+missing: 
+we've got everything we need
+desired schedule:
+<================= 0 resource collector for crafting task 20 ==================>
+|  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
+actual schedule:
+<================= 0 resource collector for crafting task 20 ==================>
+|  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
+-> okay :)
+next task is resource collector for crafting task
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+testing with the following tasks: greedy task(42) 
+queueing task 'greedy task' with duration 0s and max_granted 0s
+missing: iron(17), belt(42), 
+calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
+	->10
+visiting chest at 10.000000,-2.000000 for belt(42),  with a cost of 1 sec (9223372036 sec remaining)
+missing: iron(17), 
+not visiting chest at 10.000000,70.000000 (irrelevant)
+missing: iron(17), 
+calculating path from 10,-2 to 100.000000,30.000000 with a length limit of 8.21074e+10
+	->90
+visiting chest at 100.000000,30.000000 for iron(17),  with a cost of 11 sec (9223372035 sec remaining)
+missing: 
+we've got everything we need
+desired schedule:
+<================== 0 resource collector for greedy task 12 ===================>
+|     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
+actual schedule:
+<================== 0 resource collector for greedy task 12 ===================>
+|     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
+-> okay :)
+next task is resource collector for greedy task
+
+--------------------------------------------------------------------------------
+
+now with some inventory
+--------------------------------------------------------------------------------
+testing with the following tasks: modest task(100) crafting task(44) 
+queueing task 'crafting task' with duration 43s and max_granted 4s
+queueing task 'modest task' with duration 0s and max_granted 4s
+	modest task skips crafting task which now has granted 0s of max 4s
+desired schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+-> okay :)
+desired schedule:
+<================== 0 modest task 120 ===================>
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+<========= 2 modest task 122 ==========>
+                                        <======= 125 crafting task 245 ========>
+|  .  .  .   .  :  .  .   .  .  |  .   .  .  .  :   .  .  .  .   |  .  .  .   . 240 sec
+-> not okay, reverting
+next task is <null>
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+testing with the following tasks: quick_modest task(100) crafting task(44) 
+queueing task 'crafting task' with duration 43s and max_granted 4s
+queueing task 'quick_modest task' with duration 0s and max_granted 4s
+	quick_modest task skips crafting task which now has granted 0s of max 4s
+desired schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+-> okay :)
+desired schedule:
+<=====================> 0 quick_modest task 47
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+ <====================> 2 quick_modest task 49
+                        <================ 52 crafting task 172 ================>
+|   .    .   .    .    :   .    .    .   .    |   .    .    .   .    :    .   . 170 sec
+-> okay :)
+next task is quick_modest task
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+testing with the following tasks: far important task(1) 
+queueing task 'far important task' with duration 0s and max_granted 0s
+desired schedule:
+        <======================= 0 far important task 4 =======================>
+|                .                 .                 .                 . 4 sec
+actual schedule:
+                                             28 far important task 32 <========>
+| . .  . .  : .  . .  . |  . .  . .  : .  . .  . |  . . .  . :  . .  . .  | .  . 32 sec
+-> okay :)
+next task is far important task
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+testing with the following tasks: crafting task(44) far nice task(100) 
+queueing task 'crafting task' with duration 43s and max_granted 4s
+queueing task 'far nice task' with duration 0s and max_granted 4s
+	far nice task skips crafting task which now has granted 0s of max 4s
+desired schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+-> okay :)
+desired schedule:
+<> 0 far nice task 4
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+actual schedule:
+             <> 28 far nice task 32
+                     <================= 43 crafting task 163 ==================>
+|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+-> okay :)
+next task is far nice task
+
+--------------------------------------------------------------------------------
+
