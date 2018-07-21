@@ -119,4 +119,32 @@ template <typename T, typename U=T> struct weak_ptr_equal
 	}
 };
 
+template <typename Container, typename Comparator = std::equal_to<typename Container::value_type>>
+	std::vector< std::pair<size_t, typename Container::value_type> > compact_sequence(const Container& sequence)
+	{
+		std::vector< std::pair<size_t, typename Container::value_type> > result;
+
+		if (sequence.empty())
+			return result;
+
+		typename Container::value_type last = *sequence.begin();
+		size_t count = 0;
+
+		for (const typename Container::value_type iter : sequence)
+		{
+			if (iter == last)
+				count++;
+			else
+			{
+				result.emplace_back(count, last);
+				count = 1;
+				last = iter;
+			}
+		}
+
+		result.emplace_back(count, last);
+
+		return result;
+	}
+
 #pragma GCC diagnostic pop
