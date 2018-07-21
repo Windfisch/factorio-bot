@@ -61,19 +61,124 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 	return task_inventories;
 }
 
-void Scheduler::tick()
+void Scheduler::recalculate()
 {
-	auto item_allocation = allocate_items_to_tasks();
+	current_item_allocation = allocate_items_to_tasks();
 
 	// calculate crafting order and ETAs
-	update_crafting_order(item_allocation);
+	update_crafting_order(current_item_allocation);
+	
+	current_schedule = calculate_schedule(current_item_allocation, chrono::seconds(10) /*FIXME magic number*/);
+	current_crafting_list = calculate_crafts(current_item_allocation, 20);
 
-	// calculate next task
-	get_next_task(item_allocation);
+	calculation_timestamp = Clock::now();
+}
 
-	// TODO FIXME: crafting order grocery sort should never allow tasks to skip that can't fully
-	// craft.
-	// TODO FIXME: crafting order update may not change the currently running craft.
+optional<Scheduler::owned_recipe_t> Scheduler::peek_current_craft()
+{
+	if (current_crafting_list.empty())
+	{
+		current_crafting_list = calculate_crafts(current_item_allocation, 20);
+		if (current_crafting_list.empty())
+			return nullopt;
+	}
+	return current_crafting_list.front();
+}
+
+void Scheduler::accept_current_craft()
+{
+	assert(!current_crafting_list.empty());
+	shared_ptr<Task> task = current_crafting_list.front().first.lock();
+	const Recipe* recipe = current_crafting_list.front().second;
+
+	for (auto& craft : task->crafting_list.recipes)
+		if (craft.status == CraftingList::PENDING && craft.recipe == recipe)
+		{
+			craft.status = CraftingList::CURRENT;
+			task->crafting_list.invariant();
+			return;
+		}
+	
+	throw logic_error("internal error: tried to accept a craft that's not available in the task");
+}
+
+void Scheduler::retreat_current_craft(owned_recipe_t what)
+{
+	shared_ptr<Task> task = what.first.lock();
+	const Recipe* recipe = what.second;
+	task->invariant();
+
+	for (auto& craft : task->crafting_list.recipes)
+		if (craft.status == CraftingList::CURRENT && craft.recipe == recipe)
+		{
+			craft.status = CraftingList::PENDING;
+			return;
+		}
+	
+	throw logic_error("internal error: tried to retreat from a craft that's not available in the task");
+}
+
+void Scheduler::confirm_current_craft(owned_recipe_t what)
+{
+	shared_ptr<Task> task = what.first.lock();
+	const Recipe* recipe = what.second;
+	task->invariant();
+
+	for (auto& craft : task->crafting_list.recipes)
+		if (craft.status == CraftingList::CURRENT && craft.recipe == recipe)
+		{
+			craft.status = CraftingList::FINISHED;
+			return;
+		}
+	
+	throw logic_error("internal error: tried to confirm a craft that's not available in the task");
+}
+
+
+
+shared_ptr<Task> Scheduler::get_current_task()
+{
+	Clock::time_point now = Clock::now();
+	Clock::duration elapsed_since_calculation = now - calculation_timestamp;
+
+	if (current_schedule.empty())
+		return nullptr;
+	
+	auto offset = current_schedule.begin()->first.first;
+	shared_ptr<Task> task = current_schedule.begin()->second;
+
+	if (elapsed_since_calculation + chrono::seconds(10) /*FIXME magic number*/ >= offset)
+		return task;
+	else
+		return nullptr;
+}
+
+multimap<int, std::shared_ptr<Task>>::iterator Scheduler::find_task(shared_ptr<Task> task)
+{
+	invariant(); // we rely on key == value.priority
+	
+	auto [begin,end] = pending_tasks.equal_range(task->priority());
+	for (auto iter = begin; iter != end; iter++)
+	{
+		if (iter->second == task)
+			return iter;
+	}
+	return pending_tasks.end();
+}
+
+void Scheduler::add_task(shared_ptr<Task> task)
+{
+	// no task may be inserted twice
+	assert(find_task(task) == pending_tasks.end());
+	pending_tasks.insert({task->priority(),task});
+}
+
+void Scheduler::remove_task(shared_ptr<Task> task)
+{
+	if (auto iter = find_task(task); iter != pending_tasks.end())
+		pending_tasks.erase(iter);
+	else
+		cout << "WARNING: tried to remove a nonexistent task!" << endl;
 }
 
 
@@ -157,6 +262,9 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 	// precedessors will approve unless their total time_granted exceeds 10% of
 	// their own waittime until completion (which is the sum of the time_remaining()
 	// of themselves and all their predecessors)
+	// TODO FIXME: only let tasks that have enough items to actually perform all
+	// their crafts skip the queue. alternatively, only account for the crafting
+	// times that can actually happen with the current inventory / item attribution
 	auto cumulative_time_remaining = Clock::duration::zero();
 
 	for (auto& iter : pending_tasks)
@@ -226,9 +334,9 @@ void Scheduler::update_crafting_order(const item_allocation_t& task_inventories)
 
 /** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
  */
-vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(const item_allocation_t& task_inventories, size_t max_n)
+vector<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocation_t& task_inventories, size_t max_n)
 {
-	vector<pair<weak_ptr<Task>,const Recipe*>> result;
+	vector<owned_recipe_t> result;
 
 	for (auto& task_w : crafting_order)
 	{
@@ -239,7 +347,7 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(const item
 			continue;
 
 		// iterate over each not-yet-finished craft in the current task's crafting list
-		// and add all crafts  which we will be able to perform it with our current inventory
+		// and add all crafts which we will be able to perform it with our current inventory
 		// (taking into account the inventory changes made by previous crafts)
 		for (auto& entry : crafts.recipes)
 		{
@@ -259,6 +367,7 @@ vector<pair<weak_ptr<Task>,const Recipe*>> Scheduler::get_next_crafts(const item
 					break;
 				case CraftingList::CURRENT:
 					available_inventory.apply(entry.recipe, true);
+					result.emplace_back(task, entry.recipe);
 					break;
 			}
 		}
@@ -269,11 +378,7 @@ finish:
 }
 
 
-
-using schedule_key_t = pair<Clock::duration, Task::priority_t>;
-using schedule_t = multimap< schedule_key_t, shared_ptr<Task> >;
-
-static void dump_schedule(const schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
+static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
 {
 	if (schedule.empty())
 		return;
@@ -374,7 +479,7 @@ public:
 	 *  starting point exceeds the originally scheduled starting point by too much, the schedule
 	 *  is considered unacceptable and false is returned.
 	 */
-	bool operator()(const schedule_t& schedule)
+	bool operator()(const Scheduler::schedule_t& schedule)
 	{
 		// TODO: support multiple start/endlocations, greedily select the closest start location
 		// task wants to start right now
@@ -412,10 +517,10 @@ public:
 	}
 	
 	/** returns a real-world-valid timetable, i.e. one where no tasks overlap */
-	schedule_t sanitize(const schedule_t& schedule)
+	Scheduler::schedule_t sanitize(const Scheduler::schedule_t& schedule)
 	{
 		// TODO FIXME duplicate code
-		schedule_t result;
+		Scheduler::schedule_t result;
 		// TODO: support multiple start/endlocations, greedily select the closest start location
 		Clock::duration prev_finished_offset = Clock::duration::zero();
 		Pos last_location = start_location;
@@ -457,39 +562,38 @@ private:
 };
 
 
-/** returns a pointer (or nullptr) to a task which may or may not be contained in the pending_tasks queue.
-  * If it is contained, then this task has or will have its requirements fulfilled at the time
-  * it reaches the task location.
-  * If the returned task is not contained, this is a item-collecting task. It will never
-  * reside in the pending_tasks list, but only in the current_task field. It may be safely
-  * removed from there (which should call its destructor), and will be regenerated if neccessary.
-  * TODO: what to do with crafts?
+/** returns a pointer (or nullptr) to a task which may or may not be contained
+  * in the pending_tasks queue.
+  * If it is contained, then this task has or will have its requirements
+  * fulfilled at the time it reaches the task location.
+  * If the returned task is not contained, this is a item-collecting task. It
+  * will never reside in the pending_tasks list, but only in the current_task
+  * field. It may be safely removed from there (which should call its
+  * destructor), and will be regenerated if neccessary.
   */
 shared_ptr<Task> Scheduler::get_next_task(const item_allocation_t& task_inventories)
+{
+	const auto eta_threshold = chrono::seconds(10);
+	schedule_t schedule = calculate_schedule(task_inventories, eta_threshold);
+	if (schedule.empty())
+		return nullptr;
+	else
+	{
+		Clock::duration task_eta = schedule.begin()->first.first;
+		if (task_eta > eta_threshold)
+			return nullptr;
+		else
+			return schedule.begin()->second;
+	}
+}
+
+Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& task_inventories, Clock::duration eta_threshold)
 {
 	const Player& player = game->players[player_idx];
 	// FIXME: use proper calculation function
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float /*radius*/) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
 	schedule_t schedule;
 	
-	/*// TODO move this somewhere else!
-	for (auto& entry : pending_tasks)
-	{
-		// Maybe recalculate, our crafting_list. I.e. what items from
-		// required_items should be fetched from a chest, and which
-		// should be crafted. This method will most likely just return
-		// and re-use the cached path. (Except for the first call, where
-		// no cached value is available yet)
-		task.recalc_crafting_path();
-
-
-		// If the player has useful "free for all"-items in the inventory,
-		// grab them. This is fine, because all higher-priority tasks
-		// have already executed this loop and grabbed their items, so
-		// we're not stealing them.
-		task.claim_available_items();
-	}*/
-
 	for (const auto& [prio, pending_task]  : pending_tasks)
 	{
 		shared_ptr<Task> task;
@@ -553,15 +657,15 @@ shared_ptr<Task> Scheduler::get_next_task(const item_allocation_t& task_inventor
 		{
 			cout << "-> okay :)" << endl;
 			// the Task can be scheduled in `eta`.
-			if (eta <= chrono::seconds(10)) // FIXME magic value
+			if (eta <= eta_threshold) // FIXME magic value
 			{
-				return task;
+				return schedule;
 			}
 		}
 
 		assert(check_schedule(schedule));
 	}
-	return nullptr;
+	return schedule;
 }
 
 
