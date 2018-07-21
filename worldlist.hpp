@@ -436,7 +436,15 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				around_iterator() : parent(nullptr) {}
 
 				// copy-ctor
-				around_iterator(const around_iterator<is_const>&) = default;
+				around_iterator(const around_iterator<is_const>& other)
+				{
+					this->parent = other.parent;
+					this->center = other.center;
+					this->inner_radius = other.inner_radius;
+					this->outer_radius = other.outer_radius;
+					this->worklist = other.worklist;
+					this->worklist_iterator = this->worklist.begin() + (other.worklist_iterator - other.worklist.begin());
+				}
 
 				bool operator==(around_iterator<is_const> other) const
 				{
