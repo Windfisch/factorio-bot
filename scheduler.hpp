@@ -96,6 +96,16 @@ struct Task
 	// after `duration` has passed, we'll end up here, free for other tasks
 	Pos end_location; // last goal's location
 
+	/** List of items that must be in the inventory allocated to this task
+	  * in order to be executed.
+	  *
+	  * This is usually not the list of items that need to be collected
+	  * (which depends on crafting_list and can be computed through
+	  * the items_balance() member function).
+	  *
+	  * \see crafting_list
+	  * \see items_balance
+	  */
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
 	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), actions(game_,player_) {}
@@ -143,9 +153,9 @@ struct Task
 	// crafting_list, and then supply all items listed in required_items
 	bool check_inventory(Inventory inventory) const;
 	
-	// returns a list of items needed to a) fully execute the crafting_list and
-	// b) have all required_items afterwards.
-	std::map<const ItemPrototype*, signed int> missing_items() const;
+	/** returns the items balance needed to fulfill the required_items after executing the crafting_list.
+	  * positive values signify items that need to be collected, negative values mean leftover items */
+	std::map<const ItemPrototype*, signed int> items_balance() const;
 
 	// returns a list of items missing from the given inventory, that are required
 	// to a) fully execute the crafting_list and b) have all required_items afterwards.

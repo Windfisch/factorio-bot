@@ -187,7 +187,7 @@ void Scheduler::remove_task(shared_ptr<Task> task)
 
 // crafting order is stable upon inventory change.
 
-map<const ItemPrototype*, signed int> Task::missing_items() const
+map<const ItemPrototype*, signed int> Task::items_balance() const
 {
 	map<const ItemPrototype*, signed int> needed;
 
@@ -220,7 +220,7 @@ map<const ItemPrototype*, signed int> Task::missing_items() const
 
 std::vector<ItemStack> Task::get_missing_items(Inventory inventory) const
 {
-	auto needed = missing_items();
+	auto needed = items_balance();
 	
 	vector<ItemStack> missing;
 	for (auto [item, needed_amount] : needed)
@@ -233,7 +233,7 @@ std::vector<ItemStack> Task::get_missing_items(Inventory inventory) const
 
 bool Task::check_inventory(Inventory inventory) const
 {
-	auto needed = missing_items();
+	auto needed = items_balance();
 	
 	for (auto [item, needed_amount] : needed)
 	{
