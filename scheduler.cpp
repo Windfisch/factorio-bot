@@ -187,6 +187,38 @@ void Scheduler::remove_task(shared_ptr<Task> task)
 
 // crafting order is stable upon inventory change.
 
+void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const FactorioGame* game)
+{
+	crafting_list.recipes.clear();
+	
+	while (true)
+	{
+		auto balance = items_balance();
+
+		// try to find a balance item that's not mentioned in basic_items
+		auto iter = find_if(balance.begin(), balance.end(),
+			[&basic_items](const auto& val) {
+				return val.second > 0 && find(basic_items.begin(), basic_items.end(), val.first) == basic_items.end();
+			}
+		);
+		
+		// not found one? good, we're done.
+		if (iter == balance.end())
+			break;
+
+		// found one? we need to add recipes to the crafting_list
+		const ItemPrototype* item_to_craft = iter->first;
+		int amount_needed = iter->second;
+
+		const Recipe* recipe = game->get_recipe_for(item_to_craft);
+		int amount_per_recipe = recipe->balance_for(item_to_craft);
+
+		int n_recipes = (amount_needed + amount_per_recipe - 1) / amount_per_recipe; // round up
+		for (int i=0; i<n_recipes; i++)
+			crafting_list.recipes.push_back({CraftingList::PENDING, recipe});
+	}
+}
+
 map<const ItemPrototype*, signed int> Task::items_balance() const
 {
 	map<const ItemPrototype*, signed int> needed;

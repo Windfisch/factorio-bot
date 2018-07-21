@@ -110,6 +110,13 @@ struct Task
 
 	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), actions(game_,player_) {}
 
+	/** clears and recomputes the crafting_list such that all required_items
+	  * are crafted from the given basis_items.
+	  *
+	  * \post{ $\forall$ (item,amount) $\in$ items_balance() with amount $>$ 0: item $\in$ basic_items }
+	  */
+	void auto_craft_from(std::vector<const ItemPrototype*> basic_items, const FactorioGame* game);
+
 // private:
 	
 	// if the task is dependent, then this task is a item-collection-task
