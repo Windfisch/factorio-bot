@@ -45,4 +45,20 @@ struct Recipe
 
 	std::vector<ItemAmount> ingredients;
 	std::vector<ItemAmount> products;
+
+	/** returns the balance for the specified item. positive values means
+	  * that the item is produced, negative means consumed. */
+	int balance_for(const ItemPrototype* item) const
+	{
+		int balance = 0;
+		for (auto [product,amount] : products)
+			if (product == item)
+				balance += amount;
+		
+		for (auto [ingredient,amount] : ingredients)
+			if (ingredient == item)
+				balance -= amount;
+
+		return balance;
+	}
 };

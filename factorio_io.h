@@ -125,4 +125,11 @@ class FactorioGame
 		std::vector<Player> players;
 
 		const EntityPrototype& get_entity_prototype(std::string name) const { return *entity_prototypes.at(name); }
+		const ItemPrototype& get_item_prototype(std::string name) const { return *item_prototypes.at(name); }
+		const Recipe* get_recipe(std::string name) const { return recipes.at(name).get(); }
+
+		/** returns the best recipe for crafting the item */
+		const Recipe* get_recipe_for(const ItemPrototype*) const;
+		/** returns a list of all recipes that produce this item */
+		const std::vector<const Recipe*> get_recipes_for(const ItemPrototype*) const;
 };

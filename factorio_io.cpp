@@ -56,6 +56,47 @@ FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnect
 	factorio_file_prefix = prefix;
 }
 
+
+const Recipe* FactorioGame::get_recipe_for(const ItemPrototype* item) const
+{
+	const Recipe* best = nullptr;
+	float best_ratio = -1.f;
+
+	for (const Recipe* recipe : get_recipes_for(item))
+	{
+		int amount_wanted = 0, amount_junk = 0;
+		for (auto [product, amount] : recipe->products)
+		{
+			if (product == item)
+				amount_wanted = amount;
+			else
+				amount_junk += amount;
+		}
+		float ratio = amount_wanted / float(amount_junk + amount_wanted);
+		if (ratio > best_ratio)
+		{
+			best_ratio = ratio;
+			best = recipe;
+		}
+	}
+
+	if (best == nullptr)
+		throw runtime_error("Could not find a recipe to generate "+item->name);
+	
+	return best;
+}
+
+const std::vector<const Recipe*> FactorioGame::get_recipes_for(const ItemPrototype* item) const
+{
+	vector<const Recipe*> result;
+
+	for (const auto& [_,recipe] : recipes)
+		if (/* FIXME recipe->enabled && */ recipe->balance_for(item) > 0)
+			result.push_back(recipe.get());
+
+	return result;
+}
+
 void FactorioGame::rcon_connect(string host, int port, string password)
 {
 	rcon.connect(host, port, password);
