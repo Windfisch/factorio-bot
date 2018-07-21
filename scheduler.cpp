@@ -219,6 +219,33 @@ void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const 
 	}
 }
 
+void Task::dump() const
+{
+	cout << (is_dependent ? "dependent " : "") << "Task '" << name << "', prio = " << priority()
+		<< ", start = (" << start_location.str() << ") ±" << start_radius << ", end = (" << end_location.str() << ")" << endl;
+
+	cout << "Required items: ";
+	for (const auto& [item,amount] : required_items)
+		cout << amount << "x " << item->name << ", ";
+	cout << "\b\b \b" << endl;
+
+	cout << "Crafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
+
+	for (const auto [amount,entry] : compact_sequence(crafting_list.recipes))
+	{
+		cout << "\t";
+		switch (entry.status)
+		{
+			case CraftingList::PENDING: cout << "  [pending]"; break;
+			case CraftingList::CURRENT: cout << "> [current]"; break;
+			case CraftingList::FINISHED: cout <<" [finished]"; break;
+			default: cout << "      [???]"; 
+		}
+		cout << " " << entry.recipe->name << " (" << amount << "x)" << endl;
+	}
+	cout << endl;
+}
+
 map<const ItemPrototype*, signed int> Task::items_balance() const
 {
 	map<const ItemPrototype*, signed int> needed;

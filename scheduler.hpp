@@ -28,6 +28,11 @@ struct CraftingList
 	struct Entry {
 		status_t status;
 		const Recipe* recipe;
+
+		bool operator==(const Entry& other) const
+		{
+			return status == other.status && recipe == other.recipe;
+		}
 	};
 	std::vector<Entry> recipes;
 
@@ -109,6 +114,7 @@ struct Task
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
 	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), actions(game_,player_) {}
+	void dump() const;
 
 	/** clears and recomputes the crafting_list such that all required_items
 	  * are crafted from the given basis_items.
