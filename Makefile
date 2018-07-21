@@ -1,12 +1,12 @@
 include config.mk
 
 EXE=bot
-COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o gui/gui.o # objects used for $(EXE)
+COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o scheduler.o gui/gui.o # objects used for $(EXE)
 
 ALLTESTS=test/worldlist test/scheduler
 
 # all objects, including those for other targets (i.e. rcon-client)
-ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o scheduler.o $(addsuffix .o,$(ALLTESTS))
+ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o $(addsuffix .o,$(ALLTESTS))
 DEBUG=0
 
 

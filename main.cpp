@@ -20,9 +20,11 @@
 #include <climits>
 #include <cassert>
 #include "factorio_io.h"
+#include "scheduler.hpp"
 #include "gui/gui.h"
 
 using namespace std;
+using namespace sched;
 
 static float cluster_quality(int diam, size_t coal_size, size_t iron_size, size_t copper_size, size_t stone_size)
 {
@@ -254,6 +256,28 @@ int main(int argc, const char** argv)
 		//cout << i << endl;
 		factorio.parse_packet(factorio.read_packet());
 	}
+	
+	size_t player_idx = SIZE_MAX;
+	for (size_t i = 0; i < factorio.players.size(); i++)
+		if (factorio.players[i].connected)
+		{
+			player_idx = i;
+			break;
+		}
+	
+	if (player_idx == SIZE_MAX)
+	{
+		cout << "Could not determine a player index :(" << endl;
+		exit(1);
+	}
+	cout << endl << "Player index = " << player_idx << endl << endl;
+
+	Scheduler scheduler(&factorio, player_idx);
+
+	Task mytask(&factorio, player_idx, "mytask");
+	mytask.required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
+	mytask.auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
+	mytask.dump();
 
 	while (true)
 	{
