@@ -3,8 +3,11 @@ include config.mk
 EXE=bot
 COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o gui/gui.o # objects used for $(EXE)
 
-ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o schedtest.o scheduler.o  # all objects, including those for other targets (i.e. rcon-client)
-DEBUG=0
+ALLTESTS=test/worldlist test/scheduler
+
+# all objects, including those for other targets (i.e. rcon-client)
+ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o scheduler.o $(addsuffix .o,$(ALLTESTS))
+DEBUG=1
 
 
 MODNAME=Windfisch_0.0.1
@@ -17,7 +20,7 @@ FASTFLAGS = -O2
 CXXFLAGS_BASE = -std=c++17
 CFLAGS_BASE = -std=c99
 
-GUIFLAGS = -O2 # disable all warnings
+GUIFLAGS = -O2
 
 COMPILER ?= GCC
 ifeq ($(COMPILER),GCC)
@@ -62,8 +65,20 @@ clean:
 distclean: clean
 	rm -f depend compile_commands.json
 
-test: $(EXE)
-	make -C test clean all
+test: build_tests run_tests
+build_tests: $(ALLTESTS)
+run_tests: $(addsuffix .run,$(ALLTESTS))
+
+test/%.run: test/%
+	@./$< > $@.out
+	@if ! diff -u $@.desired $@.out; then echo "TEST $@ FAILED, see above"; false; else echo "TEST $@ PASSED"; true; fi
+
+test/worldlist: $(COMMONOBJECTS) test/worldlist.o
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+test/scheduler: $(COMMONOBJECTS) test/scheduler.o scheduler.o
+	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
 
 help:
 	@echo "Targets:"
@@ -72,7 +87,7 @@ help:
 	@echo "                Note: this will NOT install the mod or (re)create the datafile. Do this manually by"
 	@echo "                      running 'make datafile' before."
 	@echo "    mod      -> install the lua mod into the factorio installation (see Configuration below)"
-	@echo "    datafile -> update the lua mod and re-create its output datafile
+	@echo "    datafile -> update the lua mod and re-create its output datafile"
 	@echo "    clean    -> all generated files (including depend. except config.mk)"
 	@echo "    info     -> show an overview of the CFLAGS used"
 	@echo "    help     -> show this help"
@@ -150,15 +165,9 @@ gui/%.o: gui/%.cpp
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%: %.o
-	$(LINK) $(LINKFLAGS) $(LDFLAGS) $(LIBS) $^ -o $@
 
 $(EXE): $(COMMONOBJECTS) main.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
-
-schedtest: $(COMMONOBJECTS) scheduler.o schedtest.o inventory.o
-	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
-
 rcon-client: rcon-client.o rcon.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 

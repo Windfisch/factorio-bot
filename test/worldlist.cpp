@@ -124,26 +124,28 @@ static void test_around_erase(WL l, Pos_f center, size_t idx)
 	cout << "\tthat's " << i << " objects" << endl;
 }
 
+static EntityPrototype ent_proto("","","",{},true);
+
 static WL makeWL()
 {
 	WL l;
-	l.insert(Entity(Pos_f(2.5,80.2), nullptr));
-	l.insert(Entity(Pos_f(0.4,0.2), nullptr));
-	l.insert(Entity(Pos_f(35.4,1.5), nullptr));
-	l.insert(Entity(Pos_f(99.4,1.5), nullptr));
-	l.insert(Entity(Pos_f(99.5,1.5), nullptr));
-	l.insert(Entity(Pos_f(100.6,1.5), nullptr));
-	l.insert(Entity(Pos_f(99.7,1.5), nullptr));
-	l.insert(Entity(Pos_f(100.8,1.5), nullptr));
-	l.insert(Entity(Pos_f(99.4,41.5), nullptr));
-	l.insert(Entity(Pos_f(99.5,41.5), nullptr));
-	l.insert(Entity(Pos_f(100.6,41.5), nullptr));
-	l.insert(Entity(Pos_f(99.7,41.5), nullptr));
-	l.insert(Entity(Pos_f(99.8,41.5), nullptr));
-	l.insert(Entity(Pos_f(2.5,5.2), nullptr));
-	l.insert(Entity(Pos_f(-4.2,4), nullptr));
-	l.insert(Entity(Pos_f(2.5,101), nullptr));
-	l.insert(Entity(Pos_f(101,1.0), nullptr));
+	l.insert(Entity(Pos_f(2.5,80.2), &ent_proto));
+	l.insert(Entity(Pos_f(0.4,0.2), &ent_proto));
+	l.insert(Entity(Pos_f(35.4,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.4,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.5,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(100.6,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.7,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(100.8,1.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.4,41.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.5,41.5), &ent_proto));
+	l.insert(Entity(Pos_f(100.6,41.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.7,41.5), &ent_proto));
+	l.insert(Entity(Pos_f(99.8,41.5), &ent_proto));
+	l.insert(Entity(Pos_f(2.5,5.2), &ent_proto));
+	l.insert(Entity(Pos_f(-4.2,4), &ent_proto));
+	l.insert(Entity(Pos_f(2.5,101), &ent_proto));
+	l.insert(Entity(Pos_f(101,1.0), &ent_proto));
 	return l;
 }
 

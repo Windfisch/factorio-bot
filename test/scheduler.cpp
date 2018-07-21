@@ -1,7 +1,6 @@
-#include "scheduler.hpp"
-#include "factorio_io.h"
-
-#include "recipe.h"
+#include "../scheduler.hpp"
+#include "../factorio_io.h"
+#include "../recipe.h"
 
 #include <memory>
 using namespace std;
