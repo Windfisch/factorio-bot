@@ -205,6 +205,31 @@ struct GameGraphic
 	Pos_f shift;
 };
 
+struct fltk_timeout_guard
+{
+	double _time;
+	Fl_Timeout_Handler _func;
+	void* _data;
+	
+	void add(double time, Fl_Timeout_Handler func, void* data)
+	{
+		_time = time;
+		_func = func;
+		_data = data;
+		Fl::add_timeout(time, func, data);
+	}
+
+	void repeat()
+	{
+		Fl::repeat_timeout(_time, _func, _data);
+	}
+
+	~fltk_timeout_guard()
+	{
+		Fl::remove_timeout(_func, _data);
+	}
+};
+
 class _MapGui_impl
 {
 	public:
@@ -227,6 +252,8 @@ class _MapGui_impl
 		std::unique_ptr<Fl_Double_Window> window;
 		std::unique_ptr<MapBox> mapbox;
 
+		fltk_timeout_guard tick_timer;
+
 		FactorioGame* game;
 		string datapath;
 
@@ -237,6 +264,8 @@ class _MapGui_impl
 
 		void load_graphics();
 		unordered_map<string, array<GameGraphic,4> > game_graphics;
+		
+		void tick(); // called 5 times per second (roughly)
 };
 
 void MapBox::give_info(const Pos& pos)
@@ -457,8 +486,6 @@ MapBox::MapBox(_MapGui_impl* mb, int x, int y, int w, int h, const char* l) : Fl
 	rgbimg.reset(new Fl_RGB_Image(imgbuf.data(), imgwidth, imgheight, 4));
 }
 
-static MapBox* foo = nullptr;
-
 void MapBox::update_imgbuf()
 {
 	Pos lt = zoom_transform(Pos(-imgwidth/2, -imgheight/2)-canvas_center, zoom_level);
@@ -578,6 +605,12 @@ void MapBox::draw_box(const Pos& center, int radius, const Color& col)
 MapGui::MapGui(FactorioGame* game, const char* datapath) : impl(new _MapGui_impl(game, datapath)) {}
 MapGui::~MapGui() {}
 
+void _MapGui_impl::tick()
+{
+	mapbox->update_imgbuf();
+	mapbox->redraw();
+}
+
 _MapGui_impl::_MapGui_impl(FactorioGame* game_, string datapath_)
 {
 	this->game = game_;
@@ -591,10 +624,10 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_, string datapath_)
 	mapbox->labelfont(FL_BOLD+FL_ITALIC);
 	mapbox->labelsize(36);
 	mapbox->labeltype(FL_SHADOW_LABEL);
-	foo = mapbox.get(); // FIXME
 	window->resizable(mapbox.get());
 	window->end();
 	window->show();
+	tick_timer.add(0.2, [](void* ptr){static_cast<_MapGui_impl*>(ptr)->tick();}, this);
 }
 
 static shared_ptr<Fl_Image> crop_and_flip_image(const Fl_RGB_Image& img, int x, int y, int w, int h, bool flip_x=false, bool flip_y=false)
@@ -698,8 +731,6 @@ void _MapGui_impl::load_graphics()
 
 double wait(double t)
 {
-	static int cnt = 0;
-	if (cnt++ % 100 == 0) {foo->update_imgbuf(); foo->redraw(); }
 	return Fl::wait(t);
 }
 
