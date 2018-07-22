@@ -248,6 +248,12 @@ class _MapGui_impl
 			lines.clear();
 			rects.clear();
 		}
+		int key()
+		{
+			auto tmp = _key;
+			_key = 0;
+			return tmp;
+		}
 
 		std::unique_ptr<Fl_Double_Window> window;
 		std::unique_ptr<MapBox> mapbox;
@@ -266,6 +272,7 @@ class _MapGui_impl
 		unordered_map<string, array<GameGraphic,4> > game_graphics;
 		
 		void tick(); // called 5 times per second (roughly)
+		int _key;
 };
 
 void MapBox::give_info(const Pos& pos)
@@ -389,6 +396,8 @@ int MapBox::handle(int event)
 				case '.':
 					display_debug_entity_level++;
 					break;
+				default:
+					gui->_key = Fl::event_key();
 			}
 			return 1;
 		}
@@ -737,6 +746,7 @@ double wait(double t)
 void MapGui::line(Pos a, Pos b, Color c) { impl->line(a,b,c); }
 void MapGui::rect(Pos a, Pos b, Color c) { impl->rect(a,b,c); }
 void MapGui::clear() { impl->clear(); }
+int MapGui::key() { return impl->key(); }
 
 
 } // namespace GUI

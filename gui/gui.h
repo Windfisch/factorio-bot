@@ -48,6 +48,8 @@ class MapGui
 		void rect(Pos a, Pos b, Color c);
 		void clear();
 
+		int key();
+
 	private:
 		std::unique_ptr<_MapGui_impl> impl;
 };
