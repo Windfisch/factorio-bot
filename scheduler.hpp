@@ -113,7 +113,7 @@ struct Task
 	  */
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
-	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), actions(game_,player_) {}
+	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), priority_(0), actions(game_,player_), start_radius(3) {}
 	void dump() const;
 
 	/** clears and recomputes the crafting_list such that all required_items
@@ -268,6 +268,9 @@ struct Scheduler
 	  * collector task is inserted at the beginning of the schedule.
 	  */
 	void recalculate();
+
+	/** dumps the scheduler state */
+	void dump();
 
 
 // private:

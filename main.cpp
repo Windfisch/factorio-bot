@@ -274,10 +274,15 @@ int main(int argc, const char** argv)
 
 	Scheduler scheduler(&factorio, player_idx);
 
-	Task mytask(&factorio, player_idx, "mytask");
-	mytask.required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
-	mytask.auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
-	mytask.dump();
+	auto mytask = make_shared<Task>(&factorio, player_idx, "mytask");
+	mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
+	mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
+	mytask->priority_ = 5;
+	mytask->dump();
+
+	cout << "\n\n" << endl;
+
+	scheduler.add_task(mytask);
 
 	while (true)
 	{
@@ -296,6 +301,21 @@ int main(int argc, const char** argv)
 			}
 		}
 
+		if (int key = gui.key())
+		{
+			switch(key)
+			{
+				case 'r':
+					scheduler.recalculate();
+					cout << "scheduler.recalculate()" << endl;
+					break;
+				case 's':
+					scheduler.dump();
+					break;
+			}
+		}
+
+		#if 0 // demonstration of primitive actions
 		if (online && frame == 1000)
 		{
 			start_mines_t start_mines = find_start_mines(&factorio, &gui);
@@ -354,7 +374,8 @@ int main(int argc, const char** argv)
 				player.goals->start();
 			}
 		}
-		
+		#endif
+
 		GUI::wait(0.001);
 	}
 }

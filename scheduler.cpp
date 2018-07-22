@@ -224,16 +224,16 @@ void Task::dump() const
 	cout << (is_dependent ? "dependent " : "") << "Task '" << name << "', prio = " << priority()
 		<< ", start = (" << start_location.str() << ") ±" << start_radius << ", end = (" << end_location.str() << ")" << endl;
 
-	cout << "Required items: ";
+	cout << "\tRequired items: ";
 	for (const auto& [item,amount] : required_items)
 		cout << amount << "x " << item->name << ", ";
 	cout << "\b\b \b" << endl;
 
-	cout << "Crafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
+	cout << "\tCrafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
 
 	for (const auto [amount,entry] : compact_sequence(crafting_list.recipes))
 	{
-		cout << "\t";
+		cout << "\t\t";
 		switch (entry.status)
 		{
 			case CraftingList::PENDING: cout << "  [pending]"; break;
@@ -505,6 +505,37 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 	}
 	cout << " " << tickval << " sec" << endl;
 }
+
+void Scheduler::dump()
+{
+	cout << string(75, '=') << "\n\n";
+	cout << "Scheduler tasks:" << endl;
+	for (const auto& [prio,task] : pending_tasks)
+	{
+		task->dump();
+		
+		if (auto iter = current_item_allocation.find(task.get());
+			iter != current_item_allocation.end())
+		{
+			const Inventory& inventory = iter->second;
+			cout << "\ttasks inventory:" << endl;
+			inventory.dump();
+		}
+		else
+		{
+			cout << "task has no item allocation yet" << endl;
+		}
+		cout << endl;
+	}
+	
+	cout << "\n" << string(75, '-') << "\n";
+
+	dump_schedule(current_schedule);
+
+
+	cout << "\n" << string(75, '=') << endl << endl << endl;
+}
+
 
 /** Checks a schedule using operator(), while caching and reusing pathfinding results. */
 struct ScheduleChecker
