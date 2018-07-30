@@ -46,6 +46,7 @@ class MapGui
 
 		void line(Pos a, Pos b, Color c);
 		void rect(Pos a, Pos b, Color c);
+		void rect(Pos a, int size, Color c);
 		void clear();
 
 		int key();

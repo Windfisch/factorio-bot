@@ -210,6 +210,53 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 	return result;
 }
 
+
+struct debug_draw_actions_state_t
+{
+	int count = 0;
+	Pos last;
+};
+static void debug_draw_actions(const action::PlayerGoal* goal, GUI::MapGui* gui, debug_draw_actions_state_t& state)
+{
+	using namespace action;
+	if (auto g = dynamic_cast<const WalkTo*>(goal))
+	{
+		cout << "WalkTo " << g->destination.str() << endl;
+		GUI::Color color = GUI::Color(255,0,255);
+		color.blend( GUI::Color(127,127,127), (state.count%5)/4.0);
+
+		gui->line(state.last, g->destination, color);
+		gui->rect(g->destination, 2, GUI::Color(255,127,0));
+
+		state.last = g->destination;
+		state.count++;
+	}
+	else if (auto g = dynamic_cast<const TakeFromInventory*>(goal))
+	{
+		cout << "TakeFromInventory" << endl;
+		gui->rect(state.last,1, GUI::Color(0,127,255));
+	}
+	else if (auto g = dynamic_cast<const CompoundGoal*>(goal))
+	{
+		cout << "recursing into CompoundGoal" << endl;
+		for (const auto& sub : g->subgoals)
+			debug_draw_actions(sub.get(), gui, state);
+	}
+	else if (auto g = dynamic_cast<const ParallelGoal*>(goal))
+	{
+		cout << "recursing into ParallelGoal" << endl;
+		for (const auto& sub : g->subgoals)
+			debug_draw_actions(sub.get(), gui, state);
+	}
+}
+static void debug_draw_actions(const action::PlayerGoal* goal, GUI::MapGui* gui, Pos start)
+{
+	debug_draw_actions_state_t state;
+	state.last = start;
+	debug_draw_actions(goal, gui, state);
+}
+
+
 int main(int argc, const char** argv)
 {
 	if (argc != 3 && argc != 6)
@@ -310,8 +357,13 @@ int main(int argc, const char** argv)
 					cout << "scheduler.recalculate()" << endl;
 					break;
 				case 's':
+				{
 					scheduler.dump();
+					auto task = scheduler.get_current_task();
+					gui.clear();
+					debug_draw_actions(&task->actions, &gui, factorio.players[scheduler.player_idx].position);
 					break;
+				}
 			}
 		}
 

@@ -243,6 +243,10 @@ class _MapGui_impl
 		{
 			rects.push_back(rect_t{a,b,c});
 		}
+		void rect(Pos a, int size, Color c)
+		{
+			rect(a-Pos(size,size), a+Pos(size,size), c);
+		}
 		void clear()
 		{
 			lines.clear();
@@ -745,6 +749,7 @@ double wait(double t)
 
 void MapGui::line(Pos a, Pos b, Color c) { impl->line(a,b,c); }
 void MapGui::rect(Pos a, Pos b, Color c) { impl->rect(a,b,c); }
+void MapGui::rect(Pos a, int s, Color c) { impl->rect(a,s,c); }
 void MapGui::clear() { impl->clear(); }
 int MapGui::key() { return impl->key(); }
 
