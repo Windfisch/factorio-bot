@@ -1,4 +1,5 @@
-#include <chrono>
+#pragma once
+
 #include <memory>
 #include <vector>
 #include <assert.h>
@@ -9,6 +10,8 @@
 #include "inventory.hpp"
 #include "action.hpp"
 #include "recipe.h"
+#include "clock.hpp"
+#include "goal.hpp"
 
 class FactorioGame;
 
@@ -16,7 +19,6 @@ class FactorioGame;
 namespace sched
 {
 
-using Clock = std::chrono::steady_clock;
 
 struct CraftingList
 {
@@ -83,8 +85,25 @@ struct Task
 
 	std::string name;
 	priority_t priority_;
+
+	/** List of goals. This is used to re-generate the action list on every reschedule */
+	std::optional<goal::GoalList> goals;
 	
+	/** List of actions for this task. It's usually generated from the task's goals
+	  * and should not be written to.
+	  * 
+	  * The actions list becomes invalid if the task has started executing but got
+	  * interrupted. This is because we might need to restore our position first.
+	  * It can also be changed because someone else has executed some actions
+	  * affecting our goals.
+	  *
+	  * An exception is the item collector task. While conceptually it also pursues
+	  * a goal, its actions are calculated directly by Scheduler::build_collector_task.
+	  * In this case, goals is empty.
+	  */
 	action::CompoundGoal actions;
+	
+	void set_actions(/* FIXME */); // TODO: set actions, start_location, duration, end_location
 	
 	CraftingList crafting_list; // could be computed from required_items, available item storages and the crafting pressure
 	
@@ -113,7 +132,7 @@ struct Task
 	  */
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
-	Task(FactorioGame* game_, int player_, std::string name_) : name(name_), priority_(0), actions(game_,player_), start_radius(3) {}
+	Task(std::string name_) : name(name_), priority_(0), start_radius(3) {}
 	void dump() const;
 
 	/** clears and recomputes the crafting_list such that all required_items
@@ -122,6 +141,9 @@ struct Task
 	  * \post{ $\forall$ (item,amount) $\in$ items_balance() with amount $>$ 0: item $\in$ basic_items }
 	  */
 	void auto_craft_from(std::vector<const ItemPrototype*> basic_items, const FactorioGame* game);
+	
+	void update_actions_from_goals(FactorioGame* game, int player);
+
 
 // private:
 	

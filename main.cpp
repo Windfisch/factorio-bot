@@ -216,7 +216,7 @@ struct debug_draw_actions_state_t
 	int count = 0;
 	Pos last;
 };
-static void debug_draw_actions(const action::PlayerGoal* goal, GUI::MapGui* gui, debug_draw_actions_state_t& state)
+static void debug_draw_actions(const action::ActionBase* goal, GUI::MapGui* gui, debug_draw_actions_state_t& state)
 {
 	using namespace action;
 	if (auto g = dynamic_cast<const WalkTo*>(goal))
@@ -249,7 +249,7 @@ static void debug_draw_actions(const action::PlayerGoal* goal, GUI::MapGui* gui,
 			debug_draw_actions(sub.get(), gui, state);
 	}
 }
-static void debug_draw_actions(const action::PlayerGoal* goal, GUI::MapGui* gui, Pos start)
+static void debug_draw_actions(const action::ActionBase* goal, GUI::MapGui* gui, Pos start)
 {
 	debug_draw_actions_state_t state;
 	state.last = start;
@@ -321,7 +321,7 @@ int main(int argc, const char** argv)
 
 	Scheduler scheduler(&factorio, player_idx);
 
-	auto mytask = make_shared<Task>(&factorio, player_idx, "mytask");
+	auto mytask = make_shared<Task>("mytask");
 	mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
 	mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
 	mytask->priority_ = 5;

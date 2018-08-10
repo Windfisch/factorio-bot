@@ -132,4 +132,6 @@ class FactorioGame
 		const Recipe* get_recipe_for(const ItemPrototype*) const;
 		/** returns a list of all recipes that produce this item */
 		const std::vector<const Recipe*> get_recipes_for(const ItemPrototype*) const;
+		/** returns an item that has the entity as place_result */
+		const ItemPrototype* get_item_for(const EntityPrototype*) const;
 };

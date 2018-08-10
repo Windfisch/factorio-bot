@@ -147,4 +147,12 @@ template <typename Container, typename Comparator = std::equal_to<typename Conta
 		return result;
 	}
 
+template <typename MapContainer> typename MapContainer::mapped_type get_or(const MapContainer& container, typename MapContainer::key_type key, typename MapContainer::mapped_type default_value = typename MapContainer::mapped_type())
+{
+	if (auto iter = container.find(key); iter != container.end())
+		return *iter;
+	else
+		return default_value;
+}
+
 #pragma GCC diagnostic pop

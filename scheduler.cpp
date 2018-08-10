@@ -17,13 +17,34 @@
 
 using namespace std;
 
-static int sec(sched::Clock::duration d)
+static int sec(Clock::duration d)
 {
 	return chrono::duration_cast<chrono::seconds>(d).count();
 }
 
 namespace sched
 {
+	
+void Task::update_actions_from_goals(FactorioGame* game, int player)
+{
+	if (!goals.has_value())
+		return;
+	
+	actions.subgoals = goals->calculate_actions(game, player);
+
+	required_items.clear();
+	for (const auto& [item, amount] : actions.inventory_balance())
+		if (amount < 0)
+			required_items.push_back({item, size_t(-amount)});
+	
+	// TODO FIXME: crafting list recalculation
+	
+	optional<Pos> first_pos = actions.first_pos();
+	assert(first_pos.has_value());
+	start_location = first_pos.value();
+	tie(end_location, duration) = actions.walk_result(start_location);
+}
+
 
 // allocate inventory content to the tasks, based on their priority
 Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
@@ -63,6 +84,9 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 
 void Scheduler::recalculate()
 {
+	for (auto& [_,task] : pending_tasks)
+		task->update_actions_from_goals(game, player_idx);
+
 	current_item_allocation = allocate_items_to_tasks();
 
 	// calculate crafting order and ETAs
@@ -831,7 +855,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 	#endif
 
 	// initialize the resulting collector task
-	auto result = make_shared<Task>(game, player_idx, "resource collector for " +original_task->name);
+	auto result = make_shared<Task>("resource collector for " +original_task->name);
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;
@@ -863,7 +887,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		}
 
 		bool relevant = false;
-		auto chest_goal = make_unique<action::CompoundGoal>(game, player.id);
+		auto chest_goal = make_unique<action::CompoundGoal>();
 
 		// check whether the chest is useful for any missing item.
 		// if so, set relevant = true and construct the chest goal
@@ -888,7 +912,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			size_t take_amount = min(iter->second, stack.amount);
 			stack.amount -= take_amount;
 			chest_goal->subgoals.push_back(make_unique<action::TakeFromInventory>(
-				game, player.id, stack.proto->name,
+				game, player.id, stack.proto,
 				take_amount, container, INV_CHEST));
 			relevant = true;
 		}

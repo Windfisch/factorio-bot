@@ -57,7 +57,7 @@ namespace action {
 	void WalkTo::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
-		subgoals.push_back(unique_ptr<PlayerGoal>(new WalkWaypoints(game,player, waypoints)));
+		subgoals.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player, waypoints)));
 
 		subgoals[0]->start();
 	}
@@ -79,6 +79,7 @@ namespace action {
 		mark_finished(id);
 	}
 
+/*
 	void WalkAndPlaceEntity::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
@@ -161,30 +162,33 @@ namespace action {
 			cout << "mining " << type << ", remaining: " << this->amount << endl;
 		}
 	}
-
+*/
 	void CraftRecipe::execute_impl()
 	{
-		game->start_crafting(id, player, recipe, count);
+		game->start_crafting(id, player, recipe->name, count);
 	}
 
 	void PlaceEntity::execute_impl()
 	{
-		game->place_entity(player, item, pos, direction);
+		game->place_entity(player, item->name, pos, direction);
 		finished.insert(id);
 	}
 
 	void PutToInventory::execute_impl()
 	{
-		game->insert_to_inventory(player, item, amount, entity, inventory_type);
+		game->insert_to_inventory(player, item->name, amount, entity, inventory_type);
 		finished.insert(id);
 	}
 
 	void TakeFromInventory::execute_impl()
 	{
-		game->remove_from_inventory(player, item, amount, entity, inventory_type);
+		game->remove_from_inventory(player, item->name, amount, entity, inventory_type);
 		finished.insert(id);
 	}
 
+	Clock::duration CraftRecipe::estimate_duration() { return recipe->crafting_duration(); }
+	
+	/*
 	void HaveItem::start()
 	{
 		size_t already_in_inventory = 0; // FIXME
@@ -241,4 +245,5 @@ namespace action {
 		else
 			assert(false);
 	}
+	*/
 }

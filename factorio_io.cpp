@@ -57,6 +57,15 @@ FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnect
 }
 
 
+// FIXME how inefficient :(
+const ItemPrototype* FactorioGame::get_item_for(const EntityPrototype* ent_proto) const
+{
+	for (const auto& [_,item] : item_prototypes)
+		if (item->place_result == ent_proto)
+			return item.get();
+	throw runtime_error("Could not find an item to place the entity '"+ent_proto->name+"'");
+}
+
 const Recipe* FactorioGame::get_recipe_for(const ItemPrototype* item) const
 {
 	const Recipe* best = nullptr;
@@ -86,6 +95,7 @@ const Recipe* FactorioGame::get_recipe_for(const ItemPrototype* item) const
 	return best;
 }
 
+// FIXME how inefficient :(
 const std::vector<const Recipe*> FactorioGame::get_recipes_for(const ItemPrototype* item) const
 {
 	vector<const Recipe*> result;
@@ -172,11 +182,14 @@ void FactorioGame::remove_from_inventory(int player_id, std::string item_name, i
 
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
+	/*
 	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
 	new_goals->subgoals.emplace_back(new action::WalkTo(this, player_id, dest));
 
 	players[player_id].goals = move(new_goals);
 	players[player_id].goals->start();
+	*/
+	// TODO FIXME: create new task with very high priority and force reschedule
 }
 
 string FactorioGame::factorio_file_name()
