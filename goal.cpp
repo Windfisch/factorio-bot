@@ -40,10 +40,10 @@ bool PlaceEntity::fulfilled(FactorioGame* game) const
 vector<unique_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player) const
 {
 	// TODO FIXME: clear area first. ensure that the player isn't in the way.
-	return {
-		make_unique<action::WalkTo>(game, player, entity.pos, REACH),
-		make_unique<action::PlaceEntity>(game, player, game->get_item_for(entity.proto), entity.pos, entity.direction)
-	};
+	vector<unique_ptr<action::ActionBase>> result;
+	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
+	result.push_back( make_unique<action::PlaceEntity>(game, player, game->get_item_for(entity.proto), entity.pos, entity.direction) );
+	return result;
 }
 
 bool RemoveEntity::fulfilled(FactorioGame* game) const
@@ -52,10 +52,10 @@ bool RemoveEntity::fulfilled(FactorioGame* game) const
 }
 vector<unique_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player) const
 {
-	return {
-		make_unique<action::WalkTo>(game, player, entity.pos, REACH),
-		make_unique<action::MineObject>(game, player, entity)
-	};
+	vector<unique_ptr<action::ActionBase>> result;
+	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
+	result.push_back( make_unique<action::MineObject>(game, player, entity) );
+	return result;
 }
 
 bool InventoryPredicate::fulfilled(FactorioGame* game) const
@@ -78,7 +78,8 @@ bool InventoryPredicate::fulfilled(FactorioGame* game) const
 }
 vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(FactorioGame* game, int player) const
 {
-	vector<unique_ptr<action::ActionBase>> result = {make_unique<action::WalkTo>(game, player, entity.pos)};
+	vector<unique_ptr<action::ActionBase>> result;
+	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos) );
 
 	Entity& ent = game->actual_entities.search(entity);
 	const auto& data = ent.data<ContainerData>();
@@ -98,7 +99,7 @@ vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 		{
 			auto desired_amount = get_or(desired_inventory, item);
 			if (actual_amount > desired_amount)
-				result.push_back(make_unique<action::TakeFromInventory>(game, player, item, actual_amount-desired_amount, inventory_type));
+				result.push_back(make_unique<action::TakeFromInventory>(game, player, item, actual_amount-desired_amount, ent, inventory_type));
 		}
 	}
 

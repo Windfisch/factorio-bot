@@ -48,5 +48,3 @@ struct [[deprecated]] OwnedItemStack : public ItemStack
 {
 	
 };
-
-

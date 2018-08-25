@@ -93,7 +93,9 @@ struct InventoryPredicate
 
 struct GoalList : std::vector< std::unique_ptr<GoalInterface> >
 {
-	/** returns a list of actions that will make all goals fulfilled, in arbitrary order */
+	/** returns a list of actions that will make all goals fulfilled, in arbitrary order.
+	
+	(Effectively, this might re-order its goals due to travelling-salesman) */
 	std::vector<std::unique_ptr<action::ActionBase>> calculate_actions(FactorioGame* game, int player) const;
 
 	/** returns whether all goals are fulfilled */

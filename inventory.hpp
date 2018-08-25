@@ -108,3 +108,5 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 
 	void dump() const;
 };
+
+using item_balance_t = boost::container::flat_map<const ItemPrototype*, int>;

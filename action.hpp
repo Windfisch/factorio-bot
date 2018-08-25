@@ -37,9 +37,6 @@ namespace sched { struct Task; }
 
 namespace action
 {
-	using item_balance_t = boost::container::flat_map<const ItemPrototype*, int>;
-	using zone_t = std::pair<Pos,float>;
-
 	struct Registry : public std::unordered_map<int, std::weak_ptr<sched::Task>>
 	{
 		void cleanup();
@@ -55,7 +52,6 @@ namespace action
 		virtual void abort() { throw std::runtime_error("abort() not implemented for this action"); }
 		virtual void on_mined_item(std::string type, int count) { UNUSED(type); UNUSED(count); }
 		virtual ~ActionBase() = default;
-		[[deprecated]] virtual Clock::duration estimate_duration();
 
 		virtual std::optional<Pos> first_pos() const { return std::nullopt; }
 
@@ -108,14 +104,6 @@ namespace action
 			}
 		}
 
-		[[deprecated]] virtual Clock::duration estimate_duration()
-		{
-			Clock::duration sum;
-			for (const auto& subgoal : subgoals)
-				sum += subgoal->estimate_duration();
-			return sum;
-		}
-
 		bool is_finished()
 		{
 			return subgoals.size() == current_subgoal;
@@ -148,42 +136,7 @@ namespace action
 			return std::pair(pos,sum);
 		}
 
-		item_balance_t inventory_balance() const; // TODO
-	};
-
-	struct [[deprecated]] ParallelGoal : public ActionBase
-	{
-		std::vector< std::unique_ptr<ActionBase> > subgoals;
-
-		ParallelGoal() {}
-
-		void tick()
-		{
-			for (auto& subgoal : subgoals)
-				if (!subgoal->is_finished())
-					subgoal->tick();
-		}
-
-		void start()
-		{
-			for (auto& subgoal : subgoals)
-				subgoal->start();
-		}
-
-		bool is_finished()
-		{
-			bool all_done = true;
-			for (auto& subgoal : subgoals)
-				all_done = all_done && subgoal->is_finished();
-			return all_done;
-		}
-		
-		// dispatch events
-		void on_mined_item(std::string type, int count)
-		{
-			for (auto& subgoal : subgoals)
-				subgoal->on_mined_item(type, count);
-		}
+		item_balance_t inventory_balance() const;
 	};
 
 	struct WalkTo : public CompoundGoal
@@ -201,7 +154,6 @@ namespace action
 
 		WalkTo(FactorioGame* game_, int player_, Pos destination_, double allowed_distance_ = 1.) { game = game_; player = player_; destination = destination_; allowed_distance = allowed_distance_; }
 		void start();
-		Clock::duration estimate_duration();
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const; // TODO FIXME implement
 	};
@@ -257,8 +209,7 @@ namespace action
 		item_balance_t inventory_balance() const { return {}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 		
-		Clock::duration estimate_duration(); // TODO
-		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const; // TODO FIXME implement
+		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const;
 
 		private: void execute_impl();
 	};
@@ -271,8 +222,10 @@ namespace action
 		item_balance_t inventory_balance() const; // TODO
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {obj.pos, REACH}; }
 
-		Clock::duration estimate_duration(); // TODO
-		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const; // TODO
+		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
+		{
+			return std::pair(current_position, std::chrono::seconds(1));
+		}
 
 		private: void execute_impl();
 		private: void abort();
@@ -280,73 +233,20 @@ namespace action
 
 	struct PlaceEntity : public PrimitiveAction
 	{
-		PlaceEntity(FactorioGame* game, int player, const ItemPrototype* item_, Pos_f pos_, dir8_t direction_=d8_NORTH) : PrimitiveAction(game,player), item(item_), pos(pos_), direction(direction_) {}
+		PlaceEntity(FactorioGame* game, int player, const ItemPrototype* item_, Pos_f pos_, dir4_t direction_=NORTH) : PrimitiveAction(game,player), item(item_), pos(pos_), direction(direction_) {}
 		const ItemPrototype* item;
 		Pos_f pos;
-		dir8_t direction;
+		dir4_t direction;
 		
 		item_balance_t inventory_balance() const { return {{item, -1}}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {pos, REACH}; }
 
-		Clock::duration estimate_duration() { return std::chrono::seconds(1); }
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
 			return std::pair(current_position, std::chrono::seconds(1));
 		}
 
 		private: void execute_impl();
-	};
-
-	struct [[deprecated]] WalkAndPlaceEntity : public CompoundGoal
-	{
-		WalkAndPlaceEntity(FactorioGame* game, int player, const ItemPrototype* item_, Pos_f pos_, dir8_t direction_=d8_NORTH) : item(item_), pos(pos_), direction(direction_) {}
-		const ItemPrototype* item;
-		Pos_f pos;
-		dir8_t direction;
-		
-		void start();
-	};
-
-	struct [[deprecated]] WalkAndMineObject : public CompoundGoal
-	{
-		WalkAndMineObject(FactorioGame* game, int player, Entity obj_) : obj(obj_) {}
-		Entity obj;
-
-		void start();
-	};
-
-	struct [[deprecated("merge into build_item_collector_task")]] WalkAndMineResource : public CompoundGoal
-	{
-		std::shared_ptr<ResourcePatch> patch;
-		int amount;
-
-		WalkAndMineResource(FactorioGame* game, int player, std::shared_ptr<ResourcePatch> patch_, int amount_)
-			: patch(patch_), amount(amount_)
-		{
-			if (amount <= 0) throw std::invalid_argument("amount must be positive");
-		}
-
-		void start();
-		void tick();
-		void on_mined_item(std::string type, int amount);
-	};
-
-	/** Should take whatever action deemed appropriate to have `amount` of `item` in the inventory. Possible
-	  * ways to accomplish this include mining the desired amount, fetching the amount from a chest or handcrafting
-	  * the items. This may or may not change the player's position */
-	struct [[deprecated("should be merged into build_item_collector_task")]] HaveItem : public CompoundGoal
-	{
-		const ItemPrototype* item;
-		int amount;
-		
-		HaveItem(FactorioGame* game, int player, const ItemPrototype* item_, int amount_)
-			: item(item_), amount(amount_)
-		{
-			if (amount <= 0) throw std::invalid_argument("amount must be positive");
-			if (item->name != "raw-wood" && item->name != "copper-ore" && item->name != "iron-ore" && item->name != "stone" && item->name != "coal") throw std::invalid_argument("unsupported item type for now");
-		}
-
-		void start();
 	};
 
 	struct PutToInventory : public PrimitiveAction
@@ -362,7 +262,6 @@ namespace action
 		item_balance_t inventory_balance() const { return {{item, -amount}}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 
-		Clock::duration estimate_duration() { return std::chrono::seconds(2); }
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
 			return std::pair(current_position, std::chrono::seconds(1));
@@ -383,7 +282,6 @@ namespace action
 		item_balance_t inventory_balance() const { return {{item, amount}}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 		
-		Clock::duration estimate_duration() { return std::chrono::seconds(2); }
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
 			return std::pair(current_position, std::chrono::seconds(1));
@@ -391,7 +289,7 @@ namespace action
 		private: void execute_impl();
 	};
 
-	struct CraftRecipe : public PrimitiveAction
+	struct [[deprecated]] CraftRecipe : public PrimitiveAction
 	{
 		CraftRecipe(FactorioGame* game, int player, const Recipe* recipe_, int count_=1) : PrimitiveAction(game,player), recipe(recipe_), count(count_) {}
 
@@ -401,8 +299,10 @@ namespace action
 		item_balance_t inventory_balance() const { throw std::runtime_error("not implemented"); }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 
-		Clock::duration estimate_duration();
-		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const; // TODO
+		std::pair<Pos, Clock::duration> walk_result(Pos) const
+		{
+			throw std::runtime_error("not implemented");
+		}
 		private: void execute_impl();
 	};
 } // namespace action

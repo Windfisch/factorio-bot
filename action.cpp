@@ -18,6 +18,7 @@
 
 #include "action.hpp"
 #include "pathfinding.hpp"
+#include "constants.h"
 #include <iostream>
 #include <algorithm>
 #include "factorio_io.h"
@@ -186,8 +187,45 @@ namespace action {
 		finished.insert(id);
 	}
 
-	Clock::duration CraftRecipe::estimate_duration() { return recipe->crafting_duration(); }
-	
+	std::pair<Pos, Clock::duration> WalkTo::walk_result(Pos current_position) const
+	{
+		// TODO FIXME: if we've a detailed path, return that one
+		return pair(destination, chrono::milliseconds( int(1000*(destination-current_position).len() / WALKING_SPEED) ));
+	}
+
+	std::pair<Pos, Clock::duration> WalkWaypoints::walk_result(Pos current_position) const
+	{
+		if (waypoints.empty())
+			return pair(current_position, Clock::duration(0));
+
+		float seconds = 0.f;
+		for (size_t i = 0; i < waypoints.size() - 1; i++)
+		{
+			const Pos& from = waypoints[i];
+			const Pos& to = waypoints[i+1];
+			seconds += (from-to).len() / WALKING_SPEED;
+		}
+
+		return pair(waypoints.back(), chrono::milliseconds(int(1000*seconds)));
+	}
+
+	item_balance_t MineObject::inventory_balance() const
+	{
+		return obj.proto->mine_results;
+	}
+
+	item_balance_t CompoundGoal::inventory_balance() const
+	{
+		item_balance_t result;
+		for (const auto& action : subgoals)
+		{
+			for (const auto& [item,amount] : action->inventory_balance())
+				result[item] += amount;
+		}
+		return result;
+	}
+
+
 	/*
 	void HaveItem::start()
 	{

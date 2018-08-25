@@ -36,6 +36,8 @@ struct MiningDrillData {};
 
 using mvu = multivariant_utils<typelist<ContainerData, MachineData, MiningDrillData>>;
 
+struct ItemPrototype;
+
 struct EntityPrototype
 {
 	std::string name;
@@ -43,14 +45,17 @@ struct EntityPrototype
 	bool collides_player;
 	bool collides_object;
 	bool mineable;
+	std::vector< std::pair<std::string, size_t> > mine_results_str;
+	item_balance_t mine_results; // filled in later by resolve_item_references()
 	size_t data_kind;
-
-	EntityPrototype(const std::string& name_, const std::string& type_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_) :
+	
+	EntityPrototype(const std::string& name_, const std::string& type_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_, std::vector< std::pair<std::string, size_t> > mine_results_str_) :
 		name(name_),
 		collision_box(collision_box_),
 		collides_player(collision_str.find('P') != std::string::npos),
 		collides_object(collision_str.find('O') != std::string::npos),
 		mineable(mineable_),
+		mine_results_str(mine_results_str_),
 		data_kind(mvu::invalid_index)
 		{
 			if (type_ == "container" || type_ == "logistic-container")

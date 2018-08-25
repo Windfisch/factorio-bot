@@ -37,7 +37,7 @@
 using namespace std;
 
 const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}, {"iron-ore", IRON}, {"copper-ore", COPPER}, {"stone", STONE}, {"crude-oil", OIL}, {"uranium-ore", URANIUM} };
-	
+
 const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM", "OCEAN" };
 
 static const string dir8[] = {
@@ -49,6 +49,12 @@ static const string dir8[] = {
 	"defines.direction.southwest",
 	"defines.direction.west",
 	"defines.direction.northwest"
+};
+static const string dir4[] = {
+	"defines.direction.north",
+	"defines.direction.east",
+	"defines.direction.south",
+	"defines.direction.west",
 };
 
 FactorioGame::FactorioGame(string prefix) : rcon() // initialize with disconnected rcon
@@ -165,9 +171,9 @@ void FactorioGame::start_crafting(int action_id, int player_id, string recipe, i
 	rcon_call("start_crafting", action_id, player_id, "'"+recipe+"',"+to_string(count));
 }
 
-void FactorioGame::place_entity(int player_id, std::string item_name, Pos_f pos, dir8_t direction)
+void FactorioGame::place_entity(int player_id, std::string item_name, Pos_f pos, dir4_t direction)
 {
-	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir8[direction]);
+	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir4[direction]);
 }
 
 void FactorioGame::insert_to_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory)

@@ -6,6 +6,7 @@
 #include "defines.h"
 #include "factorio_io.h"
 #include "safe_cast.hpp"
+#include "constants.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -784,9 +785,6 @@ Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& tas
 
 
 
-
-constexpr double WALKING_SPEED = 8.9021; // in tiles per second.
-// source: https://wiki.factorio.com/Talk:Exoskeleton#Movement_speed_experiments
 
 static double path_length(const vector<Pos>& path) // FIXME move this somewhere else
 {
