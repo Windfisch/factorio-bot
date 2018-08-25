@@ -249,6 +249,17 @@ string FactorioGame::read_packet()
 		return remove_line_from_buffer();
 }
 
+void FactorioGame::resolve_references_to_items()
+{
+	// FIXME: I really don't like this const_cast :(
+	for (auto& [name, proto_] : entity_prototypes)
+	{
+		EntityPrototype* proto = const_cast<EntityPrototype*>(proto_.get());
+		for (const auto& [item_str, amount] : proto->mine_results_str)
+			proto->mine_results.emplace(item_prototypes.at(item_str).get(), amount);
+	}
+}
+
 void FactorioGame::parse_packet(const string& pkg)
 {
 	if (pkg=="") return;
@@ -275,7 +286,10 @@ void FactorioGame::parse_packet(const string& pkg)
 	else if (type=="entity_prototypes")
 		parse_entity_prototypes(data);
 	else if (type=="item_prototypes")
+	{
 		parse_item_prototypes(data);
+		resolve_references_to_items();
+	}
 	else if (type=="recipes")
 		parse_recipes(data);
 	else if (type=="graphics")
@@ -296,9 +310,9 @@ void FactorioGame::parse_packet(const string& pkg)
 		throw runtime_error("unknown packet type '"+type+"'");
 }
 
-void FactorioGame::parse_item_containers(const string& data)
+void FactorioGame::parse_item_containers(const string& data_str)
 {
-	for (const string& container : split(data, ',')) if (!container.empty())
+	for (const string& container : split(data_str, ',')) if (!container.empty())
 	{
 		auto [name, ent_x, ent_y, contents] = unpack<string,double,double,string>(container, ' ');
 
@@ -451,9 +465,20 @@ void FactorioGame::parse_entity_prototypes(const string& data)
 {
 	for (string entry : split(data, '$')) if (entry!="")
 	{
-		auto [name, type, collision, collision_box, mineable] = unpack<string,string,string,Area_f,bool>(entry);
+		auto [name, type, collision, collision_box, mine_results] = unpack<string,string,string,Area_f,string>(entry);
 
-		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable); // prototypes will never change.
+		bool mineable = (mine_results != "-");
+		vector< pair<string, size_t> > mine_results_str;
+		if (mineable)
+		{
+			for (string product : split(mine_results, ','))
+			{
+				const auto [item, amount] = unpack<string, int>(product, ':');
+				mine_results_str.emplace_back(item, amount);
+			}
+		}
+
+		entity_prototypes[name] = make_unique<EntityPrototype>(name, type, collision, collision_box, mineable, mine_results_str); // prototypes will never change.
 		max_entity_radius = max(max_entity_radius, collision_box.radius());
 	}
 }

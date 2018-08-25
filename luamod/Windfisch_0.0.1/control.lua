@@ -68,6 +68,7 @@ function complain(text)
 	game.forces["player"].print(text)
 end
 
+-- TODO: use simplify_amount
 function products_to_dict(products) -- input: array of products, output: dict["item"] = amount
 	local result = {}
 	for _,product in ipairs(products) do
@@ -339,13 +340,26 @@ function writeout_entity_prototypes()
 	lines = {}
 	for name, prot in pairs(game.entity_prototypes) do
 		local coll = ""
-		local mineable = ""
+		local mine_result = ""
 		if prot.collision_mask ~= nil then
 			if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
 			if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
 		end
-		if prot.mineable_properties.mineable then mineable = "1" else mineable = "0" end
-		table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mineable)
+		if prot.mineable_properties.minable then
+			mine_result = ""
+			local array = {}
+			if (prot.mineable_properties.products == nil) then
+				print("wtf, entity "..name.." is mineable, but has no products?!")
+			else
+				for itemname,amount in pairs(products_to_dict(prot.mineable_properties.products)) do
+					table.insert(array, itemname..":"..amount)
+				end
+			end
+			mine_result = table.concat(array, ",")
+		else
+			mine_result = "-"
+		end
+		table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mine_result)
 	end
 	write_file(header..table.concat(lines, "$").."\n")
 end
@@ -365,6 +379,15 @@ function writeout_item_prototypes()
 	write_file(header..table.concat(lines, "$").."\n")
 end
 
+function simplify_amount(prod)
+	if prod.amount ~= nil then
+		return prod.amount
+	else
+		return (prod.amount_min + prod.amount_max) / 2 * prod.probability
+	end
+end
+
+
 function writeout_recipes()
 	-- FIXME: this assumes that there is only one player force
 	header = "recipes: "
@@ -377,12 +400,7 @@ function writeout_recipes()
 		end
 
 		for _,prod in ipairs(rec.products) do
-			if prod.amount ~= nil then
-				amount = prod.amount
-			else
-				amount = (prod.amount_min + prod.amount_max) / 2 * prod.probability
-			end
-			table.insert(products, prod.name.."*"..amount)
+			table.insert(products, prod.name.."*"..simplify_amount(prod))
 		end
 
 		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
