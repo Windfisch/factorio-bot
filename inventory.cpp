@@ -118,6 +118,17 @@ size_t TaggedAmount::add_claim(const std::shared_ptr<Task>& task, size_t n)
 	return std::min(available, n);
 }
 
+std::string Inventory::str() const
+{
+	std::string result;
+	bool first = true;
+	for (auto [proto,amount] : (*this))
+	{
+		result += (first ? ", " : "") + std::to_string(amount) + "x " + proto->name;
+		first = false;
+	}
+	return result;
+}
 void Inventory::dump() const
 {
 	for (auto [proto,amount] : (*this))

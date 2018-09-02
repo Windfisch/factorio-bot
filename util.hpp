@@ -26,6 +26,20 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
+template <typename Container, typename Func>
+std::string join_string (const Container& container, Func function)
+{
+	std::string result;
+	bool first = true;
+	for (const auto& x : container)
+	{
+		result += function(x);
+		if (first) result += ",";
+		first = false;
+	}
+	return result;
+}
+
 constexpr int sane_div(int a, unsigned b)
 {
 	return (a>=0) ? (a/b) : (signed(a-b+1)/signed(b));

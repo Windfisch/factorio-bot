@@ -106,4 +106,35 @@ vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 	return result;
 }
 
+string PlaceEntity::str() const
+{
+	return "PlaceEntity(" + entity.str() + ")";
+}
+
+string RemoveEntity::str() const
+{
+	return "RemoveEntity(" + entity.str() + ")";
+}
+
+string InventoryPredicate::str() const
+{
+	string result = "InventoryPredicate(" + entity.str() + "[" + inventory_names[inventory_type] + "] -> at ";
+	result += (type == POSITIVE ? "least " : "most ");
+	result += desired_inventory.str() + ")";
+	return result;
+}
+
+void GoalList::dump() const
+{
+	cout << "GoalList:" << endl;
+	for (const auto& goal : (*this))
+		cout << "\t" << goal->str() << endl;
+}
+void GoalList::dump(FactorioGame* game) const
+{
+	cout << "GoalList:" << endl;
+	for (const auto& goal : (*this))
+		cout << "\t" << goal->str(game) << endl;
+}
+
 }

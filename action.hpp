@@ -52,6 +52,7 @@ namespace action
 		virtual void abort() { throw std::runtime_error("abort() not implemented for this action"); }
 		virtual void on_mined_item(std::string type, int count) { UNUSED(type); UNUSED(count); }
 		virtual ~ActionBase() = default;
+		virtual std::string str() const = 0;
 
 		virtual std::optional<Pos> first_pos() const { return std::nullopt; }
 
@@ -77,6 +78,8 @@ namespace action
 		size_t current_subgoal = 0;
 
 		CompoundGoal() {}
+		
+		std::string str() const;
 
 		std::optional<Pos> first_pos() const
 		{
@@ -147,6 +150,8 @@ namespace action
 		FactorioGame* game;
 		int player;
 		
+		std::string str() const;
+
 		std::optional<Pos> first_pos() const
 		{
 			return destination;
@@ -200,6 +205,8 @@ namespace action
 		WalkWaypoints(FactorioGame* game, int player, const std::vector<Pos>& waypoints_) : PrimitiveAction(game,player), waypoints(waypoints_) {}
 		std::vector<Pos> waypoints;
 		
+		std::string str() const;
+
 		std::optional<Pos> first_pos() const
 		{
 			if (waypoints.empty()) return std::nullopt;
@@ -219,6 +226,8 @@ namespace action
 		MineObject(FactorioGame* game, int player, Entity obj_) : PrimitiveAction(game,player), obj(obj_) {}
 		Entity obj;
 		
+		std::string str() const;
+
 		item_balance_t inventory_balance() const; // TODO
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {obj.pos, REACH}; }
 
@@ -238,6 +247,8 @@ namespace action
 		Pos_f pos;
 		dir4_t direction;
 		
+		std::string str() const;
+
 		item_balance_t inventory_balance() const { return {{item, -1}}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {pos, REACH}; }
 
@@ -255,6 +266,8 @@ namespace action
 		int amount;
 		Entity entity;
 		inventory_t inventory_type;
+
+		std::string str() const;
 
 		PutToInventory(FactorioGame* game, int player, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
 			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
@@ -279,6 +292,8 @@ namespace action
 		TakeFromInventory(FactorioGame* game, int player, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
 			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
 
+		std::string str() const;
+
 		item_balance_t inventory_balance() const { return {{item, amount}}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 		
@@ -295,6 +310,8 @@ namespace action
 
 		const Recipe* recipe;
 		int count;
+		
+		std::string str() const;
 
 		item_balance_t inventory_balance() const { throw std::runtime_error("not implemented"); }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }

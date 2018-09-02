@@ -33,6 +33,11 @@ struct GoalInterface
 	  * Its result will be ignored, if fulfilled(FactorioGame* game)==true. */
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const = 0;
 	virtual bool fulfilled(FactorioGame* game) const = 0;
+	virtual std::string str(FactorioGame* game) const
+	{
+		return (fulfilled(game) ? "[x] " : "[ ] ") + str();
+	}
+	virtual std::string str() const = 0;
 	virtual ~GoalInterface() = default;
 };
 
@@ -44,6 +49,7 @@ struct PlaceEntity : public GoalInterface
 
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
+	std::string str() const;
 };
 
 struct RemoveEntity : public GoalInterface
@@ -54,6 +60,7 @@ struct RemoveEntity : public GoalInterface
 
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
+	std::string str() const;
 };
 
 /* TODO
@@ -61,6 +68,7 @@ struct SetupEntity : public GoalInterface
 {
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
+	std::string str() const;
 };
 */
 
@@ -105,6 +113,8 @@ struct GoalList : public std::vector< std::unique_ptr<GoalInterface> >
 
 	/** returns whether all goals are fulfilled */
 	bool all_fulfilled(FactorioGame* game) const;
+	void dump() const;
+	void dump(FactorioGame* game) const;
 };
 
 } // namespace goal

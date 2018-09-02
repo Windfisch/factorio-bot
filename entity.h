@@ -75,6 +75,8 @@ struct Entity
 	const EntityPrototype* proto;
 	dir4_t direction;
 
+	std::string str() const { return proto->name+"@"+pos.str(); }
+
 private:
 	refcount_base* data_ptr;
 public:

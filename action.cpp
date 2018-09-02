@@ -225,6 +225,53 @@ namespace action {
 		return result;
 	}
 
+	string CompoundGoal::str() const
+	{
+		string result = "CompoundGoal{";
+		for (size_t i=0; i<subgoals.size(); i++)
+		{
+			if (i!=0) result+=",";
+			if (i==current_subgoal) result+="*";
+			result+=subgoals[i]->str();
+		}
+		result+="}";
+		return result;
+	}
+
+	string WalkTo::str() const
+	{
+		return "WalkTo("+destination.str()+"±"+to_string(allowed_distance)+")";
+	}
+
+	string WalkWaypoints::str() const
+	{
+		return "WalkWaypoints(" + join_string(waypoints, [](Pos p) { return p.str(); }) + ")";
+	}
+
+	string MineObject::str() const
+	{
+		return "MineObject(" + obj.str() + ")";
+	}
+
+	string PlaceEntity::str() const
+	{
+		return "PlaceEntity(" + item->name + "@" + pos.str() + ")";
+	}
+
+	string PutToInventory::str() const
+	{
+		return "PutToInventory(" + to_string(amount) + "x " + item->name + " -> " + entity.str() + ")";
+	}
+	
+	string TakeFromInventory::str() const
+	{
+		return "TakeFromInventory(" + to_string(amount) + "x " + item->name + " <- " + entity.str() + ")";
+	}
+
+	string CraftRecipe::str() const
+	{
+		return "CraftRecipe(" + to_string(count) + "x " + recipe->name + ")";
+	}
 
 	/*
 	void HaveItem::start()
