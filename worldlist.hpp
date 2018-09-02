@@ -157,7 +157,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						}
 
 						it = parent->find(curr_pos);
-					} while (it == parent->end());
+					} while (it == parent->end() || it->second.empty());
 
 					curr_vec = &(it->second);
 					return true;
