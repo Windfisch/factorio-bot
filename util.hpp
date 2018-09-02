@@ -70,6 +70,18 @@ static std::string strpad(std::string s, size_t n)
 	else return s + std::string(n-s.length(),' ');
 }
 
+template <typename container_type> void accumulate_map(container_type& accumulator, const container_type& increment)
+{
+	for (const auto& [key,value] : increment)
+	{
+		auto iter = accumulator.find(key);
+		if (iter == accumulator.end())
+			accumulator[key] = value;
+		else
+			accumulator[key] += value;
+	}
+}
+
 template <typename container_type, typename iterator_type> iterator_type unordered_erase(container_type& container, iterator_type iter)
 {
 	if (iter == container.end()-1)
