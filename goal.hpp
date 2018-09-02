@@ -33,34 +33,38 @@ struct GoalInterface
 	  * Its result will be ignored, if fulfilled(FactorioGame* game)==true. */
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const = 0;
 	virtual bool fulfilled(FactorioGame* game) const = 0;
-	virtual ~GoalInterface();
+	virtual ~GoalInterface() = default;
 };
 
-struct PlaceEntity
+struct PlaceEntity : public GoalInterface
 {
 	Entity entity;
+
+	PlaceEntity(Entity e) : entity(e) {}
 
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 };
 
-struct RemoveEntity
+struct RemoveEntity : public GoalInterface
 {
 	Entity entity;
+
+	RemoveEntity(Entity e) : entity(e) {}
 
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 };
 
 /* TODO
-struct SetupEntity
+struct SetupEntity : public GoalInterface
 {
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 };
 */
 
-struct InventoryPredicate
+struct InventoryPredicate : public GoalInterface
 {
 	enum type_t { POSITIVE, NEGATIVE };
 
@@ -88,10 +92,11 @@ struct InventoryPredicate
 	
 	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
 	virtual bool fulfilled(FactorioGame* game) const;
+	std::string str() const;
 };
 
 
-struct GoalList : std::vector< std::unique_ptr<GoalInterface> >
+struct GoalList : public std::vector< std::unique_ptr<GoalInterface> >
 {
 	/** returns a list of actions that will make all goals fulfilled, in arbitrary order.
 	
