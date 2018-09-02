@@ -408,7 +408,7 @@ void FactorioGame::parse_inventory_changed(const string& data)
 		int owning_action_id = has_owner ? stoi(owner_str) : -1;
 		const ItemPrototype* proto = item_prototypes.at(item).get();
 
-		TaggedAmount content = players[player_id].inventory[proto];
+		TaggedAmount& content = players[player_id].inventory[proto];
 
 		if ((signed long) content.amount < -diff)
 			throw runtime_error("inventory desync detected: game removed more '"+item+"' items ("+to_string(diff)+") than we actually have ("+to_string(content.amount)+")");
