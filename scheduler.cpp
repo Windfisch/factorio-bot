@@ -942,7 +942,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				cout << "visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_goal->subgoals)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
-						cout << action->item << "(" << action->amount << "), ";
+						cout << action->item->name << "(" << action->amount << "), ";
 				cout << "\b\b with a cost of " <<
 					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
@@ -961,7 +961,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				cout << "not visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_goal->subgoals)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
-						cout << action->item << "(" << action->amount << "), ";
+						cout << action->item->name << "(" << action->amount << "), ";
 				cout << "\b\b with a cost of " <<
 					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 

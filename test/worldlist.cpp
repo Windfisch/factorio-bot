@@ -124,7 +124,7 @@ static void test_around_erase(WL l, Pos_f center, size_t idx)
 	cout << "\tthat's " << i << " objects" << endl;
 }
 
-static EntityPrototype ent_proto("","","",{},true);
+static EntityPrototype ent_proto("","","",{},true,{});
 
 static WL makeWL()
 {

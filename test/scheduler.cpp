@@ -18,7 +18,7 @@ struct {
 } items;
 
 struct {
-	EntityPrototype chest = EntityPrototype("chest", "container", "", {}, true);
+	EntityPrototype chest = EntityPrototype("chest", "container", "", {}, true, {});
 } entities;
 
 struct {
@@ -71,19 +71,19 @@ static void test_get_next_craft(FactorioGame* game, int playerid)
 	
 	std::array<shared_ptr<sched::Task>, 3> tasks;
 
-	tasks[0] = make_shared<sched::Task>(game, playerid, "task #0");
+	tasks[0] = make_shared<sched::Task>("task #0");
 	tasks[0]->priority_ = 42;
 	for (int i=0; i<1; i++)
 		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
 	for (int i=0; i<1; i++)
 		tasks[0]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.machine});
 	
-	tasks[1] = make_shared<sched::Task>(game, playerid, "task #1");
+	tasks[1] = make_shared<sched::Task>("task #1");
 	tasks[1]->priority_ = 17;
 	for (int i=0; i<20; i++)
 		tasks[1]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.furnace});
 	
-	tasks[2] = make_shared<sched::Task>(game, playerid, "task #2");
+	tasks[2] = make_shared<sched::Task>("task #2");
 	tasks[2]->priority_ = 99;
 	for (int i=0; i<5; i++)
 		tasks[2]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
@@ -120,7 +120,7 @@ static void test_get_next_craft(FactorioGame* game, int playerid)
 		{
 			cout << "\ttask " << task->name << " with priority " << task->priority() << " has ";
 			if (task->eventually_runnable())
-				cout << "eta = " << chrono::duration_cast<chrono::seconds>(task->crafting_eta->eta).count() << "s of which " << chrono::duration_cast<chrono::seconds>(sched::Clock::now() - task->crafting_eta->reference).count() << "s have already passed" << endl;
+				cout << "eta = " << chrono::duration_cast<chrono::seconds>(task->crafting_eta->eta).count() << "s of which " << chrono::duration_cast<chrono::seconds>(Clock::now() - task->crafting_eta->reference).count() << "s have already passed" << endl;
 			else
 				cout << "no eta yet" << endl;
 		}
@@ -168,14 +168,14 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 	Player& p = game->players[playerid];
 	p.inventory.clear();
 
-	auto greedy_task = make_shared<sched::Task>(game, playerid, "greedy task");
+	auto greedy_task = make_shared<sched::Task>("greedy task");
 	greedy_task->priority_ = 42;
 	greedy_task->start_location = greedy_task->end_location = Pos(10,10);
 	greedy_task->start_radius = 1;
 	greedy_task->duration = chrono::minutes(2);
 	greedy_task->required_items = { {&items.iron, 17}, {&items.belt, 42} };
 	
-	auto crafting_task = make_shared<sched::Task>(game, playerid, "crafting task");
+	auto crafting_task = make_shared<sched::Task>("crafting task");
 	crafting_task->priority_ = 44;
 	crafting_task->start_location = crafting_task->end_location = Pos(10,10);
 	crafting_task->start_radius = 1;
@@ -194,7 +194,7 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 		{sched::CraftingList::PENDING, &recipes.circuit}
 	};
 
-	auto overcrafting_task = make_shared<sched::Task>(game, playerid, "overcrafting task");
+	auto overcrafting_task = make_shared<sched::Task>("overcrafting task");
 	overcrafting_task->priority_ = 44;
 	overcrafting_task->start_location = overcrafting_task->end_location = Pos(10,10);
 	overcrafting_task->start_radius = 1;
@@ -215,7 +215,7 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 		{sched::CraftingList::PENDING, &recipes.circuit}
 	};
 
-	auto undercrafting_task = make_shared<sched::Task>(game, playerid, "undercrafting task");
+	auto undercrafting_task = make_shared<sched::Task>("undercrafting task");
 	undercrafting_task->priority_ = 44;
 	undercrafting_task->start_location = undercrafting_task->end_location = Pos(10,10);
 	undercrafting_task->start_radius = 1;
@@ -233,13 +233,13 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 	};
 
 
-	auto modest_task = make_shared<sched::Task>(game, playerid, "modest task");
+	auto modest_task = make_shared<sched::Task>("modest task");
 	modest_task->priority_ = 100;
 	modest_task->start_location = modest_task->end_location = Pos(10,10);
 	modest_task->start_radius = 1;
 	modest_task->duration = chrono::minutes(2);
 	
-	auto quick_modest_task = make_shared<sched::Task>(game, playerid, "quick_modest task");
+	auto quick_modest_task = make_shared<sched::Task>("quick_modest task");
 	quick_modest_task->priority_ = 100;
 	quick_modest_task->start_location = quick_modest_task->end_location = Pos(10,10);
 	quick_modest_task->start_radius = 1;
@@ -248,14 +248,14 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 
 	// this task will have a very long way to walk, compared with a very early ETA
 	// and a short actual period of activity.
-	auto far_important_task = make_shared<sched::Task>(game, playerid, "far important task");
+	auto far_important_task = make_shared<sched::Task>("far important task");
 	far_important_task->priority_ = 1;
 	far_important_task->start_location = far_important_task->end_location = Pos(100,100);
 	far_important_task->start_radius = 1;
 	far_important_task->duration = chrono::seconds(4);
 	far_important_task->crafting_list.recipes = { {sched::CraftingList::PENDING, &recipes.coppercable} };
 	
-	auto far_nice_task = make_shared<sched::Task>(game, playerid, "far nice task");
+	auto far_nice_task = make_shared<sched::Task>("far nice task");
 	far_nice_task->priority_ = 100;
 	far_nice_task->start_location = far_nice_task->end_location = Pos(-100,-100);
 	far_nice_task->start_radius = 1;
