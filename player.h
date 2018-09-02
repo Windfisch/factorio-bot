@@ -2,7 +2,6 @@
 
 #include "pos.hpp"
 #include "action.hpp"
-#include "item.h"
 #include "inventory.hpp"
 
 #include <memory>

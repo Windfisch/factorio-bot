@@ -6,7 +6,6 @@
 #include <map>
 #include <optional>
 
-#include "task.hpp"
 #include "inventory.hpp"
 #include "action.hpp"
 #include "recipe.h"
@@ -100,6 +99,8 @@ struct Task
 	  * An exception is the item collector task. While conceptually it also pursues
 	  * a goal, its actions are calculated directly by Scheduler::build_collector_task.
 	  * In this case, goals is empty.
+	  *
+	  * FIXME: probably it would be better to move this functionality into an items collector goal.
 	  */
 	action::CompoundGoal actions;
 	
