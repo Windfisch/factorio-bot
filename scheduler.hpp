@@ -102,7 +102,7 @@ struct Task
 	  *
 	  * FIXME: probably it would be better to move this functionality into an items collector goal.
 	  */
-	std::shared_ptr<action::CompoundGoal> actions;
+	std::shared_ptr<action::CompoundAction> actions;
 	
 	void set_actions(/* FIXME */); // TODO: set actions, start_location, duration, end_location
 	

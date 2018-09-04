@@ -31,9 +31,9 @@ void Task::update_actions_from_goals(FactorioGame* game, int player)
 	if (!goals.has_value())
 		return;
 
-	actions = make_shared<action::CompoundGoal>();
+	actions = make_shared<action::CompoundAction>();
 
-	actions->subgoals = goals->calculate_actions(game, player);
+	actions->subactions = goals->calculate_actions(game, player);
 
 	required_items.clear();
 	for (const auto& [item, amount] : actions->inventory_balance())
@@ -860,12 +860,12 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;
 	result->owner = original_task;
-	result->actions = make_shared<action::CompoundGoal>();
+	result->actions = make_shared<action::CompoundAction>();
 
 	Clock::duration time_spent = Clock::duration::zero();
 
 	// for all chests close to the player, if they can contribute to
-	// missing_items, append a CompoundGoal that walks there and gets
+	// missing_items, append a CompoundAction that walks there and gets
 	// the items
 	Pos last_pos = player.position;
 	const int ALLOWED_DISTANCE = 2;
@@ -888,12 +888,12 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		}
 
 		bool relevant = false;
-		auto chest_goal = make_unique<action::CompoundGoal>();
+		auto chest_action = make_unique<action::CompoundAction>();
 
 		// check whether the chest is useful for any missing item.
-		// if so, set relevant = true and construct the chest goal
-		// if not, chest_goal will be deleted at the end of this scope.
-		chest_goal->subgoals.push_back(make_unique<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
+		// if so, set relevant = true and construct the chest action
+		// if not, chest_action will be deleted at the end of this scope.
+		chest_action->subactions.push_back(make_unique<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
 
 		auto new_missing_items = missing_items;
 		cout << "missing: ";
@@ -912,7 +912,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 			size_t take_amount = min(iter->second, stack.amount);
 			stack.amount -= take_amount;
-			chest_goal->subgoals.push_back(make_unique<action::TakeFromInventory>(
+			chest_action->subactions.push_back(make_unique<action::TakeFromInventory>(
 				game, player.id, stack.proto,
 				take_amount, container, INV_CHEST));
 			relevant = true;
@@ -943,7 +943,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			if (time_spent + chest_duration <= max_duration)
 			{
 				cout << "visiting chest at " << container.pos.str() << " for ";
-				for (const auto& sg : chest_goal->subgoals)
+				for (const auto& sg : chest_action->subactions)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
 						cout << action->item->name << "(" << action->amount << "), ";
 				cout << "\b\b with a cost of " <<
@@ -951,7 +951,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
 					" sec remaining)" << endl;
 
-				result->actions->subgoals.push_back(move(chest_goal));
+				result->actions->subactions.push_back(move(chest_action));
 				result->end_location = container.pos;
 				last_pos = container.pos;
 				time_spent += chest_duration;
@@ -962,7 +962,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			else
 			{
 				cout << "not visiting chest at " << container.pos.str() << " for ";
-				for (const auto& sg : chest_goal->subgoals)
+				for (const auto& sg : chest_action->subactions)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
 						cout << action->item->name << "(" << action->amount << "), ";
 				cout << "\b\b with a cost of " <<
@@ -971,14 +971,14 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 					" sec remaining)" << endl;
 			}
 		}
-		// else: chest_goal goes out of scope and is deleted
+		// else: chest_action goes out of scope and is deleted
 		else
 		{
 			cout << "not visiting chest at " << container.pos.str() << " (irrelevant)" << endl;
 		}
 	}
 
-	if (result->actions->subgoals.empty())
+	if (result->actions->subactions.empty())
 		return nullptr;
 	
 	result->duration = time_spent;

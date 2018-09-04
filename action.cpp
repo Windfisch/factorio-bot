@@ -58,9 +58,9 @@ namespace action {
 	void WalkTo::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
-		subgoals.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player, waypoints)));
+		subactions.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player, waypoints)));
 
-		subgoals[0]->start();
+		subactions[0]->start();
 	}
 
 	void WalkWaypoints::execute_impl()
@@ -86,10 +86,10 @@ namespace action {
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
 			pos, game->walk_map, 4., 3.);
 
-		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
-		subgoals.push_back(make_unique<PlaceEntity>(game,player, item, pos, direction));
+		subactions.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
+		subactions.push_back(make_unique<PlaceEntity>(game,player, item, pos, direction));
 
-		subgoals[0]->start();
+		subactions[0]->start();
 	}
 
 	void WalkAndMineObject::start()
@@ -100,10 +100,10 @@ namespace action {
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
 			obj.pos, game->walk_map, 2.);
 
-		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
-		subgoals.push_back(make_unique<MineObject>(game,player, obj));
+		subactions.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
+		subactions.push_back(make_unique<MineObject>(game,player, obj));
 
-		subgoals[0]->start();
+		subactions[0]->start();
 	}
 
 	void WalkAndMineResource::start()
@@ -132,21 +132,21 @@ namespace action {
 		// we need to cleanup the path, because it came from astar_raw(), not astar().
 		waypoints = cleanup_path(waypoints);
 
-		subgoals.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
-		subgoals.push_back(make_unique<MineObject>(game,player, tile.entity));
+		subactions.push_back(make_unique<WalkWaypoints>(game,player, waypoints));
+		subactions.push_back(make_unique<MineObject>(game,player, tile.entity));
 
-		subgoals[0]->start();
+		subactions[0]->start();
 	}
 
 	void WalkAndMineResource::tick()
 	{
 		if (amount <= 0)
 		{
-			assert(dynamic_cast<MineObject*>(subgoals[current_subgoal].get()));
-			subgoals[current_subgoal]->abort();
+			assert(dynamic_cast<MineObject*>(subactions[current_subaction].get()));
+			subactions[current_subaction]->abort();
 		}
 
-		CompoundGoal::tick();
+		CompoundAction::tick();
 	}
 
 	void WalkAndMineResource::on_mined_item(string type, int amount_mined)
@@ -214,10 +214,10 @@ namespace action {
 		return obj.proto->mine_results;
 	}
 
-	item_balance_t CompoundGoal::inventory_balance() const
+	item_balance_t CompoundAction::inventory_balance() const
 	{
 		item_balance_t result;
-		for (const auto& action : subgoals)
+		for (const auto& action : subactions)
 		{
 			for (const auto& [item,amount] : action->inventory_balance())
 				result[item] += amount;
@@ -225,14 +225,14 @@ namespace action {
 		return result;
 	}
 
-	string CompoundGoal::str() const
+	string CompoundAction::str() const
 	{
-		string result = "CompoundGoal{";
-		for (size_t i=0; i<subgoals.size(); i++)
+		string result = "CompoundAction{";
+		for (size_t i=0; i<subactions.size(); i++)
 		{
 			if (i!=0) result+=",";
-			if (i==current_subgoal) result+="*";
-			result+=subgoals[i]->str();
+			if (i==current_subaction) result+="*";
+			result+=subactions[i]->str();
 		}
 		result+="}";
 		return result;
@@ -320,7 +320,7 @@ namespace action {
 			assert(best_nearby_trees.size() == todo_amount);
 
 			for (const auto& tree : best_nearby_trees)
-				subgoals.emplace_back( make_unique<action::WalkAndMineObject>(
+				subactions.emplace_back( make_unique<action::WalkAndMineObject>(
 					game, player, tree) );
 		}
 		else if (item == "copper-ore" || item == "iron-ore" || item == "stone" || item == "coal")

@@ -16,7 +16,7 @@ struct Player
 	TaggedInventory inventory;
 	
 	/** sets the players actions, starts them (and aborts the previous, if any) */
-	void set_actions(std::shared_ptr<action::CompoundGoal> a)
+	void set_actions(std::shared_ptr<action::CompoundAction> a)
 	{
 		if (actions)
 			actions->abort();
@@ -45,7 +45,7 @@ struct Player
 	}
 
 	private:
-	std::shared_ptr<action::CompoundGoal> actions;
+	std::shared_ptr<action::CompoundAction> actions;
 
 	friend class FactorioGame;
 };

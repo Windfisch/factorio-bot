@@ -105,7 +105,7 @@ class FactorioGame
 		std::string read_packet();
 		void parse_packet(const std::string& data);
 
-		// never use these functions directly, use player goals instead
+		// never use these functions directly, use player actions instead
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);
 		void set_mining_target(int action_id, int player_id, Entity target);
 		void unset_mining_target(int player_id);
@@ -114,7 +114,7 @@ class FactorioGame
 		void insert_to_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory);
 		void remove_from_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory);
 		
-		[[deprecated("set player goals instead")]]
+		[[deprecated("set player actions instead")]]
 		void walk_to(int id, const Pos& dest);
 
 		WorldMap<pathfinding::walk_t> walk_map;

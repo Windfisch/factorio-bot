@@ -217,10 +217,10 @@ struct debug_draw_actions_state_t
 	int count = 0;
 	Pos last;
 };
-static void debug_draw_actions(const action::ActionBase* goal, GUI::MapGui* gui, debug_draw_actions_state_t& state)
+static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gui, debug_draw_actions_state_t& state)
 {
 	using namespace action;
-	if (auto g = dynamic_cast<const WalkTo*>(goal))
+	if (auto g = dynamic_cast<const WalkTo*>(action))
 	{
 		cout << "WalkTo " << g->destination.str() << endl;
 		GUI::Color color = GUI::Color(255,0,255);
@@ -232,23 +232,23 @@ static void debug_draw_actions(const action::ActionBase* goal, GUI::MapGui* gui,
 		state.last = g->destination;
 		state.count++;
 	}
-	else if (auto g = dynamic_cast<const TakeFromInventory*>(goal))
+	else if (auto g = dynamic_cast<const TakeFromInventory*>(action))
 	{
 		cout << "TakeFromInventory" << endl;
 		gui->rect(state.last,1, GUI::Color(0,127,255));
 	}
-	else if (auto g = dynamic_cast<const CompoundGoal*>(goal))
+	else if (auto g = dynamic_cast<const CompoundAction*>(action))
 	{
-		cout << "recursing into CompoundGoal" << endl;
-		for (const auto& sub : g->subgoals)
+		cout << "recursing into CompoundAction" << endl;
+		for (const auto& sub : g->subactions)
 			debug_draw_actions(sub.get(), gui, state);
 	}
 }
-static void debug_draw_actions(const action::ActionBase* goal, GUI::MapGui* gui, Pos start)
+static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gui, Pos start)
 {
 	debug_draw_actions_state_t state;
 	state.last = start;
-	debug_draw_actions(goal, gui, state);
+	debug_draw_actions(action, gui, state);
 }
 
 

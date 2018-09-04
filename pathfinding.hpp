@@ -28,7 +28,7 @@ namespace pathfinding
 	struct Entry
 	{
 		Pos pos;
-		double f; // this is (exact best-known-yet distance to pos) + (estimated distance to goal)
+		double f; // this is (exact best-known-yet distance to pos) + (estimated distance to target)
 
 		Entry(const Pos& p, double f_) : pos(p), f(f_) {}
 		bool operator<(const Entry& other) const { return f > other.f; }

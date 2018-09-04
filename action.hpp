@@ -72,18 +72,18 @@ namespace action
 
 	};
 
-	struct CompoundGoal : public ActionBase
+	struct CompoundAction : public ActionBase
 	{
-		std::vector< std::unique_ptr<ActionBase> > subgoals;
-		size_t current_subgoal = 0;
+		std::vector< std::unique_ptr<ActionBase> > subactions;
+		size_t current_subaction = 0;
 
-		CompoundGoal() {}
+		CompoundAction() {}
 		
 		std::string str() const;
 
 		std::optional<Pos> first_pos() const
 		{
-			for (const auto& action : subgoals)
+			for (const auto& action : subactions)
 			{
 				if (std::optional<Pos> pos = action->first_pos(); pos.has_value())
 					return pos;
@@ -95,42 +95,42 @@ namespace action
 		{
 			if (!is_finished())
 			{
-				subgoals[current_subgoal]->tick();
+				subactions[current_subaction]->tick();
 
-				if (subgoals[current_subgoal]->is_finished())
+				if (subactions[current_subaction]->is_finished())
 				{
-					current_subgoal++;
+					current_subaction++;
 
 					if (!is_finished())
-						subgoals[current_subgoal]->start();
+						subactions[current_subaction]->start();
 				}
 			}
 		}
 
 		bool is_finished()
 		{
-			return subgoals.size() == current_subgoal;
+			return subactions.size() == current_subaction;
 		}
 
 		void start()
 		{
-			if (!subgoals.empty())
-				subgoals[0]->start();
+			if (!subactions.empty())
+				subactions[0]->start();
 		}
 
 		// dispatch events
 		void on_mined_item(std::string type, int count)
 		{
-			// FIXME shouldn't this be subgoal[current_subgoal] only?
-			for (auto& subgoal : subgoals)
-				subgoal->on_mined_item(type, count);
+			// FIXME shouldn't this be subaction[current_subaction] only?
+			for (auto& subaction : subactions)
+				subaction->on_mined_item(type, count);
 		}
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
 			Pos pos = current_position;
 			Clock::duration sum;
-			for (const auto& action : subgoals)
+			for (const auto& action : subactions)
 			{
 				auto [pos_after, duration] = action->walk_result(pos);
 				pos = pos_after;
@@ -142,7 +142,7 @@ namespace action
 		item_balance_t inventory_balance() const;
 	};
 
-	struct WalkTo : public CompoundGoal
+	struct WalkTo : public CompoundAction
 	{
 		Pos destination;
 		double allowed_distance;
