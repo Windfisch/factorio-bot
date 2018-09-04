@@ -22,6 +22,7 @@
 #include "factorio_io.h"
 #include "scheduler.hpp"
 #include "gui/gui.h"
+#include "goal.hpp"
 
 using namespace std;
 using namespace sched;
@@ -275,6 +276,33 @@ int main(int argc, const char** argv)
 			factorio.parse_packet(packet);
 	}
 	cout << "done reading static data" << endl;
+
+	goal::GoalList test_goals;
+	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(1,1), &factorio.get_entity_prototype("assembling-machine-1"))) );
+	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(-3,4), &factorio.get_entity_prototype("wooden-chest"))) );
+	test_goals.push_back( make_unique<goal::RemoveEntity>(Entity(Pos(12,12), &factorio.get_entity_prototype("tree-01"))) );
+	auto test_actions = test_goals.calculate_actions(&factorio, 1);
+	test_goals.dump(&factorio);
+	cout << "ActionList" << endl;
+	item_balance_t balance;
+	Pos pos{0,0};
+	for (const auto& a : test_actions)
+	{
+		auto [newpos, duration] = a->walk_result(pos);
+		auto bal = a->inventory_balance();
+
+		cout << "\t" << a->str() << " | walks from " << pos.str() << " to " << newpos.str() << " in " << std::chrono::duration_cast<chrono::milliseconds>(duration).count() << "ms" << endl;
+		for (auto [k,v] : bal)
+			cout << "\t\t" << k->name << " -> " << v << endl;
+		pos = newpos;
+
+		accumulate_map(balance, a->inventory_balance());
+	}
+	cout << "total item balance for this task:" << endl;
+	for (auto [k,v] : balance)
+		cout << "\t" << k->name << " -> " << v << endl;
+
+	//exit(0);
 
 	bool online = false;
 	if (argc == 6)
