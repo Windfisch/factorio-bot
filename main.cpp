@@ -350,8 +350,89 @@ int main(int argc, const char** argv)
 	{
 		Scheduler scheduler;
 		shared_ptr<Task> current_task = nullptr;
+		std::unique_ptr<action::CraftRecipe> current_crafting_action;
+		std::optional<Scheduler::owned_recipe_t> current_craft;
 
 		StrategyPlayer(FactorioGame* game, size_t idx) : scheduler(game,idx) {}
+
+		void tick_craftinglist()
+		{
+			assert( (current_crafting_action!=nullptr) == current_craft.has_value() );
+			if (current_crafting_action)
+				assert(current_crafting_action->recipe == current_craft->second);
+
+			// check if the current craft has finished
+			if (current_craft.has_value())
+			{
+				if (current_crafting_action->is_finished())
+				{
+					auto t = current_craft->first.lock();
+					cout << "player #" << scheduler.player_idx << " has finished crafting " << current_craft->second->name << "(" << (t ? t->name : "?") << ")" << endl;
+
+					scheduler.confirm_current_craft(current_craft.value());
+					current_crafting_action = nullptr;
+					current_craft = nullopt;
+				}
+			}
+
+			// check if there is a new craft
+			// TODO FIXME: ugly.
+			if (current_craft.has_value() != scheduler.peek_current_craft().has_value() || (current_craft.has_value() && scheduler.peek_current_craft().has_value() && !Scheduler::owned_recipe_t_equal(current_craft.value(), scheduler.peek_current_craft().value())))
+			{
+				cout << "player #" << scheduler.player_idx << "'s current_craft has changed from ";
+				if (current_craft.has_value())
+				{
+					cout << current_craft->second->name;
+					if (auto t = current_craft->first.lock())
+						cout << "(" << t->name << ")";
+					else
+						cout << "(?)";
+				}
+				else
+					cout << "(null)";
+
+				cout << " to ";
+				
+				if (scheduler.peek_current_craft().has_value())
+				{
+					cout << scheduler.peek_current_craft()->second->name;
+					if (auto t = scheduler.peek_current_craft()->first.lock())
+						cout << "(" << t->name << ")";
+					else
+						cout << "(?)";
+				}
+				else
+					cout << "(null)";
+
+				cout << endl;
+
+				
+				// abort the previous craft
+				if (current_craft.has_value())
+				{
+					cout << "aborting previous craft" << endl;
+					current_crafting_action->abort();
+					scheduler.retreat_current_craft(current_craft.value());
+					current_crafting_action = nullptr;
+					current_craft = nullopt;
+				}
+
+				current_craft = scheduler.peek_current_craft();
+
+				// launch the new
+				if (current_craft.has_value())
+				{
+					// create and launch a CraftRecipe action
+					current_crafting_action = make_unique<action::CraftRecipe>(scheduler.game, scheduler.player_idx, current_craft->second);
+					current_crafting_action->start();
+					// confirm this to the scheduler
+					scheduler.accept_current_craft();
+					// register this action so that the items produced are claimed by the owner task
+					action::registry[current_crafting_action->id] = current_craft->first;
+				}
+			}
+
+		}
 	};
 
 	vector<StrategyPlayer> splayers;
@@ -396,6 +477,8 @@ int main(int argc, const char** argv)
 				splayer.current_task = nullptr;
 				splayer.scheduler.recalculate();
 			}
+			
+			splayer.tick_craftinglist();
 		}
 
 		if (int key = gui.key())

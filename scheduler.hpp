@@ -208,6 +208,10 @@ struct Task
 struct Scheduler
 {
 	using owned_recipe_t = std::pair< std::weak_ptr<Task>, const Recipe* >;
+	static bool owned_recipe_t_equal(const owned_recipe_t& one, const owned_recipe_t& two)
+	{
+		return (one.second == two.second && one.first.lock() == two.first.lock());
+	}
 
 	Scheduler(FactorioGame* game_, int player_) : game(game_), player_idx(player_) {}
 	
