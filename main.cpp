@@ -313,7 +313,17 @@ int main(int argc, const char** argv)
 	}
 	cout << endl << "Player index = " << player_idx << endl << endl;
 
-	Scheduler scheduler(&factorio, player_idx);
+	struct StrategyPlayer
+	{
+		Scheduler scheduler;
+		shared_ptr<Task> current_task = nullptr;
+
+		StrategyPlayer(FactorioGame* game, size_t idx) : scheduler(game,idx) {}
+	};
+
+	vector<StrategyPlayer> splayers;
+	for (size_t i=0; i<=player_idx; i++)
+		splayers.emplace_back(&factorio, i);
 
 	auto mytask = make_shared<Task>("mytask");
 	mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
@@ -323,7 +333,7 @@ int main(int argc, const char** argv)
 
 	cout << "\n\n" << endl;
 
-	scheduler.add_task(mytask);
+	splayers[player_idx].scheduler.add_task(mytask);
 
 	while (true)
 	{
@@ -333,12 +343,25 @@ int main(int argc, const char** argv)
 		
 		for (auto& player : factorio.players)
 		{
-			if (player.goals)
+			auto& splayer = splayers[player.id];
+
+			// check if the scheduler's current task has changed.
+			// FIXME: this can only happen upon a recalculate (actually)
+			std::shared_ptr<Task> task = splayer.scheduler.get_current_task();
+			if (splayer.current_task != task)
 			{
-				if (player.goals->is_finished())
-					player.goals = nullptr;
-				else
-					player.goals->tick();
+				cout << "Player " << player.id << "'s current task has changed from "
+					<< (splayer.current_task ? splayer.current_task->name : "(null)")
+					<< " to " << (task ? task->name : "(null)") << endl;
+				
+				splayer.current_task = task;
+				player.set_actions(task->actions);
+			}
+
+			if (player.tick_actions())
+			{
+				splayer.current_task = nullptr;
+				splayer.scheduler.recalculate();
 			}
 		}
 
@@ -347,15 +370,15 @@ int main(int argc, const char** argv)
 			switch(key)
 			{
 				case 'r':
-					scheduler.recalculate();
+					splayers[player_idx].scheduler.recalculate();
 					cout << "scheduler.recalculate()" << endl;
 					break;
 				case 's':
 				{
-					scheduler.dump();
-					auto task = scheduler.get_current_task();
+					splayers[player_idx].scheduler.dump();
+					auto task = splayers[player_idx].scheduler.get_current_task();
 					gui.clear();
-					debug_draw_actions(&task->actions, &gui, factorio.players[scheduler.player_idx].position);
+					debug_draw_actions(task->actions.get(), &gui, factorio.players[player_idx].position);
 					break;
 				}
 			}

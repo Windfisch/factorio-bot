@@ -42,14 +42,14 @@ namespace action
 		void cleanup();
 		std::shared_ptr<sched::Task> get(int id);
 	};
-	extern Registry registry;
+	extern Registry registry; // FIXME this should be in FactorioGame
 
 	struct ActionBase
 	{
 		virtual bool is_finished() = 0;
 		virtual void start() = 0;
 		virtual void tick() = 0;
-		virtual void abort() { throw std::runtime_error("abort() not implemented for this action"); }
+		virtual void abort() {}
 		virtual void on_mined_item(std::string type, int count) { UNUSED(type); UNUSED(count); }
 		virtual ~ActionBase() = default;
 		virtual std::string str() const = 0;

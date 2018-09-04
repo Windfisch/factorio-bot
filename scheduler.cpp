@@ -30,20 +30,22 @@ void Task::update_actions_from_goals(FactorioGame* game, int player)
 {
 	if (!goals.has_value())
 		return;
-	
-	actions.subgoals = goals->calculate_actions(game, player);
+
+	actions = make_shared<action::CompoundGoal>();
+
+	actions->subgoals = goals->calculate_actions(game, player);
 
 	required_items.clear();
-	for (const auto& [item, amount] : actions.inventory_balance())
+	for (const auto& [item, amount] : actions->inventory_balance())
 		if (amount < 0)
 			required_items.push_back({item, size_t(-amount)});
 	
 	// TODO FIXME: crafting list recalculation
 	
-	optional<Pos> first_pos = actions.first_pos();
+	optional<Pos> first_pos = actions->first_pos();
 	assert(first_pos.has_value());
 	start_location = first_pos.value();
-	tie(end_location, duration) = actions.walk_result(start_location);
+	tie(end_location, duration) = actions->walk_result(start_location);
 }
 
 
@@ -858,6 +860,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;
 	result->owner = original_task;
+	result->actions = make_shared<action::CompoundGoal>();
 
 	Clock::duration time_spent = Clock::duration::zero();
 
@@ -948,7 +951,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
 					" sec remaining)" << endl;
 
-				result->actions.subgoals.push_back(move(chest_goal));
+				result->actions->subgoals.push_back(move(chest_goal));
 				result->end_location = container.pos;
 				last_pos = container.pos;
 				time_spent += chest_duration;
@@ -975,7 +978,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		}
 	}
 
-	if (result->actions.subgoals.empty())
+	if (result->actions->subgoals.empty())
 		return nullptr;
 	
 	result->duration = time_spent;

@@ -395,8 +395,8 @@ void FactorioGame::parse_mined_item(const string& data)
 		throw runtime_error("invalid player id in parse_mined_item()");
 	unsigned id = unsigned(id_);
 
-	if (players[id].goals)
-		players[id].goals->on_mined_item(itemname, amount);
+	if (players[id].actions)
+		players[id].actions->on_mined_item(itemname, amount);
 }
 
 void FactorioGame::parse_inventory_changed(const string& data)
