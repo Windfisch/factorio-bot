@@ -18,7 +18,7 @@
 
 using namespace std;
 
-static int sec(Clock::duration d)
+static long sec(Clock::duration d)
 {
 	return chrono::duration_cast<chrono::seconds>(d).count();
 }
@@ -258,7 +258,7 @@ void Task::dump() const
 
 	cout << "\tCrafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
 
-	for (const auto [amount,entry] : compact_sequence(crafting_list.recipes))
+	for (const auto& [amount,entry] : compact_sequence(crafting_list.recipes))
 	{
 		cout << "\t\t";
 		switch (entry.status)
@@ -508,12 +508,12 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 	}
 
 
-	int sec = chrono::duration_cast<chrono::seconds>(last_offset).count();
+	long sec = chrono::duration_cast<chrono::seconds>(last_offset).count();
 	int tick_seconds = int(pow(10,floor(log10(sec/n_ticks))));
 	tick_seconds = max(tick_seconds, 1);
 	auto tick_duration = chrono::duration_cast<Clock::duration>(chrono::seconds(tick_seconds));
 	int lastcol = 0;
-	int tickval = -1;
+	long tickval = -1;
 	int tickid = 0;
 	for (auto i = Clock::duration::zero(); i < last_offset; i+=tick_duration, tickid++)
 	{

@@ -217,6 +217,9 @@ struct debug_draw_actions_state_t
 	int count = 0;
 	Pos last;
 };
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gui, debug_draw_actions_state_t& state)
 {
 	using namespace action;
@@ -224,7 +227,7 @@ static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gu
 	{
 		cout << "WalkTo " << g->destination.str() << endl;
 		GUI::Color color = GUI::Color(255,0,255);
-		color.blend( GUI::Color(127,127,127), (state.count%5)/4.0);
+		color.blend( GUI::Color(127,127,127), (state.count%5)/4.0f);
 
 		gui->line(state.last, g->destination, color);
 		gui->rect(g->destination, 2, GUI::Color(255,127,0));
@@ -244,6 +247,8 @@ static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gu
 			debug_draw_actions(sub.get(), gui, state);
 	}
 }
+#pragma GCC diagnostic pop
+
 static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gui, Pos start)
 {
 	debug_draw_actions_state_t state;

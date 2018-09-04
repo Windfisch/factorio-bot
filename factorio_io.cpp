@@ -40,7 +40,7 @@ const unordered_map<string, Resource::type_t> Resource::types = { {"coal", COAL}
 
 const string Resource::typestr[] = { "NONE", "COAL", "IRON", "COPPER", "STONE", "OIL", "URANIUM", "OCEAN" };
 
-static const string dir8[] = {
+static const string dir8str[] = {
 	"defines.direction.north",
 	"defines.direction.northeast",
 	"defines.direction.east",
@@ -50,7 +50,7 @@ static const string dir8[] = {
 	"defines.direction.west",
 	"defines.direction.northwest"
 };
-static const string dir4[] = {
+static const string dir4str[] = {
 	"defines.direction.north",
 	"defines.direction.east",
 	"defines.direction.south",
@@ -75,11 +75,11 @@ const ItemPrototype* FactorioGame::get_item_for(const EntityPrototype* ent_proto
 const Recipe* FactorioGame::get_recipe_for(const ItemPrototype* item) const
 {
 	const Recipe* best = nullptr;
-	float best_ratio = -1.f;
+	double best_ratio = -1.;
 
 	for (const Recipe* recipe : get_recipes_for(item))
 	{
-		int amount_wanted = 0, amount_junk = 0;
+		double amount_wanted = 0, amount_junk = 0;
 		for (auto [product, amount] : recipe->products)
 		{
 			if (product == item)
@@ -87,7 +87,7 @@ const Recipe* FactorioGame::get_recipe_for(const ItemPrototype* item) const
 			else
 				amount_junk += amount;
 		}
-		float ratio = amount_wanted / float(amount_junk + amount_wanted);
+		double ratio = amount_wanted / (amount_junk + amount_wanted);
 		if (ratio > best_ratio)
 		{
 			best_ratio = ratio;
@@ -173,7 +173,7 @@ void FactorioGame::start_crafting(int action_id, int player_id, string recipe, i
 
 void FactorioGame::place_entity(int player_id, std::string item_name, Pos_f pos, dir4_t direction)
 {
-	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir4[direction]);
+	rcon_call("place_entity", player_id, "'"+item_name+"',{"+pos.str()+"},"+dir4str[direction]);
 }
 
 void FactorioGame::insert_to_inventory(int player_id, std::string item_name, int amount, Entity entity, inventory_t inventory)
@@ -186,7 +186,7 @@ void FactorioGame::remove_from_inventory(int player_id, std::string item_name, i
 	rcon_call("remove_from_inventory", player_id, "'"+entity.proto->name+"',{"+entity.pos.str()+"}," + inventory_names[inventory] + ",{name='"+item_name+"',count="+to_string(amount)+"}");
 }
 
-[[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
+[[deprecated]] void FactorioGame::walk_to(int /*player_id*/, const Pos& /*dest*/)
 {
 	// TODO FIXME: create new task with very high priority and force reschedule
 }
