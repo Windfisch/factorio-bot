@@ -188,13 +188,6 @@ void FactorioGame::remove_from_inventory(int player_id, std::string item_name, i
 
 [[deprecated]] void FactorioGame::walk_to(int player_id, const Pos& dest)
 {
-	/*
-	unique_ptr<action::CompoundGoal> new_goals(new action::CompoundGoal(this, player_id));
-	new_goals->subgoals.emplace_back(new action::WalkTo(this, player_id, dest));
-
-	players[player_id].goals = move(new_goals);
-	players[player_id].goals->start();
-	*/
 	// TODO FIXME: create new task with very high priority and force reschedule
 }
 
@@ -914,7 +907,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 			{
 				cout << "merging" << endl;
 				neighbor->merge_into(*resource_patch);
-				// TODO delete neighbor from list of patches. possibly invalidating or migrating goals
+				// TODO delete neighbor from list of patches. possibly invalidating or migrating goals / actions
 				resource_patches.erase(neighbor);
 				assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
 			}
