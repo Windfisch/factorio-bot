@@ -176,9 +176,16 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						if (iter == curr_vec->end())
 						{
 							if (next_chunk())
+							{
 								iter = curr_vec->begin();
+								assert(!curr_vec->empty());
+								assert(iter != curr_vec->end());
+							}
 							else
+							{
+								assert(*this == range_iterator<is_const>(parent, range, true));
 								break;
+							}
 							// else stay at this end() position.
 						}
 					} while (!range.contains(iter->get_pos()));
@@ -194,9 +201,15 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					{
 						if (iter == curr_vec->begin())
 						{
-							if (!prev_chunk())
+							if (prev_chunk())
+							{
+								assert(!curr_vec->empty());
+								iter = curr_vec->end();
+							}
+							else
 								assert(false);
 						}
+						--iter;
 					} while (!range.contains(iter->get_pos()));
 				}
 
@@ -641,8 +654,21 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					assert(result.curr_vec == iter.curr_vec);
 					
 					iter.curr_vec->erase(iter.iter);
-					// this has invalidated result.iter. let's fix that
-					result.iter = result.curr_vec->end();
+
+					if (result.curr_vec->empty())
+					{
+						if (result.prev_chunk())
+							result.iter = result.curr_vec->end();
+						else
+						{
+							result.curr_vec = nullptr;
+							result.iter = typename Range::iterator::iter_t(); // null iterator
+						}
+					}
+					else
+						result.iter = result.curr_vec->end();
+
+					assert(result == typename Range::iterator(iter.parent, iter.range, true));
 				}
 
 				return result;
