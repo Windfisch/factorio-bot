@@ -439,13 +439,23 @@ int main(int argc, const char** argv)
 	for (size_t i=0; i<=player_idx; i++)
 		splayers.emplace_back(&factorio, i);
 
-	auto mytask = make_shared<Task>("mytask");
+	/*auto mytask = make_shared<Task>("mytask");
 	mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
 	mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
 	mytask->priority_ = 5;
 	mytask->dump();
 
-	cout << "\n\n" << endl;
+	cout << "\n\n" << endl;*/
+
+	auto mytask = make_shared<Task>("wood chopper");
+	mytask->goals.emplace();
+	for (const auto& ent : factorio.actual_entities.around(Pos(0,0)))
+		if (ent.proto->name.substr(0,4) == "tree")
+		{
+			mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
+			if (mytask->goals->size() > 4)
+				break;
+		}
 
 	splayers[player_idx].scheduler.add_task(mytask);
 

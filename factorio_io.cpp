@@ -400,6 +400,15 @@ void FactorioGame::parse_inventory_changed(const string& data)
 		bool has_owner = owner_str!="x";
 		int owning_action_id = has_owner ? stoi(owner_str) : -1;
 		const ItemPrototype* proto = item_prototypes.at(item).get();
+		
+		if (size_t(player_id) >= players.size())
+		{
+			cout << "HACK: parse_inventory_changed() on a player that does not exist yet. (this can be because it has just joined and got its inventory pre-filled by the game.)... resizing players." << endl;
+			players.resize(player_id+1); // FIXME
+		}
+
+		if (player_id < 0 || size_t(player_id) >= players.size())
+			throw runtime_error("invalid player id in parse_mined_item()");
 
 		TaggedAmount& content = players[player_id].inventory[proto];
 
