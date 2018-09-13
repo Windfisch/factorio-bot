@@ -1,4 +1,4 @@
-/* This WorldList implementation is dual-licensed under both the
+/* This multivariant.hpp file is dual-licensed under both the
  * terms of the MIT and the GPL3 license. You can choose which
  * of those licenses you want to use. Note that the MIT option
  * only applies to this file, and not to the rest of
