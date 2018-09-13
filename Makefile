@@ -7,7 +7,7 @@ ALLTESTS=test/worldlist test/scheduler
 
 # all objects, including those for other targets (i.e. rcon-client)
 ALLOBJECTS=$(COMMONOBJECTS) main.o rcon-client.o $(addsuffix .o,$(ALLTESTS))
-DEBUG=0
+DEBUG=1
 
 
 MODNAME=Windfisch_0.0.1

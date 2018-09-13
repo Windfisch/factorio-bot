@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Florian Jung
+ * Copyright (c) 2017, 2018 Florian Jung
  *
  * This file is part of factorio-bot.
  *

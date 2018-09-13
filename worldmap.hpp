@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (c) 2017 Florian Jung
+ * Copyright (c) 2017, 2018 Florian Jung
  *
  * This file is part of factorio-bot.
  *
@@ -26,7 +26,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 Florian Jung
+ * Copyright (c) 2017, 2018 Florian Jung
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this templated WorldMap implementation and associated
