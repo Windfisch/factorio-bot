@@ -46,10 +46,10 @@ namespace sched
 	
 void Task::update_actions_from_goals(FactorioGame* game, int player)
 {
-	if (!goals.has_value())
-		return;
-
 	actions = make_shared<action::CompoundAction>();
+	
+	if (!goals.has_value() || goals->all_fulfilled(game))
+		return;
 
 	actions->subactions = goals->calculate_actions(game, player);
 

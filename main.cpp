@@ -484,6 +484,18 @@ int main(int argc, const char** argv)
 
 			if (player.tick_actions())
 			{
+				cout << "player #" << player.id << "'s task '" << splayer.current_task->name << "' has finished. ";
+				if (splayer.current_task->goals.has_value())
+				{
+					cout << "Its goals are " << (splayer.current_task->goals->all_fulfilled(&factorio) ? "" : "NOT ") << " fulfilled:" << endl;
+					splayer.current_task->goals->dump(&factorio);
+				}
+				else
+					cout << "It had no goals, only actions (which have been executed)" << endl;
+				
+				cout << "removing that task from the scheduler..." << endl;
+				splayer.scheduler.remove_task(splayer.current_task);
+
 				splayer.current_task = nullptr;
 				splayer.scheduler.recalculate();
 			}
