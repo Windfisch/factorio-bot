@@ -514,9 +514,11 @@ int main(int argc, const char** argv)
 				case 's':
 				{
 					splayers[player_idx].scheduler.dump();
-					auto task = splayers[player_idx].scheduler.get_current_task();
-					gui.clear();
-					debug_draw_actions(task->actions.get(), &gui, factorio.players[player_idx].position);
+					if (auto task = splayers[player_idx].scheduler.get_current_task())
+					{
+						gui.clear();
+						debug_draw_actions(task->actions.get(), &gui, factorio.players[player_idx].position);
+					}
 					break;
 				}
 			}
