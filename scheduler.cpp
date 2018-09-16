@@ -257,14 +257,14 @@ void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const 
 		auto balance = items_balance();
 
 		// try to find a balance item that's not mentioned in basic_items
-		auto iter = find_if(balance.begin(), balance.end(),
+		auto iter = find_if(balance.rbegin(), balance.rend(),
 			[&basic_items](const auto& val) {
 				return val.second > 0 && find(basic_items.begin(), basic_items.end(), val.first) == basic_items.end();
 			}
 		);
 		
 		// not found one? good, we're done.
-		if (iter == balance.end())
+		if (iter == balance.rend())
 			break;
 
 		// found one? we need to add recipes to the crafting_list
@@ -278,6 +278,9 @@ void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const 
 		for (int i=0; i<n_recipes; i++)
 			crafting_list.recipes.push_back({CraftingList::PENDING, recipe});
 	}
+
+	// we need to reverse the list in order to get the dependencies first
+	std::reverse(crafting_list.recipes.begin(), crafting_list.recipes.end());
 }
 
 void Task::dump() const
