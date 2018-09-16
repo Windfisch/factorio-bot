@@ -453,10 +453,15 @@ int main(int argc, const char** argv)
 		if (ent.proto->name.substr(0,4) == "tree")
 		{
 			mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-			if (mytask->goals->size() > 4)
+			if (mytask->goals->size() > 15)
 				break;
 		}
+	splayers[player_idx].scheduler.add_task(mytask);
 
+	mytask = make_shared<Task>("axe crafter");
+	mytask->goals.reset();
+	mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
+	mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
 	splayers[player_idx].scheduler.add_task(mytask);
 
 	while (true)
