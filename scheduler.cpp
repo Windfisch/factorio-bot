@@ -123,17 +123,26 @@ optional<Scheduler::owned_recipe_t> Scheduler::peek_current_craft()
 {
 	if (current_crafting_list.empty())
 	{
+		// FIXME: this should also update the item allocation. or don't do this here at all, instead trust on a previous recalculate()
 		current_crafting_list = calculate_crafts(current_item_allocation, 20);
 		if (current_crafting_list.empty())
 			return nullopt;
 	}
+
+	// TODO FIXME: check if the craft is possible with the current inventory, recalculate if not
+	// (this should not happen, but it can happen, if bots or anyone "steals" items from the player's
+	// inventory)
+
+	// TODO FIXME: check if the craft is finished already. if so, skip it.
+
 	return current_crafting_list.front();
 }
 
 void Scheduler::accept_current_craft()
 {
 	assert(!current_crafting_list.empty());
-	shared_ptr<Task> task = current_crafting_list.front().first.lock();
+
+	shared_ptr<Task> task = shared_ptr(current_crafting_list.front().first); // fail loudly when lock() fails
 	const Recipe* recipe = current_crafting_list.front().second;
 
 	for (auto& craft : task->crafting_list.recipes)
@@ -143,13 +152,17 @@ void Scheduler::accept_current_craft()
 			task->crafting_list.invariant();
 			return;
 		}
-	
+
+	// TODO: maybe it would be better to not crash, but instead silently drop this craft from the list, if
+	// it's already FINISHED. this can happen when we have already crafted it at the very moment when a
+	// recalculation happened and gave us a new crafting list... gahh.
+
 	throw logic_error("internal error: tried to accept a craft that's not available in the task");
 }
 
 void Scheduler::retreat_current_craft(owned_recipe_t what)
 {
-	shared_ptr<Task> task = what.first.lock();
+	shared_ptr<Task> task = shared_ptr(what.first); // fail loudly when lock() fails
 	const Recipe* recipe = what.second;
 	task->invariant();
 
@@ -165,7 +178,7 @@ void Scheduler::retreat_current_craft(owned_recipe_t what)
 
 void Scheduler::confirm_current_craft(owned_recipe_t what)
 {
-	shared_ptr<Task> task = what.first.lock();
+	shared_ptr<Task> task = shared_ptr(what.first); // fail loudly when lock() fails
 	const Recipe* recipe = what.second;
 	task->invariant();
 
