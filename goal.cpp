@@ -22,7 +22,7 @@
 
 using namespace std;
 
-const int REACH = 3; // FIXME magic constant. move to common header
+const int REACH = 2; // FIXME magic constant. move to common header
 
 namespace goal
 {
