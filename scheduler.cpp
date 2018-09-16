@@ -182,6 +182,9 @@ void Scheduler::confirm_current_craft(owned_recipe_t what)
 	const Recipe* recipe = what.second;
 	task->invariant();
 
+	if (Scheduler::owned_recipe_t_equal(what, current_crafting_list.front()))
+		current_crafting_list.pop_front();
+
 	for (auto& craft : task->crafting_list.recipes)
 		if (craft.status == CraftingList::CURRENT && craft.recipe == recipe)
 		{
@@ -450,10 +453,11 @@ void Scheduler::update_crafting_order(const item_allocation_t& task_inventories)
 }
 
 /** Returns a list of up to `max_n` crafts (consisting of the owning task and the recipe) that should be performed next.
+ *  It is guaranteed that they can be performed next with the current inventory.
  */
-vector<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocation_t& task_inventories, size_t max_n)
+deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocation_t& task_inventories, size_t max_n)
 {
-	vector<owned_recipe_t> result;
+	deque<owned_recipe_t> result;
 
 	for (auto& task_w : crafting_order)
 	{

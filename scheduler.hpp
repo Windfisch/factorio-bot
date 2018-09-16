@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <vector>
+#include <deque>
 #include <assert.h>
 #include <map>
 #include <optional>
@@ -347,7 +348,7 @@ struct Scheduler
 	  */
 	using schedule_t = std::multimap< schedule_key_t, std::shared_ptr<Task> >;
 	using item_allocation_t = std::map<const Task*, Inventory>;
-	using crafting_list_t = std::vector<owned_recipe_t>;
+	using crafting_list_t = std::deque<owned_recipe_t>;
 
 	item_allocation_t current_item_allocation;
 	schedule_t current_schedule;
