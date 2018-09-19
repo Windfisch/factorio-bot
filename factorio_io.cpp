@@ -649,8 +649,9 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		actual_entities.insert(std::move(ent));
 	}
 
-	if (pending_entities.size() > 0)
+	/*if (pending_entities.size() > 0)
 		cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << (stats.total-stats.reused) << " and deleted " << pending_entities.size() << endl; // DEBUG
+	*/
 	
 	// finally, update the walkmap; because our entities have a certain size, we must update a larger portion
 	update_walkmap(area.expand(int(ceil(max_entity_radius))));
@@ -854,7 +855,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	todo.push_back(Pos(x,y));
 	int count = 0;
 	auto resource_type = view.at(x,y).type;
-	cout << "type = "<<Resource::typestr[resource_type]<< " @"<<Pos(x,y).str()<<endl;
+	//cout << "type = "<<Resource::typestr[resource_type]<< " @"<<Pos(x,y).str()<<endl;
 
 	view.at(x,y).floodfill_flag = Resource::FLOODFILL_QUEUED;
 
@@ -892,7 +893,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 		}
 	}
 
-	cout << "count=" << count << ", neighbors=" << neighbors.size() << endl;
+	//cout << "count=" << count << ", neighbors=" << neighbors.size() << endl;
 	
 
 	shared_ptr<ResourcePatch> resource_patch;
@@ -908,25 +909,27 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 		auto largest = std::max_element(neighbors.begin(), neighbors.end(), [](const auto& a, const auto& b) {return a->positions.size() > b->positions.size();});
 		resource_patch = *largest;
 
-		cout << "extending existing patch of size " << resource_patch->positions.size() << endl;
+		//cout << "extending existing patch of size " << resource_patch->positions.size() << endl;
 
 		for (const auto& neighbor : neighbors)
 		{
 			if (neighbor != resource_patch)
 			{
-				cout << "merging" << endl;
+				//cout << "merging" << endl;
 				neighbor->merge_into(*resource_patch);
 				// TODO delete neighbor from list of patches. possibly invalidating or migrating goals / actions
 				resource_patches.erase(neighbor);
 				assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
 			}
 			else
-				cout << "not merging ourself" << endl;
+			{
+				//cout << "not merging ourself" << endl;
+			}
 		}
 
 		resource_patch->extend(orepatch);
 
-		cout << "size now " << resource_patch->positions.size() << endl;
+		//cout << "size now " << resource_patch->positions.size() << endl;
 	}
 
 	assert(resource_patch);
@@ -942,5 +945,5 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 		ref.resource_patch = resource_patch;
 	}
 
-	cout << "we now have " << resource_patches.size() << " patches" << endl;
+	//cout << "we now have " << resource_patches.size() << " patches" << endl;
 }

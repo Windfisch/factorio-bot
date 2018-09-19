@@ -467,6 +467,8 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 		shared_ptr<Task> task(task_w); // fail loudly if the weak_ptr has expired
 		auto& crafts = task->crafting_list;
 		Inventory available_inventory(task_inventories.at(task.get()));
+		cout << "calculate_crafts for " << task->name << ": available_inventory is:" << endl;
+		available_inventory.dump();
 		if (crafts.almost_finished())
 			continue;
 
@@ -480,14 +482,21 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 				case CraftingList::FINISHED:
 					break;
 				case CraftingList::PENDING:
+					cout << "checking whether " << entry.recipe->name << " can be crafted... ";
 					if (available_inventory.apply(entry.recipe))
 					{
+						cout << "yes" << endl;
 						result.emplace_back(task, entry.recipe);
 
 						// limit the result's size
 						if (result.size() >= max_n)
+						{
+							cout << "limiting size..." << endl;
 							goto finish;
+						}
 					}
+					else
+						cout << "no" << endl;
 					break;
 				case CraftingList::CURRENT:
 					available_inventory.apply(entry.recipe, true);

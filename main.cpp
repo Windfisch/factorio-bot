@@ -342,7 +342,13 @@ int main(int argc, const char** argv)
 	if (player_idx == SIZE_MAX)
 	{
 		cout << "Could not determine a player index :(" << endl;
-		exit(1);
+		if (!online)
+		{
+			cout << "making up one (1)" << endl;
+			player_idx = 1;
+		}
+		else
+			exit(1);
 	}
 	cout << endl << "Player index = " << player_idx << endl << endl;
 
@@ -372,6 +378,8 @@ int main(int argc, const char** argv)
 					scheduler.confirm_current_craft(current_craft.value());
 					current_crafting_action = nullptr;
 					current_craft = nullopt;
+
+					cout << "there is " << (scheduler.peek_current_craft() ? "a" : "no") << " next craft." << endl;
 				}
 			}
 
