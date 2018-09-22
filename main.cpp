@@ -526,6 +526,40 @@ int main(int argc, const char** argv)
 					splayers[player_idx].scheduler.recalculate();
 					cout << "scheduler.recalculate()" << endl;
 					break;
+				case 't':
+				{
+					cout << "adding an important task" << endl;
+					auto mytask = make_shared<Task>("important chopper");
+					mytask->goals.emplace();
+					mytask->priority_ = -100;
+					for (const auto& ent : factorio.actual_entities.around(Pos(50,50)))
+						if (ent.proto->name.substr(0,4) == "tree")
+						{
+							mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
+							if (mytask->goals->size() > 5)
+								break;
+						}
+					mytask->actions_changed();
+					splayers[player_idx].scheduler.add_task(mytask);
+					break;
+				}
+				case 'y':
+				{
+					cout << "adding a less important task" << endl;
+					auto mytask = make_shared<Task>("nice chopper");
+					mytask->goals.emplace();
+					mytask->priority_ = 100;
+					for (const auto& ent : factorio.actual_entities.around(Pos(-50,-50)))
+						if (ent.proto->name.substr(0,4) == "tree")
+						{
+							mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
+							if (mytask->goals->size() > 5)
+								break;
+						}
+					mytask->actions_changed();
+					splayers[player_idx].scheduler.add_task(mytask);
+					break;
+				}
 				case 's':
 				{
 					splayers[player_idx].scheduler.dump();
