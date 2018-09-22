@@ -44,7 +44,7 @@ static int connect_socket(const char* address, int port)
 
 	std::string portstr = std::to_string(port);
 
-	int sock;
+	int sock = -1;
 	int s = getaddrinfo(address, portstr.c_str(), &hints, &result);
 	if (s)
 		throw std::runtime_error("getaddrinfo() failed");
@@ -62,11 +62,16 @@ static int connect_socket(const char* address, int port)
 		}
 		else
 		{
-			return sock;
+			break;
 		}
 	}
 
-	throw std::runtime_error("could not establish a connection");
+	freeaddrinfo(result);
+
+	if (sock < 0)
+		throw std::runtime_error("could not establish a connection");
+	else
+		return sock;
 }
 
 static void serialize_uint32(uint8_t* buf, uint32_t num)

@@ -99,10 +99,15 @@ struct CraftingList
 
 struct Task
 {
+	/** the lower the value, the higher the priority */
 	using priority_t = int;
 
 	std::string name;
-	priority_t priority_;
+	priority_t priority_ = 0xDEADBEEF;
+
+	// TODO: does the task need its items in the main inventory (plus quickbar), or is it okay
+	// if it's in tool, ammo, weapon inventory? If it does, then the items collector task must
+	// move them from the auxiliary into the main inventory (which consumes no time, but still.)
 
 	/** List of goals. This is used to re-generate the action list on every reschedule */
 	std::optional<goal::GoalList> goals;

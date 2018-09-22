@@ -72,8 +72,8 @@ struct Entity
 	Pos_f get_pos() const { return pos; } // WorldList<Entity> wants to call this.
 
 	Pos_f pos;
-	const EntityPrototype* proto;
-	dir4_t direction;
+	const EntityPrototype* proto = nullptr;
+	dir4_t direction = NORTH;
 
 	std::string str() const { return proto->name+"@"+pos.str(); }
 
