@@ -479,10 +479,11 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 		shared_ptr<Task> task(task_w); // fail loudly if the weak_ptr has expired
 		auto& crafts = task->crafting_list;
 		Inventory available_inventory(task_inventories.at(task.get()));
-		cout << "calculate_crafts for " << task->name << ": available_inventory is:" << endl;
-		available_inventory.dump();
 		if (crafts.almost_finished())
 			continue;
+		
+		cout << "calculate_crafts for " << task->name << ": available_inventory is:" << endl;
+		available_inventory.dump();
 
 		// iterate over each not-yet-finished craft in the current task's crafting list
 		// and add all crafts which we will be able to perform it with our current inventory

@@ -163,7 +163,7 @@ Rcon::Packet Rcon::recv() {
 	pkg.type = static_cast<pkgtype>(deserialize_uint32(pkgbuf + 4));
 	pkg.data = std::string(reinterpret_cast<char*>(pkgbuf+8), len-10);
 
-	pkg.dump();
+	//pkg.dump();
 
 	return pkg;
 }
