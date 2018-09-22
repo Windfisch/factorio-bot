@@ -464,12 +464,14 @@ int main(int argc, const char** argv)
 			if (mytask->goals->size() > 15)
 				break;
 		}
+	mytask->actions_changed();
 	splayers[player_idx].scheduler.add_task(mytask);
 
 	mytask = make_shared<Task>("axe crafter");
 	mytask->goals.reset();
 	mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
 	mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
+	mytask->actions_changed();
 	splayers[player_idx].scheduler.add_task(mytask);
 
 	while (true)

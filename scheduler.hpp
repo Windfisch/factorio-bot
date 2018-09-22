@@ -125,10 +125,15 @@ struct Task
 	  * In this case, goals is empty.
 	  *
 	  * FIXME: probably it would be better to move this functionality into an items collector goal.
+	  *
+	  * NOTE: whenever actions have changed, action_changed() needs to be called in
+	  * order to update start/end location and duration!
 	  */
 	std::shared_ptr<action::CompoundAction> actions;
-	
-	void set_actions(/* FIXME */); // TODO: set actions, start_location, duration, end_location
+
+	/** this needs to be called after actions have changed in order to update the
+	  * start/end location and the duration */
+	void actions_changed();
 	
 	CraftingList crafting_list; // could be computed from required_items, available item storages and the crafting pressure
 	

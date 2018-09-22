@@ -60,10 +60,22 @@ void Task::update_actions_from_goals(FactorioGame* game, int player)
 	
 	// TODO FIXME: crafting list recalculation
 	
-	optional<Pos> first_pos = actions->first_pos();
-	assert(first_pos.has_value());
-	start_location = first_pos.value();
-	tie(end_location, duration) = actions->walk_result(start_location);
+	actions_changed();
+}
+
+void Task::actions_changed()
+{
+	if (actions)
+	{
+		optional<Pos> first_pos = actions->first_pos();
+		assert(first_pos.has_value());
+		start_location = first_pos.value();
+		tie(end_location, duration) = actions->walk_result(start_location);
+	}
+	else
+	{
+		duration = chrono::seconds(0);
+	}
 }
 
 
