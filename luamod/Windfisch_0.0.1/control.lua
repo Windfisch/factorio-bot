@@ -928,7 +928,7 @@ end
 
 function player_total_inventory(player_id)
 	local i = defines.inventory
-	local is = { i.player_quickbar, i.player_main } -- TODO: maybe more?
+	local is = { i.player_quickbar, i.player_main, i.player_tools, i.player_guns, i.player_ammo, i.player_armor } -- TODO: maybe more?
 	return sum_inventory(game.players[player_id], is)
 end
 
@@ -1027,6 +1027,10 @@ script.on_event(defines.events.on_resource_depleted, on_some_entity_deleted) --e
 
 script.on_event(defines.events.on_player_main_inventory_changed, on_inventory_changed)
 script.on_event(defines.events.on_player_quickbar_inventory_changed, on_inventory_changed)
+script.on_event(defines.events.on_player_tool_inventory_changed, on_inventory_changed)
+script.on_event(defines.events.on_player_gun_inventory_changed, on_inventory_changed)
+script.on_event(defines.events.on_player_ammo_inventory_changed, on_inventory_changed)
+script.on_event(defines.events.on_player_armor_inventory_changed, on_inventory_changed)
 
 script.on_event(defines.events.on_player_crafted_item, on_player_crafted_item)
 
