@@ -145,7 +145,7 @@ struct Task
 	float start_radius; // probably a constant
 
 	// the duration for executing the actual task, excluding all resource acquirance
-	Clock::duration duration; // sum of goal walktimes and goal execution times
+	Clock::duration duration = Clock::duration(0); // sum of goal walktimes and goal execution times
 	
 	// after `duration` has passed, we'll end up here, free for other tasks
 	Pos end_location; // last goal's location

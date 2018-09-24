@@ -532,6 +532,9 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 	
 	Clock::duration last_offset = schedule.rbegin()->first.first + schedule.rbegin()->second->duration;
 
+	if (last_offset.count() == 0)
+		last_offset = chrono::seconds(1);
+
 	for (const auto& [key, task] : schedule)
 	{
 		const auto& [begin_offset, priority] = key;
@@ -540,7 +543,7 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 
 		int begin_column = int(n_columns * begin_offset.count() / last_offset.count());
 		int end_column = int(n_columns * end_offset.count() / last_offset.count());
-		end_column = max(end_column, begin_column+1);
+		end_column = max(end_column, begin_column+2);
 
 		string result;
 		int label_len = safe_cast<int>(label.length());
