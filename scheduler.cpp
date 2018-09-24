@@ -71,6 +71,7 @@ void Task::actions_changed()
 		assert(first_pos.has_value());
 		start_location = first_pos.value();
 		tie(end_location, duration) = actions->walk_result(start_location);
+		assert(duration.count() >= 0);
 	}
 	else
 	{

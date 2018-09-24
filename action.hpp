@@ -129,12 +129,14 @@ namespace action
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
 			Pos pos = current_position;
-			Clock::duration sum;
+			Clock::duration sum(0);
 			for (const auto& action : subactions)
 			{
 				auto [pos_after, duration] = action->walk_result(pos);
+				assert(duration.count() >= 0);
 				pos = pos_after;
 				sum += duration;
+				assert(sum.count() >= 0);
 			}
 			return std::pair(pos,sum);
 		}
