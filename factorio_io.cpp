@@ -819,7 +819,7 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 		{
 			// TODO FIXME
 			cout << "wtf, " << Pos(x,y).str() << " is not in "<< area.str() << endl;
-			break;
+			continue;
 		}
 
 		if (view.at(x,y).patch_id != NOT_YET_ASSIGNED)
