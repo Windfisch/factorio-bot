@@ -801,26 +801,17 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 	// parse all entities and write them to the WorldMap
 	for (string entry : split(data, ',')) if (entry!="")
 	{
-		auto p1 = entry.find(' ');
-		auto p2 = entry.find(' ', p1+1);
-
-		if (p1 == string::npos || p2 == string::npos)
-			throw runtime_error("malformed resource entry");
-		assert(p1!=p2);
+		auto [type_str,xx,yy] = unpack<string,double,double>(entry, ' ');
 		
-		string type_str;
 		Resource::type_t type;
 		try
 		{
-			type_str = entry.substr(0,p1);
 			type = Resource::types.at(type_str);
 		}
 		catch (const out_of_range&)
 		{
-			throw std::runtime_error("resource type '"+entry.substr(0,p1)+"' is not known in Resource::types[] (definition at the top of factorio_io.cpp");
+			throw std::runtime_error("resource type '"+type_str+"' is not known in Resource::types[] (definition at the top of factorio_io.cpp");
 		}
-		double xx = stod( entry.substr(p1+1, p2-(p1+1)) );
-		double yy = stod( entry.substr(p2+1) );
 		int x = int(floor(xx));
 		int y = int(floor(yy));
 
