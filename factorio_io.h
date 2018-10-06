@@ -95,6 +95,13 @@ class FactorioGame
 		
 		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
 		int next_free_resource_id = 1;
+
+		/** changes the type of the resource-field 'entry' to new_type (which can be NONE, in which case
+		  * `entity` will be ignored). The resulting patch_id will always be NOT_YET_ASSIGNED.
+		  * The previous patch (if entry.type was not NONE) will have the `position` removed, and
+		  * will be removed from the patch list, if it would be empty after the operation.
+		  */
+		void update_resource_field(Resource& entry, Resource::type_t new_type, Pos position, Entity entity);
 	
 	public:
 		FactorioGame(std::string prefix);

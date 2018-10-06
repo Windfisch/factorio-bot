@@ -539,6 +539,39 @@ void FactorioGame::parse_recipes(const string& data)
 	}
 }
 
+void FactorioGame::update_resource_field(Resource& entry, Resource::type_t new_type, Pos position, Entity entity)
+{
+	auto old_type = entry.type;
+
+	if (old_type != Resource::NONE)
+	{
+		if (auto patch = entry.resource_patch.lock())
+		{
+			patch->remove(position);
+			entry = Resource();
+
+			if (patch->size() == 0)
+			{
+				cout << "patch has vanished" << endl;
+				// remove patch
+				auto iter = resource_patches.find(patch);
+				assert(iter != resource_patches.end());
+				resource_patches.erase(iter);
+			}
+		}
+		else
+		{
+			cout << "wtf, could not lock resource weak reference" << endl;
+		}
+	}
+
+	if (new_type != Resource::NONE)
+	{
+		assert(entry.patch_id == NOT_YET_ASSIGNED);
+		entry = Resource(new_type, NOT_YET_ASSIGNED, entity);
+	}
+}
+
 void FactorioGame::parse_tiles(const Area& area, const string& data)
 {
 	if (data.length() != 1024+1023)
@@ -561,33 +594,10 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 		auto& entry = resview.at(abspos);
 		Resource::type_t old_type = entry.type;
 
+		// only care for OCEAN -> something-else and not-ocean -> OCEAN changes here, because
+		// all other resources are handled elsewhere.
 		if ((old_type == Resource::OCEAN) != (type == Resource::OCEAN))
-		{
-			if (old_type != Resource::NONE)
-			{
-				if (auto patch = entry.resource_patch.lock())
-				{
-					patch->remove(abspos);
-					entry = Resource();
-
-					if (patch->size() == 0)
-					{
-						cout << "patch has vanished" << endl;
-						// FIXME remove patch
-					}
-				}
-				else
-				{
-					cout << "wtf, could not lock resource weak reference" << endl;
-				}
-			}
-
-			if (type != Resource::NONE)
-			{
-				assert(entry.patch_id == NOT_YET_ASSIGNED);
-				entry = Resource(type, NOT_YET_ASSIGNED, Entity(Entity::nullent_tag{}, abspos));
-			}
-		}
+			update_resource_field(entry, type, abspos, Entity(Entity::nullent_tag{}, abspos));
 	}
 	
 	resource_bookkeeping(area, resview);
@@ -854,35 +864,10 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 			auto& entry = view.at(x,y);
 
 			Resource::type_t old_type = entry.type;
-
+		
+			// ignore OCEAN->NONE changes, because OCEAN is special and not handled here,
 			if (type != old_type && !(type == Resource::NONE && old_type == Resource::OCEAN))
-			{
-				if (old_type != Resource::NONE)
-				{
-					if (auto patch = entry.resource_patch.lock())
-					{
-						patch->remove(Pos(x,y));
-						entry = Resource();
-
-						if (patch->size() == 0)
-						{
-							cout << "patch has vanished" << endl;
-							// FIXME remove patch
-						}
-					}
-					else
-					{
-						cout << "wtf, could not lock resource weak reference" << endl;
-					}
-				}
-
-
-				if (type != Resource::NONE)
-				{
-					assert(entry.patch_id == NOT_YET_ASSIGNED);
-					entry = Resource(type, NOT_YET_ASSIGNED, entity);
-				}
-			}
+				update_resource_field(entry, type, Pos(x,y), entity);
 		}
 
 	resource_bookkeeping(area, view);
