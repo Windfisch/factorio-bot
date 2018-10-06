@@ -31,7 +31,7 @@ struct ContainerData
 	Inventory items;
 };
 
-struct MachineData {};
+struct MachineData : public ContainerData {};
 struct MiningDrillData {};
 
 using mvu = multivariant_utils<typelist<ContainerData, MachineData, MiningDrillData>>;
@@ -63,6 +63,8 @@ struct EntityPrototype
 			else if (type_ == "mining-drill")
 				data_kind = mvu::index<MiningDrillData>();
 			else if (type_ == "assembling-machine")
+				data_kind = mvu::index<MachineData>();
+			else if (type_ == "furnace")
 				data_kind = mvu::index<MachineData>();
 		}
 };
