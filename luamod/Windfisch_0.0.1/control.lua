@@ -547,7 +547,7 @@ function on_tick(event)
 	if event.tick % 120 == 0 then
 		local who = "?"
 		if client_local_data.whoami then who = client_local_data.whoami end
-		if my_client_id ~= nil then print(my_client_id.."."..who) end
+		if my_client_id ~= nil then print("my_client_id="..my_client_id..", who="..who) end
 	end
 
 	if event.tick % 10 == 0 then
