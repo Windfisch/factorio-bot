@@ -74,6 +74,8 @@ template<typename T> struct Area_
 	bool contains_y(T y) const { return left_top.y <= y && y < right_bottom.y; }
 
 	T diameter() const { return std::max(right_bottom.x - left_top.x, right_bottom.y - left_top.y); }
+
+	Pos_<T> size() const { return right_bottom - left_top; }
 	
 	template <typename U=T> typename std::enable_if< std::is_floating_point<U>::value, Area_<int> >::type
 	/*Area_<int>*/ outer() const

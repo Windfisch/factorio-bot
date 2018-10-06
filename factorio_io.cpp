@@ -554,19 +554,38 @@ void FactorioGame::parse_tiles(const Area& area, const string& data)
 		view.at(x,y).known = true;
 		view.at(x,y).can_walk = (data[2*i]=='0');
 		
-		if (!view.at(x,y).can_walk) // FIXME: this is used to recognize "water" for now
+		bool is_water = !view.at(x,y).can_walk; // FIXME: this is used to recognize "water" for now
+
+		Pos abspos = area.left_top + Pos(x,y);
+		Resource::type_t type = is_water ? Resource::OCEAN : Resource::NONE;
+		auto& entry = resview.at(abspos);
+		Resource::type_t old_type = entry.type;
+
+		if ((old_type == Resource::OCEAN) != (type == Resource::OCEAN))
 		{
-			Pos abspos = area.left_top + Pos(x,y);
-			if (resview.at(abspos).patch_id != NOT_YET_ASSIGNED)
+			if (old_type != Resource::NONE)
 			{
-				if (resview.at(abspos).type != Resource::OCEAN)
-					throw std::runtime_error("resource at "+abspos.str()+" changed type from "+Resource::typestr[resview.at(abspos).type]+" to "+Resource::typestr[Resource::OCEAN]+". I can't handle that yet");
-				//else // ignore this for now. see the fixme above
+				if (auto patch = entry.resource_patch.lock())
+				{
+					patch->remove(abspos);
+					entry = Resource();
+
+					if (patch->size() == 0)
+					{
+						cout << "patch has vanished" << endl;
+						// FIXME remove patch
+					}
+				}
+				else
+				{
+					cout << "wtf, could not lock resource weak reference" << endl;
+				}
 			}
-			else
+
+			if (type != Resource::NONE)
 			{
-				assert(resview.at(abspos).resource_patch.lock() == nullptr);
-				resview.at(abspos) = Resource(Resource::OCEAN, NOT_YET_ASSIGNED, Entity(Entity::nullent_tag{}, abspos));
+				assert(entry.patch_id == NOT_YET_ASSIGNED);
+				entry = Resource(type, NOT_YET_ASSIGNED, Entity(Entity::nullent_tag{}, abspos));
 			}
 		}
 	}
@@ -793,45 +812,78 @@ void FactorioGame::assert_resource_consistency() const // only for debugging pur
 
 void FactorioGame::parse_resources(const Area& area, const string& data)
 {
+	assert(area.size() == Pos(32,32));
+	
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
-	// FIXME: clear and un-assign existing entities before
-	// FIXME: handle vanishing resources
+	struct resource_tile
+	{
+		Resource::type_t type = Resource::NONE;
+		Entity entity = Entity(Entity::nullent_tag{});
+	} chunk[32][32] = {};
 
 	// parse all entities and write them to the WorldMap
 	for (string entry : split(data, ',')) if (entry!="")
 	{
 		auto [type_str,xx,yy] = unpack<string,double,double>(entry, ' ');
 		
-		Resource::type_t type;
-		try
-		{
-			type = Resource::types.at(type_str);
-		}
-		catch (const out_of_range&)
-		{
-			throw std::runtime_error("resource type '"+type_str+"' is not known in Resource::types[] (definition at the top of factorio_io.cpp");
-		}
-		int x = int(floor(xx));
-		int y = int(floor(yy));
+		Resource::type_t type = Resource::types.at(type_str);
+		Pos pos = {int(floor(xx)), int(floor(yy))};
 
-		if (!area.contains(Pos(x,y)))
+		if (!area.contains(pos))
 		{
 			// TODO FIXME
-			cout << "wtf, " << Pos(x,y).str() << " is not in "<< area.str() << endl;
+			cout << "wtf, " << pos.str() << " is not in "<< area.str() << endl;
 			continue;
 		}
 
-		if (view.at(x,y).patch_id != NOT_YET_ASSIGNED)
-		{
-			if (view.at(x,y).type != type)
-				throw std::runtime_error("resource at "+Pos(x,y).str()+" changed type from "+Resource::typestr[view.at(x,y).type]+" to "+Resource::typestr[type]+". I can't handle that yet");
-			else // ignore this for now. see the fixme above
-				continue;
-		}
+		Pos relpos = pos - area.left_top;
 
-		view.at(x,y) = Resource(type, NOT_YET_ASSIGNED, Entity(Pos_f(xx,yy), entity_prototypes.at(type_str).get()));
+		if (chunk[relpos.y][relpos.x].type != Resource::NONE)
+			cout << "wtf, " << pos.str() << " has a conflicting resource entry?! (broken packet?)" << endl;
+
+		chunk[relpos.y][relpos.x].type = type;
+		chunk[relpos.y][relpos.x].entity = Entity(Pos_f(xx,yy), entity_prototypes.at(type_str).get());
 	}
+
+	for (int x = area.left_top.x; x < area.right_bottom.x; x++)
+		for (int y = area.left_top.y; y < area.right_bottom.y; y++)
+		{
+			Resource::type_t type = chunk[y-area.left_top.y][x-area.left_top.x].type;
+			const Entity& entity = chunk[y-area.left_top.y][x-area.left_top.x].entity;
+			auto& entry = view.at(x,y);
+
+			Resource::type_t old_type = entry.type;
+
+			if (type != old_type && !(type == Resource::NONE && old_type == Resource::OCEAN))
+			{
+				if (old_type != Resource::NONE)
+				{
+					if (auto patch = entry.resource_patch.lock())
+					{
+						patch->remove(Pos(x,y));
+						entry = Resource();
+
+						if (patch->size() == 0)
+						{
+							cout << "patch has vanished" << endl;
+							// FIXME remove patch
+						}
+					}
+					else
+					{
+						cout << "wtf, could not lock resource weak reference" << endl;
+					}
+				}
+
+
+				if (type != Resource::NONE)
+				{
+					assert(entry.patch_id == NOT_YET_ASSIGNED);
+					entry = Resource(type, NOT_YET_ASSIGNED, entity);
+				}
+			}
+		}
 
 	resource_bookkeeping(area, view);
 }
@@ -854,34 +906,36 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	{
 		Pos p = todo.front();
 		todo.pop_front();
+		assert(area.contains(p));
 		orepatch.push_back(p);
 		count++;
-		
-		if (area.contains(p)) // this is inside the chunk we should fill
-		{
-			for (int x_offset=-radius; x_offset<=radius; x_offset++)
-				for (int y_offset=-radius; y_offset<=radius; y_offset++)
-				{
-					const int xx = p.x + x_offset;
-					const int yy = p.y + y_offset;
-					Resource& ref = view.at(xx,yy);
 
-					if (ref.type == resource_type && ref.floodfill_flag == Resource::FLOODFILL_NONE)
+		for (int x_offset=-radius; x_offset<=radius; x_offset++)
+			for (int y_offset=-radius; y_offset<=radius; y_offset++)
+			{
+				const int xx = p.x + x_offset;
+				const int yy = p.y + y_offset;
+				Resource& ref = view.at(xx,yy);
+
+				if (ref.type == resource_type && ref.floodfill_flag == Resource::FLOODFILL_NONE)
+				{
+					ref.floodfill_flag = Resource::FLOODFILL_QUEUED;
+
+					if (ref.patch_id == NOT_YET_ASSIGNED)
 					{
-						ref.floodfill_flag = Resource::FLOODFILL_QUEUED;
+						assert(area.contains(Pos(xx,yy)));
 						todo.push_back(Pos(xx,yy));
 					}
+					else
+					{
+						auto ptr = ref.resource_patch.lock();
+						if (ptr)
+							neighbors.insert(ptr);
+						else
+							throw std::logic_error("Resource entity in map points to a parent resource patch which has vanished!");
+					}
 				}
-		}
-		else // it's outside the chunk. do not continue with floodfilling.
-		{
-			Resource& ref = view.at(p);
-			auto ptr = ref.resource_patch.lock();
-			if (ptr)
-				neighbors.insert(ptr);
-			else
-				throw std::logic_error("Resource entity in map points to a parent resource patch which has vanished!");
-		}
+			}
 	}
 
 	//cout << "count=" << count << ", neighbors=" << neighbors.size() << endl;
@@ -889,7 +943,6 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 
 	shared_ptr<ResourcePatch> resource_patch;
 
-	// TODO: update patchlist
 	if (neighbors.size() == 0)
 	{
 		resource_patch = make_shared<ResourcePatch>(orepatch, resource_type, id);
@@ -908,7 +961,6 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 			{
 				//cout << "merging" << endl;
 				neighbor->merge_into(*resource_patch);
-				// TODO delete neighbor from list of patches. possibly invalidating or migrating goals / actions
 				resource_patches.erase(neighbor);
 				assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
 			}

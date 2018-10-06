@@ -36,7 +36,7 @@ struct Resource
 {
 	enum type_t
 	{
-		NONE,
+		NONE = 0,
 		COAL,
 		IRON,
 		COPPER,
@@ -88,6 +88,15 @@ struct ResourcePatch
 	{
 		positions.insert(positions.end(), newstuff.begin(), newstuff.end());
 		recalc_bounding_box();
+	}
+
+	bool remove(Pos pos) // FIXME slow std::find usage
+	{
+		auto iter = std::find(positions.begin(), positions.end(), pos);
+		if (iter == positions.end())
+			return false;
+		unordered_erase(positions, iter);
+		return true;
 	}
 
 	size_t size() const { return positions.size(); }
