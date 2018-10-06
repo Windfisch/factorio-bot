@@ -552,7 +552,7 @@ void FactorioGame::update_resource_field(Resource& entry, Resource::type_t new_t
 
 			if (patch->size() == 0)
 			{
-				cout << "patch has vanished" << endl;
+				cout << "patch of type " << Resource::typestr[patch->type] << " has vanished" << endl;
 				// remove patch
 				auto iter = resource_patches.find(patch);
 				assert(iter != resource_patches.end());
