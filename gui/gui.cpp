@@ -678,10 +678,9 @@ static vector<shared_ptr<Fl_Image>> load_image_pyramid(const string& filename, i
 	if (img.fail())
 	{
 		if (img.fail() == Fl_Bitmap::ERR_FORMAT)
-			cout << "could not load image " << filename << ": " << strerror(errno) << endl;
+			throw std::runtime_error("could not load image " + filename + ": " + strerror(errno));
 		else
-			cout << "could not load image " << filename << ": invalid format" << endl;
-		exit(1);
+			throw std::runtime_error("could not load image " + filename + ": invalid format");
 	}
 
 	cout << "loaded image " << filename << endl;
@@ -720,24 +719,33 @@ void _MapGui_impl::load_graphics()
 		array<GameGraphic,4>& game_graphic = game_graphics[name];
 
 		assert(defs.size() == 1 || defs.size() == 4);
-		if (defs.size() == 4)
+
+		try
 		{
-			for (int i=0; i<4; i++)
+			if (defs.size() == 4)
 			{
-				game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale, defs[i].flip_x, defs[i].flip_y );
-				game_graphic[i].shift.x = defs[i].shiftx;
-				game_graphic[i].shift.y = defs[i].shifty;
+				for (int i=0; i<4; i++)
+				{
+					game_graphic[i].img_pyramid = load_image_pyramid( gfx_filename(defs[i].filename), defs[i].x, defs[i].y, defs[i].width, defs[i].height, defs[i].scale, defs[i].flip_x, defs[i].flip_y );
+					game_graphic[i].shift.x = defs[i].shiftx;
+					game_graphic[i].shift.y = defs[i].shifty;
+				}
+			}
+			else
+			{
+				auto pyr = load_image_pyramid( gfx_filename(defs[0].filename), defs[0].x, defs[0].y, defs[0].width, defs[0].height, defs[0].scale, defs[0].flip_x, defs[0].flip_y );
+				for (int i=0; i<4; i++)
+				{
+					game_graphic[i].img_pyramid = pyr;
+					game_graphic[i].shift.x = defs[0].shiftx;
+					game_graphic[i].shift.y = defs[0].shifty;
+				}
 			}
 		}
-		else
+		catch(std::runtime_error err)
 		{
-			auto pyr = load_image_pyramid( gfx_filename(defs[0].filename), defs[0].x, defs[0].y, defs[0].width, defs[0].height, defs[0].scale, defs[0].flip_x, defs[0].flip_y );
-			for (int i=0; i<4; i++)
-			{
-				game_graphic[i].img_pyramid = pyr;
-				game_graphic[i].shift.x = defs[0].shiftx;
-				game_graphic[i].shift.y = defs[0].shifty;
-			}
+			cout << "failed to load image: " << err.what() << endl;
+			game_graphics.erase( game_graphics.find(name) );
 		}
 	}
 }
