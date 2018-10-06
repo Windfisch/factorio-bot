@@ -2,7 +2,7 @@ Factorio Bot
 ============
 
 This project tries to be a **fair** bot/AI for the game
-[Factorio](https://www.factorio.com) (version 0.15.37).
+[Factorio](https://www.factorio.com) (version 0.16.51).
 
 "Fair" means that the bot only uses information that is available to a human
 player. Better planning algorithms or map memory is fine, but being able to
@@ -21,6 +21,8 @@ Features right now:
   * place entities
   * mine entities
   * craft recipes
+  * inventory updates
+  * action scheduler / task concept
 
 
 Screenshots
@@ -40,10 +42,14 @@ helper scripts for you:
 `./prepare.sh` will unpack three factorio installations (server and two
 clients) and install the lua-part of the bot.
 
-`./launch.sh --start/--stop/--run {server,Nayru,Farore}` will start/stop the
-corresponding instance. `--run` will start, wait for `^C` and then stop.
+`./launch.sh --start/--stop/--run {server,Nayru,Farore,offline}` will start/stop the
+corresponding instance. `--run` will start, wait for `^C` and then stop. `offline` is
+special in that it launches a single-player game that can only be used together with
+`--bot-offline`.
 
-`./launch.sh --bot` will start the bot.
+`./launch.sh --bot` will start the bot. You can also use `--bot-offline` for a
+read-only version that only operates on the data file, without the need of a
+running server instance.
 
 If you're not on Linux, or if stuff doesn't work, read the internals below.
 
@@ -60,22 +66,18 @@ be the starting point) is denoted as a red dot on the map.
 
 A path will show up in the map, and your Factorio player will start moving.
 
-<details>
-<summary>Some caveats</summary>
-Note that only `game.players[1]` will move, i.e. the **first** player that has
-ever joined the map since creation.
-
-Note that drag-and-dropping the map will count as a start-selecting left
-click. Also note that, when clicking a tile, you actually select its **top
-left corner** as a destination/starting point.
-
-Also note that the path shown is no longer the path the player actually walks.
-This is because walking now creates a `WalkTo` goal, which internally plans
-its own path, starting from the player's current position.
-</details>
-
 The `p` button switches between visualisation of the ore types and the ore-patch
-ids.
+ids. `s` gives info about the current scheduler state, `r` recalculates the
+scheduler, `t` and `y` insert a high- or low-priority wood chopping task,
+respectively. `i` gives additional info about the entity under the cursor.
+
+For a quick demo, press (in that order):
+
+  - `r`: the bot will walk and start chopping wood in the center of the map
+  - `t`, `r`: the bot will interrupt what it was doing and chop wood in the
+     north west. (After finishing, it will return to the center chopping task)
+  - `y`, `r`: the bot will not interrupt what it was doing and once finished,
+    will start a low priority wood chopping task in the south east.
 
 Bugs / Limitations
 ------------------
@@ -85,6 +87,12 @@ Walking will appear really "jumpy" in the Factorio client which is being
 will not see anything jumpy.
 
 Path planning will hang for a long time if no path can be found.
+
+With factorio0.16, the graphical clients (i.e. Nayru etc) fail to join the game
+when launched. The error message suggests that the system is too slow. A click
+on the reconnect button solves the issue for now. Other than that, removing the
+call to `writeout_pictures` in `control.lua` of the luamod is another solution,
+because this functions takes a lot of time.
 
 Building / Requirements
 -----------------------
