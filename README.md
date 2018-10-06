@@ -88,12 +88,6 @@ will not see anything jumpy.
 
 Path planning will hang for a long time if no path can be found.
 
-With factorio0.16, the graphical clients (i.e. Nayru etc) fail to join the game
-when launched. The error message suggests that the system is too slow. A click
-on the reconnect button solves the issue for now. Other than that, removing the
-call to `writeout_pictures` in `control.lua` of the luamod is another solution,
-because this functions takes a lot of time.
-
 Building / Requirements
 -----------------------
 

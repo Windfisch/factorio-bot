@@ -291,10 +291,12 @@ function writeout_pictures()
 	local step = math.floor(n/20)
 	if step <= 0 then step = 1 end
 	print("reading data.raw")
+	local strings = {}
 	for i = 1,n do
 		if (i % step == 0) then print(string.format("%3.0f%%", 100*i/n)) end
-		string = string .. game.entity_prototypes["DATA_RAW"..i].order
+		table.insert(strings, game.entity_prototypes["DATA_RAW"..i].order)
 	end
+	string = table.concat(strings,'')
 	data = {raw = loadstring(string)()}
 
 	local lines = {}
