@@ -93,7 +93,18 @@ class FactorioGame
 
 		void resolve_references_to_items();
 		
-		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius);
+		/** flood-fills the resource patch at (x,y), but only the part with a patch_id being
+		  * NOT_YET_ASSIGNED, generating a new ResourcePatch from it. Stops at already-assigned
+		  * entries of the same resource type, or at different types. Any adjacent same-type
+		  * patches ("neighbors") and the newly generated are merged together. The largest neighbor
+		  * is preserved and extended, while all other neighbors and the newly generated (temporary,
+		  * in that case) patch are deleted.
+		  * precondition: view.at(x,y).patch_id == NOT_YET_ASSIGNED
+		  * precondition: view is by at least radius larger than the NOT_YET_ASSIGNED entries inside it
+		  * postcondition: view.at(x,y)'s and adjacent coordinates' patch_id fields are changed from
+		  *                NOT_YET_ASSIGNED to an actual value.
+		  */
+		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area /* FIXME remove the area parameter */, int x, int y, int radius);
 		int next_free_resource_id = 1;
 
 		/** changes the type of the resource-field 'entry' to new_type (which can be NONE, in which case

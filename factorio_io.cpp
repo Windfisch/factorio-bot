@@ -876,6 +876,9 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
 {
 	int id = next_free_resource_id++;
+
+	if (view.at(x,y).patch_id != NOT_YET_ASSIGNED)
+		throw std::invalid_argument("floodfill_resources() must be called with a NOT_YET_ASSIGNED position");
 	
 	set< shared_ptr<ResourcePatch> > neighbors;
 	deque<Pos> todo;
