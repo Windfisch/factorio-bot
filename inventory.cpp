@@ -40,7 +40,7 @@ bool Inventory::apply(const Recipe* recipe, bool already_started)
 		}
 	
 		for (const auto& ingredient : recipe->ingredients)
-			self[ingredient.item] += ingredient.amount;
+			self[ingredient.item] -= ingredient.amount;
 	}
 
 	for (const auto& product : recipe->products)
