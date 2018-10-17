@@ -152,3 +152,21 @@ void Inventory::dump() const
 	for (auto [proto,amount] : (*this))
 		std::cout << "\t" << proto->name << ": " << amount << std::endl;
 }
+
+void TaggedInventory::dump() const
+{
+	for (const auto& [proto, tagged_amount] : (*this))
+	{
+		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
+		for (const auto& claim : tagged_amount.claims)
+		{
+
+			if (auto owner = claim.owner.lock())
+				std::cout << "\t\t" << owner->name;
+			else
+				std::cout << "\t\t(null)";
+
+			std::cout << " <- " << claim.amount << std::endl;
+		}
+	}
+}

@@ -97,6 +97,14 @@ struct CraftingList
 	}
 };
 
+
+/** A Task is the smallest unit for the scheduler. It consists of goals or actions.
+  *
+  * While one could split every goal into a separate task, a task carries the semantic
+  * of "things belonging together". Executing 2 tasks halfway will result in two
+  * completely useless structures (until finished). E.g. a huge production line should
+  * be grouped by "1x machine + inserters + belt segment pairs".
+  */
 struct Task
 {
 	/** the lower the value, the higher the priority */
@@ -324,6 +332,9 @@ struct Scheduler
 	  * collector task is inserted at the beginning of the schedule.
 	  */
 	void recalculate();
+
+	/** updates the item allocation and the crafting list */
+	void update_item_allocation();
 
 	/** dumps the scheduler state */
 	void dump();

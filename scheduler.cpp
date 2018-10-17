@@ -132,15 +132,20 @@ void Scheduler::recalculate()
 	calculation_timestamp = Clock::now();
 }
 
+void Scheduler::update_item_allocation()
+{
+	// FIXME: this should be executed on every inventory change which is not caused by
+	// a finished craft.
+	// FIXME: calculate_crafts() should be called on every peek_current_craft().
+	current_item_allocation = allocate_items_to_tasks();
+	current_crafting_list = calculate_crafts(current_item_allocation, 20);
+}
+
 optional<Scheduler::owned_recipe_t> Scheduler::peek_current_craft()
 {
+	// We rely on a previous recalculate() having populated the current_crafting_list
 	if (current_crafting_list.empty())
-	{
-		// FIXME: this should also update the item allocation. or don't do this here at all, instead trust on a previous recalculate()
-		current_crafting_list = calculate_crafts(current_item_allocation, 20);
-		if (current_crafting_list.empty())
-			return nullopt;
-	}
+		return nullopt;
 
 	// TODO FIXME: check if the craft is possible with the current inventory, recalculate if not
 	// (this should not happen, but it can happen, if bots or anyone "steals" items from the player's
@@ -513,6 +518,7 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 						cout << "no" << endl;
 					break;
 				case CraftingList::CURRENT:
+					cout << entry.recipe->name << " is currently being crafted... ";
 					available_inventory.apply(entry.recipe, true);
 					result.emplace_back(task, entry.recipe);
 					break;

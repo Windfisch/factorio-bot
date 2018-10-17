@@ -306,7 +306,7 @@ namespace action
 		private: void execute_impl();
 	};
 
-	struct [[deprecated]] CraftRecipe : public PrimitiveAction
+	struct CraftRecipe : public PrimitiveAction
 	{
 		CraftRecipe(FactorioGame* game, int player, const Recipe* recipe_, int count_=1) : PrimitiveAction(game,player), recipe(recipe_), count(count_) {}
 

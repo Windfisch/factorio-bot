@@ -461,18 +461,32 @@ int main(int argc, const char** argv)
 		if (ent.proto->name.substr(0,4) == "tree")
 		{
 			mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-			if (mytask->goals->size() > 15)
+			if (mytask->goals->size() >= 1)
 				break;
 		}
 	mytask->actions_changed();
 	splayers[player_idx].scheduler.add_task(mytask);
+
+
+	mytask = make_shared<Task>("chest builder");
+	mytask->goals.emplace();
+	for (int i=0; i<10; i++)
+	{
+		mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(Pos_f(0.5+i, -10.5), &factorio.get_entity_prototype("wooden-chest")  )));
+	}
+	mytask->priority_ = -999; // very very important
+	mytask->actions_changed();
+	mytask->update_actions_from_goals(&factorio, player_idx); // HACK
+	mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood")}, &factorio);
+	splayers[player_idx].scheduler.add_task(mytask);
+
 
 	mytask = make_shared<Task>("axe crafter");
 	mytask->goals.reset();
 	mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
 	mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
 	mytask->actions_changed();
-	splayers[player_idx].scheduler.add_task(mytask);
+	//splayers[player_idx].scheduler.add_task(mytask); // FIXME DEBUG
 
 	while (true)
 	{
@@ -502,7 +516,7 @@ int main(int argc, const char** argv)
 				cout << "player #" << player.id << "'s task '" << splayer.current_task->name << "' has finished. ";
 				if (splayer.current_task->goals.has_value())
 				{
-					cout << "Its goals are " << (splayer.current_task->goals->all_fulfilled(&factorio) ? "" : "NOT ") << " fulfilled:" << endl;
+					cout << "Its goals are " << (splayer.current_task->goals->all_fulfilled(&factorio) ? "" : "NOT ") << "fulfilled:" << endl;
 					splayer.current_task->goals->dump(&factorio);
 				}
 				else
@@ -522,9 +536,18 @@ int main(int argc, const char** argv)
 		{
 			switch(key)
 			{
+				case 'a':
+					cout << "scheduler.update_item_allocation()" << endl;
+					splayers[player_idx].scheduler.update_item_allocation();
+					break;
+
+				case 'd':
+					factorio.players[player_idx].inventory.dump();
+					break;
+
 				case 'r':
-					splayers[player_idx].scheduler.recalculate();
 					cout << "scheduler.recalculate()" << endl;
+					splayers[player_idx].scheduler.recalculate();
 					break;
 				case 't':
 				{

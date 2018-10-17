@@ -273,7 +273,7 @@ namespace action {
 		return "CraftRecipe(" + to_string(count) + "x " + recipe->name + ")";
 	}
 
-	/*
+	/* FIXME REMOVE
 	void HaveItem::start()
 	{
 		size_t already_in_inventory = 0; // FIXME
