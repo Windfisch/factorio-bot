@@ -235,7 +235,6 @@ namespace action
 		
 		item_balance_t inventory_balance() const { return {}; }
 		item_balance_t inventory_balance_on_launch() const { return {}; }
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const;
 
@@ -251,7 +250,6 @@ namespace action
 
 		item_balance_t inventory_balance() const;
 		item_balance_t inventory_balance_on_launch() const { return {}; }
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {obj.pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
@@ -273,7 +271,6 @@ namespace action
 
 		item_balance_t inventory_balance() const { return {{item, -1}}; }
 		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
@@ -297,7 +294,6 @@ namespace action
 
 		item_balance_t inventory_balance() const { return {{item, -amount}}; }
 		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
@@ -320,7 +316,6 @@ namespace action
 
 		item_balance_t inventory_balance() const { return {{item, amount}}; }
 		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
 		{
@@ -340,7 +335,6 @@ namespace action
 
 		item_balance_t inventory_balance() const { throw std::runtime_error("not implemented"); }
 		item_balance_t inventory_balance_on_launch() const;
-		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos) const
 		{
