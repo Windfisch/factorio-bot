@@ -89,16 +89,16 @@ static void test_get_next_craft(FactorioGame* game, int playerid)
 		tasks[2]->crafting_list.recipes.push_back({sched::CraftingList::PENDING, &recipes.circuit});
 
 	p.inventory[&items.iron].amount += 135;
-	p.inventory[&items.iron].claims.push_back({tasks[0],40});
-	p.inventory[&items.iron].claims.push_back({tasks[1],80});
-	p.inventory[&items.iron].claims.push_back({tasks[2],15});
+	p.inventory[&items.iron].claims.push_back({tasks[0]->owner_id,40});
+	p.inventory[&items.iron].claims.push_back({tasks[1]->owner_id,80});
+	p.inventory[&items.iron].claims.push_back({tasks[2]->owner_id,15});
 	p.inventory[&items.coppercable].amount += 83;
-	p.inventory[&items.coppercable].claims.push_back({tasks[0],40});
-	p.inventory[&items.coppercable].claims.push_back({tasks[2],5});
+	p.inventory[&items.coppercable].claims.push_back({tasks[0]->owner_id,40});
+	p.inventory[&items.coppercable].claims.push_back({tasks[2]->owner_id,5});
 	p.inventory[&items.circuit].amount = 3;
-	p.inventory[&items.circuit].claims.push_back({tasks[0],3});
+	p.inventory[&items.circuit].claims.push_back({tasks[0]->owner_id,3});
 	p.inventory[&items.stone].amount += 252;
-	p.inventory[&items.stone].claims.push_back({tasks[1],230});
+	p.inventory[&items.stone].claims.push_back({tasks[1]->owner_id,230});
 
 
 	for (auto& task : tasks)
@@ -275,12 +275,12 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 
 	auto& inv_copper = game->players[playerid].inventory[&items.copper];
 	inv_copper.amount = 208;
-	inv_copper.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
-	inv_copper.claims.push_back(TaggedAmount::Tag{ far_important_task, 4 });
-	inv_copper.claims.push_back(TaggedAmount::Tag{ far_nice_task, 4 });
+	inv_copper.claims.push_back(TaggedAmount::Tag{ crafting_task->owner_id, 200 });
+	inv_copper.claims.push_back(TaggedAmount::Tag{ far_important_task->owner_id, 4 });
+	inv_copper.claims.push_back(TaggedAmount::Tag{ far_nice_task->owner_id, 4 });
 	auto& inv_iron = game->players[playerid].inventory[&items.iron];
 	inv_iron.amount = 200;
-	inv_iron.claims.push_back(TaggedAmount::Tag{ crafting_task, 200 });
+	inv_iron.claims.push_back(TaggedAmount::Tag{ crafting_task->owner_id, 200 });
 
 	cout << "now with some inventory" << endl;
 	test_get_next_task_internal(sched, {modest_task, crafting_task});

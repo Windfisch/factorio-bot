@@ -37,16 +37,18 @@ namespace sched { struct Task; }
 
 namespace action
 {
-	struct Registry : public std::unordered_map<int, std::weak_ptr<sched::Task>>
+	struct PrimitiveAction;
+
+	struct Registry : public std::unordered_map<int, std::weak_ptr<PrimitiveAction>>
 	{
 		void cleanup();
-		std::shared_ptr<sched::Task> get(int id);
+		std::shared_ptr<PrimitiveAction> get(int id);
 	};
 	extern Registry registry; // FIXME this should be in FactorioGame
 
 	struct ActionBase
 	{
-		virtual bool is_finished() = 0;
+		virtual bool is_finished() const = 0;
 		virtual void start() = 0;
 		virtual void tick() = 0;
 		virtual void abort() {}
@@ -60,9 +62,17 @@ namespace action
 		  * for doing so, under the assumption that we're at current_position now. */
 		virtual std::pair<Pos, Clock::duration> walk_result(Pos current_position) const = 0;
 
-		/** returns a map of (item, balance) pairs, where a positive balance signifies
+		/** Inventory balance after having fully executed this action.
+		  * returns a map of (item, balance) pairs, where a positive balance signifies
 		  * receiving this item, negative means consuming the item */
 		virtual item_balance_t inventory_balance() const = 0;
+
+		/** Inventory balance when launching this action. E.g. for CraftAction,
+		  * this returns negative balance for the ingredients, but does not report
+		  * the products yet (because they won't be added immediately at launch)
+		  *
+		  * `tick` needs to be the timestamp of the inventory to extrapolate. */
+		virtual item_balance_t extrapolate_inventory(int tick) const = 0;
 
 		/** returns a (position, radius) pair. The player must be within `radius`
 		  * around `position` for the action to be executed.
@@ -107,7 +117,7 @@ namespace action
 			}
 		}
 
-		bool is_finished()
+		bool is_finished() const
 		{
 			return subactions.size() == current_subaction;
 		}
@@ -142,6 +152,13 @@ namespace action
 		}
 
 		item_balance_t inventory_balance() const;
+		item_balance_t extrapolate_inventory(int tick) const
+		{
+			if (is_finished())
+				return {};
+			else
+				return subactions[current_subaction]->extrapolate_inventory(tick);
+		}
 	};
 
 	struct WalkTo : public CompoundAction
@@ -171,40 +188,41 @@ namespace action
 	{
 		int player;
 		FactorioGame* game;
+		std::optional<owner_t> owner;
 		
 		static int id_counter;
-		static std::unordered_set<int> pending;
-		static std::unordered_set<int> finished;
-		
-		static void mark_finished(int id)
-		{
-			if (!pending.erase(id))
-				std::cout << "STRANGE: mark_finished("<<id<<") called, but not in pending set" << std::endl;
-			finished.insert(id);
-		}
+		bool finished = false;
 		
 		int id;
-		PrimitiveAction(FactorioGame* game_, int player_) { game = game_; player = player_; id = id_counter++; }
+		PrimitiveAction(FactorioGame* game_, int player_, std::optional<owner_t> owner_) { game = game_; player = player_; id = id_counter++; owner = owner_;}
 
-		bool is_finished()
+		bool is_finished() const
 		{
-			return finished.find(id) != finished.end();
+			return finished;
 		}
 
-		void start()
-		{
-			pending.insert(id);
-			execute_impl();
-		}
+		void start();
 
 		void tick() {}
+		
+		int confirmed_tick = 0; // TODO FIXME set properly!
+
+		virtual item_balance_t inventory_balance_on_launch() const = 0;
+
+		item_balance_t extrapolate_inventory(int tick) const
+		{
+			if (confirmed_tick && tick >= confirmed_tick)
+				return {};
+			else
+				return inventory_balance_on_launch();
+		}
 
 		private: virtual void execute_impl() = 0;
 	};
 
 	struct WalkWaypoints : public PrimitiveAction
 	{
-		WalkWaypoints(FactorioGame* game, int player, const std::vector<Pos>& waypoints_) : PrimitiveAction(game,player), waypoints(waypoints_) {}
+		WalkWaypoints(FactorioGame* game, int player, std::optional<owner_t> owner, const std::vector<Pos>& waypoints_) : PrimitiveAction(game,player,owner), waypoints(waypoints_) {}
 		std::vector<Pos> waypoints;
 		
 		std::string str() const;
@@ -216,6 +234,7 @@ namespace action
 		}
 		
 		item_balance_t inventory_balance() const { return {}; }
+		item_balance_t inventory_balance_on_launch() const { return {}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const;
@@ -225,12 +244,13 @@ namespace action
 	
 	struct MineObject : public PrimitiveAction // TODO amount (default: 0, means "mine it until gone")
 	{
-		MineObject(FactorioGame* game, int player, Entity obj_) : PrimitiveAction(game,player), obj(obj_) {}
+		MineObject(FactorioGame* game, int player, std::optional<owner_t> owner, Entity obj_) : PrimitiveAction(game,player,owner), obj(obj_) {}
 		Entity obj;
 		
 		std::string str() const;
 
-		item_balance_t inventory_balance() const; // TODO
+		item_balance_t inventory_balance() const;
+		item_balance_t inventory_balance_on_launch() const { return {}; }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {obj.pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
@@ -244,7 +264,7 @@ namespace action
 
 	struct PlaceEntity : public PrimitiveAction
 	{
-		PlaceEntity(FactorioGame* game, int player, const ItemPrototype* item_, Pos_f pos_, dir4_t direction_=NORTH) : PrimitiveAction(game,player), item(item_), pos(pos_), direction(direction_) {}
+		PlaceEntity(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, Pos_f pos_, dir4_t direction_=NORTH) : PrimitiveAction(game,player,owner), item(item_), pos(pos_), direction(direction_) {}
 		const ItemPrototype* item;
 		Pos_f pos;
 		dir4_t direction;
@@ -252,6 +272,7 @@ namespace action
 		std::string str() const;
 
 		item_balance_t inventory_balance() const { return {{item, -1}}; }
+		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
@@ -271,10 +292,11 @@ namespace action
 
 		std::string str() const;
 
-		PutToInventory(FactorioGame* game, int player, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
-			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
+		PutToInventory(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
+			PrimitiveAction(game,player,owner), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
 
 		item_balance_t inventory_balance() const { return {{item, -amount}}; }
+		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
@@ -291,12 +313,13 @@ namespace action
 		Entity entity;
 		inventory_t inventory_type;
 
-		TakeFromInventory(FactorioGame* game, int player, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
-			PrimitiveAction(game,player), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
+		TakeFromInventory(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, int amount_, Entity entity_, inventory_t inventory_type_) :
+			PrimitiveAction(game,player,owner), item(item_), amount(amount_), entity(entity_), inventory_type(inventory_type_) { }
 
 		std::string str() const;
 
 		item_balance_t inventory_balance() const { return {{item, amount}}; }
+		item_balance_t inventory_balance_on_launch() const { return inventory_balance(); }
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {entity.pos, REACH}; }
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const
@@ -308,7 +331,7 @@ namespace action
 
 	struct CraftRecipe : public PrimitiveAction
 	{
-		CraftRecipe(FactorioGame* game, int player, const Recipe* recipe_, int count_=1) : PrimitiveAction(game,player), recipe(recipe_), count(count_) {}
+		CraftRecipe(FactorioGame* game, int player, std::optional<owner_t> owner, const Recipe* recipe_, int count_=1) : PrimitiveAction(game,player,owner), recipe(recipe_), count(count_) {}
 
 		const Recipe* recipe;
 		int count;
@@ -316,6 +339,7 @@ namespace action
 		std::string str() const;
 
 		item_balance_t inventory_balance() const { throw std::runtime_error("not implemented"); }
+		item_balance_t inventory_balance_on_launch() const;
 		// [[deprecated("FIXME REMOVE")]] zone_t zone() const { return {Pos_f(), -1.f}; }
 
 		std::pair<Pos, Clock::duration> walk_result(Pos) const

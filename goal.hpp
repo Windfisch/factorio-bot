@@ -39,17 +39,17 @@ struct GoalInterface
 	  *
 	  * returns the empty list if fulfilled(FactorioGame* game)==true.
 	  */
-	virtual std::vector<std::unique_ptr<action::ActionBase>> calculate_actions(FactorioGame* game, int player) const
+	virtual std::vector<std::unique_ptr<action::ActionBase>> calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 	{
 		if (!fulfilled(game))
-			return _calculate_actions(game, player);
+			return _calculate_actions(game, player, owner);
 		else
 			return {};
 	}
 	
 	/** internal helper to calculate the actions required to fulfill this goal.
 	  * Its result will be ignored, if fulfilled(FactorioGame* game)==true. */
-	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const = 0;
+	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const = 0;
 	virtual bool fulfilled(FactorioGame* game) const = 0;
 	virtual std::string str(FactorioGame* game) const
 	{
@@ -65,7 +65,7 @@ struct PlaceEntity : public GoalInterface
 
 	PlaceEntity(Entity e) : entity(e) {}
 
-	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
+	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 	std::string str() const;
 };
@@ -76,7 +76,7 @@ struct RemoveEntity : public GoalInterface
 
 	RemoveEntity(Entity e) : entity(e) {}
 
-	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
+	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 	std::string str() const;
 };
@@ -84,7 +84,7 @@ struct RemoveEntity : public GoalInterface
 /* TODO
 struct SetupEntity : public GoalInterface
 {
-	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
+	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 	std::string str() const;
 };
@@ -116,7 +116,7 @@ struct InventoryPredicate : public GoalInterface
 	InventoryPredicate(Entity ent, ItemPrototype* item, size_t amount) :
 		entity(ent), type(POSITIVE), desired_inventory{{item,amount}} {}
 	
-	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player) const;
+	virtual std::vector<std::unique_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 	virtual bool fulfilled(FactorioGame* game) const;
 	std::string str() const;
 };
@@ -127,7 +127,7 @@ struct GoalList : public std::vector< std::unique_ptr<GoalInterface> >
 	/** returns a list of actions that will make all goals fulfilled, in arbitrary order.
 	
 	(Effectively, this might re-order its goals due to travelling-salesman) */
-	std::vector<std::unique_ptr<action::ActionBase>> calculate_actions(FactorioGame* game, int player) const;
+	std::vector<std::unique_ptr<action::ActionBase>> calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 
 	/** returns whether all goals are fulfilled */
 	bool all_fulfilled(FactorioGame* game) const;

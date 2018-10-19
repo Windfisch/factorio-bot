@@ -286,7 +286,7 @@ int main(int argc, const char** argv)
 	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(1,1), &factorio.get_entity_prototype("assembling-machine-1"))) );
 	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(-3,4), &factorio.get_entity_prototype("wooden-chest"))) );
 	test_goals.push_back( make_unique<goal::RemoveEntity>(Entity(Pos(12,12), &factorio.get_entity_prototype("tree-01"))) );
-	auto test_actions = test_goals.calculate_actions(&factorio, 1);
+	auto test_actions = test_goals.calculate_actions(&factorio, 1, nullopt);
 	test_goals.dump(&factorio);
 	cout << "ActionList" << endl;
 	item_balance_t balance;
@@ -356,7 +356,7 @@ int main(int argc, const char** argv)
 	{
 		Scheduler scheduler;
 		shared_ptr<Task> current_task = nullptr;
-		std::unique_ptr<action::CraftRecipe> current_crafting_action;
+		std::shared_ptr<action::CraftRecipe> current_crafting_action;
 		std::optional<Scheduler::owned_recipe_t> current_craft;
 
 		StrategyPlayer(FactorioGame* game, size_t idx) : scheduler(game,idx) {}
@@ -430,13 +430,14 @@ int main(int argc, const char** argv)
 				// launch the new
 				if (current_craft.has_value())
 				{
+					auto owning_task = std::shared_ptr(current_craft->first);
 					// create and launch a CraftRecipe action
-					current_crafting_action = make_unique<action::CraftRecipe>(scheduler.game, scheduler.player_idx, current_craft->second);
+					current_crafting_action = make_shared<action::CraftRecipe>(scheduler.game, scheduler.player_idx, owning_task->owner_id, current_craft->second);
 					current_crafting_action->start();
 					// confirm this to the scheduler
 					scheduler.accept_current_craft();
 					// register this action so that the items produced are claimed by the owner task
-					action::registry[current_crafting_action->id] = current_craft->first;
+					action::registry[current_crafting_action->id] = current_crafting_action;
 				}
 			}
 

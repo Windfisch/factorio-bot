@@ -36,13 +36,13 @@ bool GoalList::all_fulfilled(FactorioGame* game) const
 	return true;
 }
 
-vector<unique_ptr<action::ActionBase>> GoalList::calculate_actions(FactorioGame* game, int player) const
+vector<unique_ptr<action::ActionBase>> GoalList::calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	vector<unique_ptr<action::ActionBase>> result;
 
 	for (const auto& goal : (*this))
 	{
-		auto actions = goal->calculate_actions(game, player);
+		auto actions = goal->calculate_actions(game, player, owner);
 		result.insert(std::end(result),
 				std::make_move_iterator(std::begin(actions)),
 				std::make_move_iterator(std::end(actions)));
@@ -55,12 +55,12 @@ bool PlaceEntity::fulfilled(FactorioGame* game) const
 {
 	return game->actual_entities.search_or_null(entity) != nullptr;
 }
-vector<unique_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player) const
+vector<unique_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	// TODO FIXME: clear area first. ensure that the player isn't in the way.
 	vector<unique_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
-	result.push_back( make_unique<action::PlaceEntity>(game, player, game->get_item_for(entity.proto), entity.pos, entity.direction) );
+	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity.pos, entity.direction) );
 	return result;
 }
 
@@ -68,11 +68,11 @@ bool RemoveEntity::fulfilled(FactorioGame* game) const
 {
 	return game->actual_entities.search_or_null(entity) == nullptr;
 }
-vector<unique_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player) const
+vector<unique_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	vector<unique_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
-	result.push_back( make_unique<action::MineObject>(game, player, entity) );
+	result.push_back( make_unique<action::MineObject>(game, player, owner, entity) );
 	return result;
 }
 
@@ -94,7 +94,7 @@ bool InventoryPredicate::fulfilled(FactorioGame* game) const
 		return true;
 	}
 }
-vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(FactorioGame* game, int player) const
+vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	vector<unique_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos) );
@@ -108,7 +108,7 @@ vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 		{
 			auto actual_amount = get_or(data.items, item);
 			if (actual_amount < desired_amount)
-				result.push_back(make_unique<action::PutToInventory>(game, player, item, desired_amount-actual_amount, entity, inventory_type));
+				result.push_back(make_unique<action::PutToInventory>(game, player, owner, item, desired_amount-actual_amount, entity, inventory_type));
 		}
 	}
 	else
@@ -117,7 +117,7 @@ vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 		{
 			auto desired_amount = get_or(desired_inventory, item);
 			if (actual_amount > desired_amount)
-				result.push_back(make_unique<action::TakeFromInventory>(game, player, item, actual_amount-desired_amount, ent, inventory_type));
+				result.push_back(make_unique<action::TakeFromInventory>(game, player, owner, item, actual_amount-desired_amount, ent, inventory_type));
 		}
 	}
 

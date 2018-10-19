@@ -418,16 +418,21 @@ void FactorioGame::parse_inventory_changed(const string& data)
 		content.amount += diff;
 		if (has_owner && diff > 0)
 		{
-			auto owner_task = action::registry.get(owning_action_id);
+			auto action = action::registry.get(owning_action_id);
 			
-			if (owner_task)
+			if (action)
 			{
-				size_t added = content.add_claim(owner_task, diff);
-				if (added != safe_cast<size_t>(diff))
-					throw runtime_error("inventory desync detected: game added "+to_string(diff)+"x '"+item+"' with an owning task, but only "+to_string(added)+" could be claimed");
+				if (action->owner.has_value())
+				{
+					size_t added = content.add_claim(*action->owner, diff);
+					if (added != safe_cast<size_t>(diff))
+						throw runtime_error("inventory desync detected: game added "+to_string(diff)+"x '"+item+"' with an owning task, but only "+to_string(added)+" could be claimed");
+				}
+				else
+					cout << "WARN: action with the action id " << owning_action_id << " has no owning task, yet it changed the inventory?" << endl;
 			}
 			else
-				cout << "ERROR: could not find task associated with action id " << owning_action_id << endl;
+				cout << "WARN: could not find action associated with action id " << owning_action_id << endl;
 		}
 	}
 }
@@ -466,7 +471,8 @@ void FactorioGame::parse_action_completed(const string& data)
 	if (type != "ok" && type != "fail")
 		throw runtime_error("malformed action_completed packet, expected 'ok' or 'fail'");
 	
-	action::PrimitiveAction::mark_finished(action_id);
+	if (auto action = action::registry.get(action_id))
+		action->finished = true;
 }
 
 void FactorioGame::parse_entity_prototypes(const string& data)

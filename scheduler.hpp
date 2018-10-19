@@ -112,6 +112,7 @@ struct Task
 
 	std::string name;
 	priority_t priority_ = 0xDEADBEEF;
+	owner_t owner_id; // TODO FIXME
 
 	// TODO: does the task need its items in the main inventory (plus quickbar), or is it okay
 	// if it's in tool, ammo, weapon inventory? If it does, then the items collector task must
@@ -170,7 +171,7 @@ struct Task
 	  */
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
-	Task(std::string name_) : name(name_), priority_(0), start_radius(3) {}
+	Task(std::string name_) : name(name_), priority_(0), start_radius(3), owner_id(intptr_t(this)) /* FIXME HACK OH MY GOD NO */ {}
 	void dump() const;
 
 	/** clears and recomputes the crafting_list such that all required_items

@@ -42,7 +42,7 @@ namespace action {
 		}
 	}
 
-	shared_ptr<sched::Task> Registry::get(int id)
+	shared_ptr<PrimitiveAction> Registry::get(int id)
 	{
 		auto iter = find(id);
 		if (iter == end())
@@ -52,13 +52,17 @@ namespace action {
 	}
 
 	int PrimitiveAction::id_counter;
-	std::unordered_set<int> PrimitiveAction::pending;
-	std::unordered_set<int> PrimitiveAction::finished;
+
+	void PrimitiveAction::start()
+	{
+		execute_impl();
+		game->players[player].inventory.apply(inventory_balance_on_launch(), owner);
+	}
 
 	void WalkTo::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
-		subactions.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player, waypoints)));
+		subactions.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player,nullopt, waypoints)));
 
 		subactions[0]->start();
 	}
@@ -77,10 +81,10 @@ namespace action {
 	void MineObject::abort()
 	{
 		game->unset_mining_target(player);
-		mark_finished(id);
+		finished = true;
 	}
 
-/*
+/* FIXME REMOVE
 	void WalkAndPlaceEntity::start()
 	{
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(),
@@ -172,19 +176,19 @@ namespace action {
 	void PlaceEntity::execute_impl()
 	{
 		game->place_entity(player, item->name, pos, direction);
-		finished.insert(id);
+		finished = true;
 	}
 
 	void PutToInventory::execute_impl()
 	{
 		game->insert_to_inventory(player, item->name, amount, entity, inventory_type);
-		finished.insert(id);
+		finished = true;
 	}
 
 	void TakeFromInventory::execute_impl()
 	{
 		game->remove_from_inventory(player, item->name, amount, entity, inventory_type);
-		finished.insert(id);
+		finished = true;
 	}
 
 	std::pair<Pos, Clock::duration> WalkTo::walk_result(Pos current_position) const
@@ -222,6 +226,14 @@ namespace action {
 			for (const auto& [item,amount] : action->inventory_balance())
 				result[item] += amount;
 		}
+		return result;
+	}
+
+	item_balance_t CraftRecipe::inventory_balance_on_launch() const
+	{
+		item_balance_t result;
+		for (const auto& ingredient : recipe->ingredients)
+			result[ingredient.item] -= ingredient.amount;
 		return result;
 	}
 

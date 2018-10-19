@@ -51,7 +51,7 @@ void Task::update_actions_from_goals(FactorioGame* game, int player)
 	if (!goals.has_value() || goals->all_fulfilled(game))
 		return;
 
-	actions->subactions = goals->calculate_actions(game, player);
+	actions->subactions = goals->calculate_actions(game, player, owner_id);
 
 	required_items.clear();
 	for (const auto& [item, amount] : actions->inventory_balance())
@@ -101,7 +101,7 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 	Inventory free_for_all_inventory = Inventory::get_unclaimed(inv);
 	for (auto& [prio, task] : pending_tasks)
 	{
-		Inventory task_inv = Inventory::get_claimed_by(inv, task);
+		Inventory task_inv = Inventory::get_claimed_by(inv, task->owner_id);
 
 		for (auto [item_prototype, amount] : task->get_missing_items(task_inv))
 		{
@@ -983,7 +983,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			size_t take_amount = min(iter->second, stack.amount);
 			stack.amount -= take_amount;
 			chest_action->subactions.push_back(make_unique<action::TakeFromInventory>(
-				game, player.id, stack.proto,
+				game, player.id, original_task->owner_id, stack.proto,
 				take_amount, container, INV_CHEST));
 			relevant = true;
 		}

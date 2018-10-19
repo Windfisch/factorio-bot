@@ -27,9 +27,41 @@
 
 using namespace sched;
 
+bool TaggedInventory::apply(const item_balance_t& bal, std::optional<owner_t> owner)
+{
+	TaggedInventory& self = *this;
+
+	for (const auto& [item, amount] : bal)
+		if (amount < 0 && self[item].available_to(owner) < size_t(-amount))
+			return false;
+
+	for (const auto& [item, amount] : bal)
+	{
+		bool ok = self[item].update(owner, amount);
+		assert(ok);
+	}
+	
+	return true;
+}
+
+bool Inventory::apply(const item_balance_t& bal)
+{
+	Inventory& self = *this;
+
+	for (const auto& [item, amount] : bal)
+		if (amount < 0 && self[item] < size_t(-amount))
+			return false;
+
+	for (const auto& [item, amount] : bal)
+		self[item] += amount;
+	
+	return true;
+}
+
 bool Inventory::apply(const Recipe* recipe, bool already_started)
 {
 	Inventory& self = *this;
+	// FIXME deduplicate code with the other apply()
 
 	if (!already_started)
 	{
@@ -51,6 +83,7 @@ bool Inventory::apply(const Recipe* recipe, bool already_started)
 
 void TaggedAmount::cleanup()
 {
+/* TODO
 	for (auto it = claims.begin(); it != claims.end(); )
 	{
 		if (it->owner.expired())
@@ -58,24 +91,24 @@ void TaggedAmount::cleanup()
 		else
 			it++;
 	}
+*/
 }
 
 size_t TaggedAmount::n_claimed() const
 {
 	size_t claimed = 0;
 	for (const auto& claim : claims)
-		if (!claim.owner.expired())
-			claimed += claim.amount;
+		claimed += claim.amount;
 	return claimed;
 }
 
-size_t TaggedAmount::add_claim(const std::shared_ptr<Task>& task, size_t n)
+size_t TaggedAmount::add_claim(owner_t owner, size_t n)
 {
 	size_t available = amount - n_claimed();
 	if (available < n)
 		n = available;
 	
-	claims.get(task).amount += n;
+	claims.get(owner).amount += n;
 
 	return n;
 }
@@ -160,11 +193,13 @@ void TaggedInventory::dump() const
 		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
 		for (const auto& claim : tagged_amount.claims)
 		{
-
+			std::cout << "\t\t" << claim.owner;
+			/* TODO
 			if (auto owner = claim.owner.lock())
 				std::cout << "\t\t" << owner->name;
 			else
 				std::cout << "\t\t(null)";
+			*/
 
 			std::cout << " <- " << claim.amount << std::endl;
 		}
