@@ -33,7 +33,6 @@
 #include "clock.hpp"
 
 class FactorioGame;
-namespace sched { struct Task; }
 
 namespace action
 {

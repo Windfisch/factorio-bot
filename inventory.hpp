@@ -27,9 +27,6 @@
 
 struct Recipe;
 
-namespace sched {
-struct Task; // deprecated
-}
 struct ItemPrototype;
 
 using owner_t = intptr_t; // FIXME
