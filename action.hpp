@@ -72,13 +72,6 @@ namespace action
 		  *
 		  * `tick` needs to be the timestamp of the inventory to extrapolate. */
 		virtual item_balance_t extrapolate_inventory(int tick) const = 0;
-
-		/** returns a (position, radius) pair. The player must be within `radius`
-		  * around `position` for the action to be executed.
-		  *
-		  * if radius is negative, then there is no such requirement. */
-		//[[deprecated]] virtual zone_t zone() const = 0;
-
 	};
 
 	struct CompoundAction : public ActionBase
