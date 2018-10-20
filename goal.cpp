@@ -36,9 +36,9 @@ bool GoalList::all_fulfilled(FactorioGame* game) const
 	return true;
 }
 
-vector<unique_ptr<action::ActionBase>> GoalList::calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
+vector<shared_ptr<action::ActionBase>> GoalList::calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
-	vector<unique_ptr<action::ActionBase>> result;
+	vector<shared_ptr<action::ActionBase>> result;
 
 	for (const auto& goal : (*this))
 	{
@@ -55,10 +55,10 @@ bool PlaceEntity::fulfilled(FactorioGame* game) const
 {
 	return game->actual_entities.search_or_null(entity) != nullptr;
 }
-vector<unique_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
+vector<shared_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	// TODO FIXME: clear area first. ensure that the player isn't in the way.
-	vector<unique_ptr<action::ActionBase>> result;
+	vector<shared_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
 	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity.pos, entity.direction) );
 	return result;
@@ -68,9 +68,9 @@ bool RemoveEntity::fulfilled(FactorioGame* game) const
 {
 	return game->actual_entities.search_or_null(entity) == nullptr;
 }
-vector<unique_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
+vector<shared_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
-	vector<unique_ptr<action::ActionBase>> result;
+	vector<shared_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
 	result.push_back( make_unique<action::MineObject>(game, player, owner, entity) );
 	return result;
@@ -94,9 +94,9 @@ bool InventoryPredicate::fulfilled(FactorioGame* game) const
 		return true;
 	}
 }
-vector<unique_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
+vector<shared_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
-	vector<unique_ptr<action::ActionBase>> result;
+	vector<shared_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos) );
 
 	Entity& ent = game->actual_entities.search(entity);

@@ -31,6 +31,15 @@ constexpr int MINING_DISTANCE = 1;
 namespace action {
 	Registry registry;
 
+	void Registry::start_action(const std::shared_ptr<ActionBase>& action)
+	{
+		if (auto primitive_action = std::dynamic_pointer_cast<PrimitiveAction>(action))
+		{
+			(*this)[primitive_action->id] = primitive_action;
+		}
+		action->start();
+	}
+
 	void Registry::cleanup()
 	{
 		for (iterator iter = begin(); iter != end();)
@@ -64,7 +73,7 @@ namespace action {
 		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
 		subactions.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player,nullopt, waypoints)));
 
-		subactions[0]->start();
+		registry.start_action(subactions[0]);
 	}
 
 	void WalkWaypoints::execute_impl()

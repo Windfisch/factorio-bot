@@ -37,18 +37,24 @@ class FactorioGame;
 namespace action
 {
 	struct PrimitiveAction;
+	struct ActionBase;
 
-	struct Registry : public std::unordered_map<int, std::weak_ptr<PrimitiveAction>>
+	using action_id_t = int;
+
+	struct Registry : public std::unordered_map<action_id_t, std::weak_ptr<PrimitiveAction>>
 	{
+		void start_action(const std::shared_ptr<ActionBase>& action);
 		void cleanup();
-		std::shared_ptr<PrimitiveAction> get(int id);
+		std::shared_ptr<PrimitiveAction> get(action_id_t id);
 	};
 	extern Registry registry; // FIXME this should be in FactorioGame
 
 	struct ActionBase
 	{
+		friend class Registry;
+
 		virtual bool is_finished() const = 0;
-		virtual void start() = 0;
+		private: virtual void start() = 0; public: // FIXME ugly
 		virtual void tick() = 0;
 		virtual void abort() {}
 		virtual void on_mined_item(std::string type, int count) { UNUSED(type); UNUSED(count); }
@@ -76,7 +82,7 @@ namespace action
 
 	struct CompoundAction : public ActionBase
 	{
-		std::vector< std::unique_ptr<ActionBase> > subactions;
+		std::vector< std::shared_ptr<ActionBase> > subactions;
 		size_t current_subaction = 0;
 
 		CompoundAction() {}
@@ -104,7 +110,7 @@ namespace action
 					current_subaction++;
 
 					if (!is_finished())
-						subactions[current_subaction]->start();
+						registry.start_action(subactions[current_subaction]);
 				}
 			}
 		}
@@ -114,11 +120,13 @@ namespace action
 			return subactions.size() == current_subaction;
 		}
 
-		void start()
+		private: void start() // FIXME ugly
+
 		{
 			if (!subactions.empty())
-				subactions[0]->start();
+				registry.start_action(subactions[0]);
 		}
+		public:
 
 		// dispatch events
 		void on_mined_item(std::string type, int count)
@@ -169,7 +177,8 @@ namespace action
 		}
 
 		WalkTo(FactorioGame* game_, int player_, Pos destination_, double allowed_distance_ = 1.) { game = game_; player = player_; destination = destination_; allowed_distance = allowed_distance_; }
-		void start();
+		private: void start(); public: // FIXME ugly
+
 		
 		std::pair<Pos, Clock::duration> walk_result(Pos current_position) const; // TODO FIXME implement
 	};
@@ -182,10 +191,10 @@ namespace action
 		FactorioGame* game;
 		std::optional<owner_t> owner;
 		
-		static int id_counter;
+		static action_id_t id_counter;
 		bool finished = false;
 		
-		int id;
+		action_id_t id;
 		PrimitiveAction(FactorioGame* game_, int player_, std::optional<owner_t> owner_) { game = game_; player = player_; id = id_counter++; owner = owner_;}
 
 		bool is_finished() const
@@ -193,7 +202,8 @@ namespace action
 			return finished;
 		}
 
-		void start();
+		private: void start(); public: // FIXME ugly
+
 
 		void tick() {}
 		

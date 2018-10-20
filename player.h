@@ -41,7 +41,7 @@ struct Player
 			actions->abort();
 		actions = a;
 		if (actions)
-			actions->start();
+			action::registry.start_action(actions);
 	}
 
 	/** ticks the player's action, if set. returns true, if the action has finished */

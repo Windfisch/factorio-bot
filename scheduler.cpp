@@ -958,12 +958,12 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		}
 
 		bool relevant = false;
-		auto chest_action = make_unique<action::CompoundAction>();
+		auto chest_action = make_shared<action::CompoundAction>();
 
 		// check whether the chest is useful for any missing item.
 		// if so, set relevant = true and construct the chest action
 		// if not, chest_action will be deleted at the end of this scope.
-		chest_action->subactions.push_back(make_unique<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
+		chest_action->subactions.push_back(make_shared<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
 
 		auto new_missing_items = missing_items;
 		cout << "missing: ";
@@ -982,7 +982,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 			size_t take_amount = min(iter->second, stack.amount);
 			stack.amount -= take_amount;
-			chest_action->subactions.push_back(make_unique<action::TakeFromInventory>(
+			chest_action->subactions.push_back(make_shared<action::TakeFromInventory>(
 				game, player.id, original_task->owner_id, stack.proto,
 				take_amount, container, INV_CHEST));
 			relevant = true;
