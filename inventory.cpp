@@ -27,6 +27,29 @@
 
 using namespace sched;
 
+static void assert_unique(const std::vector<ItemStack>& items)
+{
+	#ifndef NDEBUG
+	std::unordered_set<const ItemPrototype*> set;
+	for (const auto [item, _] : items)
+	{
+		auto [__, inserted] = set.insert(item);
+		assert(!inserted);
+	}
+	#endif
+}
+
+bool TaggedInventory::can_satisfy(const std::vector<ItemStack>& items, std::optional<owner_t> owner)
+{
+	assert_unique(items);
+
+	for (const auto [item, amount] : items)
+		if ((*this)[item].available_to(owner) < amount)
+			return false;
+	
+	return true;
+}
+
 bool TaggedInventory::apply(const item_balance_t& bal, std::optional<owner_t> owner)
 {
 	TaggedInventory& self = *this;

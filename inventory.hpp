@@ -28,6 +28,7 @@
 struct Recipe;
 
 struct ItemPrototype;
+struct ItemStack;
 
 using owner_t = intptr_t; // FIXME
 
@@ -123,6 +124,7 @@ struct TaggedInventory : boost::container::flat_map<const ItemPrototype*, Tagged
 	void dump() const;
 
 	bool apply(const item_balance_t& bal, std::optional<owner_t> owner);
+	bool can_satisfy(const std::vector<ItemStack>& items, std::optional<owner_t> owner);
 };
 
 struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_t>

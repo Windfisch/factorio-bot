@@ -355,11 +355,98 @@ int main(int argc, const char** argv)
 	struct StrategyPlayer
 	{
 		Scheduler scheduler;
+
 		shared_ptr<Task> current_task = nullptr;
+		enum class TaskExecutionState { APPROACHING_START_LOCATION, AWAITING_LAUNCH, LAUNCHED, FINISHED };
+		TaskExecutionState task_execution_state = TaskExecutionState::FINISHED;
+
 		std::shared_ptr<action::CraftRecipe> current_crafting_action;
 		std::optional<Scheduler::owned_recipe_t> current_craft;
 
 		StrategyPlayer(FactorioGame* game, size_t idx) : scheduler(game,idx) {}
+
+		void update_task(FactorioGame* game, Player& player, const std::shared_ptr<Task>& task)
+		{
+			cout << "Player " << player.id << "'s current task has changed from "
+				<< (current_task ? current_task->name : "(null)")
+				<< " to " << (task ? task->name : "(null)") << endl;
+			
+			current_task = task;
+			player.set_actions(nullptr);
+			task_execution_state = TaskExecutionState::FINISHED;
+
+			if (task)
+			{
+				task_execution_state = TaskExecutionState::APPROACHING_START_LOCATION;
+				auto approach_action = make_shared<action::WalkTo>(game, player.id, task->start_location, task->start_radius);
+				player.set_actions(approach_action);
+			}
+		}
+
+		void tick_scheduler(FactorioGame* game, Player& player)
+		{
+			std::shared_ptr<Task> task = scheduler.get_current_task();
+
+			if (current_task != task)
+				update_task(game, player, task);
+
+			assert(current_task == task);
+
+			bool actions_finished = player.tick_actions();
+
+			cout << "current task of player " << player.id << " is " << (task ? task->name : "(null)") << ", task_execution_state is " << int(task_execution_state) << endl;
+
+			switch (task_execution_state)
+			{
+				case TaskExecutionState::APPROACHING_START_LOCATION:
+					if (actions_finished)
+					{
+						cout << "player #" << player.id << " has approached task '" << current_task->name << "''s start location" << endl;
+						task_execution_state = TaskExecutionState::AWAITING_LAUNCH;
+					}
+					else
+						break;
+					[[fallthrough]];
+
+				case TaskExecutionState::AWAITING_LAUNCH:
+					if (player.inventory.can_satisfy(current_task->required_items, current_task->owner_id))
+					{
+						cout << "player #" << player.id << " has launched task '" << current_task->name << "'" << endl;
+						player.set_actions(current_task->actions);
+						actions_finished = false;
+						task_execution_state = TaskExecutionState::LAUNCHED;
+					}
+					break;
+
+				case TaskExecutionState::LAUNCHED:
+					if (actions_finished)
+					{
+						cout << "player #" << player.id << "'s task '" << current_task->name << "' has finished. ";
+						if (current_task->goals.has_value())
+						{
+							cout << "Its goals are " << (current_task->goals->all_fulfilled(game) ? "" : "NOT ") << "fulfilled:" << endl;
+							current_task->goals->dump(game);
+						}
+						else
+							cout << "It had no goals, only actions (which have been executed)" << endl;
+						
+						cout << "removing that task from the scheduler..." << endl;
+						scheduler.remove_task(current_task);
+
+						current_task = nullptr;
+						task_execution_state = TaskExecutionState::FINISHED;
+					}
+					else
+						break;
+
+					[[fallthrough]];
+
+				case TaskExecutionState::FINISHED:
+					scheduler.recalculate();
+			}
+
+			tick_craftinglist();
+		}
 
 		void tick_craftinglist()
 		{
@@ -498,39 +585,8 @@ int main(int argc, const char** argv)
 		for (auto& player : factorio.players)
 		{
 			auto& splayer = splayers[player.id];
-
-			// check if the scheduler's current task has changed.
-			// FIXME: this can only happen upon a recalculate (actually)
-			std::shared_ptr<Task> task = splayer.scheduler.get_current_task();
-			if (splayer.current_task != task)
-			{
-				cout << "Player " << player.id << "'s current task has changed from "
-					<< (splayer.current_task ? splayer.current_task->name : "(null)")
-					<< " to " << (task ? task->name : "(null)") << endl;
-				
-				splayer.current_task = task;
-				player.set_actions(task->actions);
-			}
-
-			if (player.tick_actions())
-			{
-				cout << "player #" << player.id << "'s task '" << splayer.current_task->name << "' has finished. ";
-				if (splayer.current_task->goals.has_value())
-				{
-					cout << "Its goals are " << (splayer.current_task->goals->all_fulfilled(&factorio) ? "" : "NOT ") << "fulfilled:" << endl;
-					splayer.current_task->goals->dump(&factorio);
-				}
-				else
-					cout << "It had no goals, only actions (which have been executed)" << endl;
-				
-				cout << "removing that task from the scheduler..." << endl;
-				splayer.scheduler.remove_task(splayer.current_task);
-
-				splayer.current_task = nullptr;
-				splayer.scheduler.recalculate();
-			}
 			
-			splayer.tick_craftinglist();
+			splayer.tick_scheduler(&factorio, player);
 		}
 
 		if (int key = gui.key())

@@ -33,13 +33,15 @@ struct Player
 	
 	TaggedInventory inventory;
 	
-	/** sets the players actions, starts them (and aborts the previous, if any) */
+	/** sets the players actions, starts them (if not nullptr) (and aborts the previous, if any).
+	  * If called with nullptr, then it will only abort the previous action. */
 	void set_actions(std::shared_ptr<action::CompoundAction> a)
 	{
 		if (actions)
 			actions->abort();
 		actions = a;
-		actions->start();
+		if (actions)
+			actions->start();
 	}
 
 	/** ticks the player's action, if set. returns true, if the action has finished */

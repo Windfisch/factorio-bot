@@ -703,7 +703,7 @@ public:
 		return true;
 	}
 	
-	/** returns a real-world-valid timetable, i.e. one where no tasks overlap */
+	/** returns a real-world-valid timetable, i.e. one where no tasks overlap and where appropriate time is allocated for walking around. */
 	Scheduler::schedule_t sanitize(const Scheduler::schedule_t& schedule)
 	{
 		// TODO FIXME duplicate code

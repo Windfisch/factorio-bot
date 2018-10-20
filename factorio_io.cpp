@@ -473,6 +473,8 @@ void FactorioGame::parse_action_completed(const string& data)
 	
 	if (auto action = action::registry.get(action_id))
 		action->finished = true;
+	else
+		cout << "WARN: unknown action finished (id=" << action_id << ")" << endl;
 }
 
 void FactorioGame::parse_entity_prototypes(const string& data)
