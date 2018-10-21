@@ -65,9 +65,9 @@ std::string join_string (const Container& container, Func function)
 	bool first = true;
 	for (const auto& x : container)
 	{
-		result += function(x);
-		if (first) result += ",";
+		if (!first) result += ",";
 		first = false;
+		result += function(x);
 	}
 	return result;
 }
