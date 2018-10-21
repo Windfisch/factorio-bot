@@ -24,6 +24,7 @@
 #include <numeric>
 #include <assert.h>
 #include <iostream>
+#include <boost/container/flat_map.hpp>
 
 using namespace sched;
 
@@ -39,9 +40,11 @@ static void assert_unique(const std::vector<ItemStack>& items)
 	#endif
 }
 
-bool TaggedInventory::can_satisfy(const std::vector<ItemStack>& items, std::optional<owner_t> owner)
+bool TaggedInventory::can_satisfy(const std::vector<ItemStack>& items_, std::optional<owner_t> owner)
 {
-	assert_unique(items);
+	boost::container::flat_map<const ItemPrototype*, size_t> items;
+	for (auto [item, amount] : items_)
+		items[item]+=amount;
 
 	for (const auto [item, amount] : items)
 		if ((*this)[item].available_to(owner) < amount)
