@@ -521,6 +521,7 @@ int main(int argc, const char** argv)
 					auto owning_task = std::shared_ptr(current_craft->first);
 					// create and launch a CraftRecipe action
 					current_crafting_action = make_shared<action::CraftRecipe>(scheduler.game, scheduler.player_idx, owning_task->owner_id, current_craft->second);
+					owning_task->associated_crafting_actions.push_back(current_crafting_action);
 					action::registry.start_action(current_crafting_action);
 					// confirm this to the scheduler
 					scheduler.accept_current_craft();

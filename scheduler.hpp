@@ -140,6 +140,17 @@ struct Task
 	  */
 	std::shared_ptr<action::CompoundAction> actions;
 
+	/** This is a list where the controlling code can put all CraftRecipe actions for this task.
+	  *
+	  * The reason for this is that these actions must be kept at least until the inventory change
+	  * has been reported by the luamod, otherwise the lookup in action::registry would fail and the
+	  * recipe products would not be able to claimed by this task.
+	  * Thus, the CraftRecipe actions must live long enough, and at most as long as their associated
+	  * task (because if they outlive their task, it's pointless to lookup the inventory change's owner,
+	  * because the owner is gone already)
+	  */
+	std::vector<std::shared_ptr<action::CraftRecipe>> associated_crafting_actions;
+
 	/** this needs to be called after actions have changed in order to update the
 	  * start/end location and the duration */
 	void actions_changed();
