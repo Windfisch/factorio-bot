@@ -80,6 +80,25 @@ void Task::actions_changed()
 }
 
 
+void Scheduler::cleanup_item_claims()
+{
+	std::unordered_set<owner_t> owners;
+	for (const auto& task : pending_tasks)
+		owners.insert(task.second->owner_id);
+
+	for (auto& [_, tagged_amount] : game->players[player_idx].inventory)
+		for (auto iter = tagged_amount.claims.begin(); iter != tagged_amount.claims.end();)
+		{
+			if (owners.find(iter->owner) == owners.end()) // this claim is stale. remove it!
+			{
+				cout << "removing stale claim for " << iter->owner << endl;
+				iter = tagged_amount.claims.erase(iter);
+			}
+			else
+				iter++;
+		}
+}
+
 // allocate inventory content to the tasks, based on their priority
 Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 {
@@ -118,9 +137,12 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 
 void Scheduler::recalculate()
 {
+	cout << "Scheduler::recalculate()" << endl;
+
 	for (auto& [_,task] : pending_tasks)
 		task->update_actions_from_goals(game, player_idx);
 
+	cleanup_item_claims();
 	current_item_allocation = allocate_items_to_tasks();
 
 	// calculate crafting order and ETAs
@@ -137,6 +159,7 @@ void Scheduler::update_item_allocation()
 	// FIXME: this should be executed on every inventory change which is not caused by
 	// a finished craft.
 	// FIXME: calculate_crafts() should be called on every peek_current_craft().
+	cleanup_item_claims();
 	current_item_allocation = allocate_items_to_tasks();
 	current_crafting_list = calculate_crafts(current_item_allocation, 20);
 }

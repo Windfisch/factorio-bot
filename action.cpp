@@ -35,6 +35,7 @@ namespace action {
 	{
 		if (auto primitive_action = std::dynamic_pointer_cast<PrimitiveAction>(action))
 		{
+			cout << "inserting action #" << primitive_action->id << " into the registry" << endl;
 			(*this)[primitive_action->id] = primitive_action;
 		}
 		action->start();

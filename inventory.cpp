@@ -107,19 +107,6 @@ bool Inventory::apply(const Recipe* recipe, bool already_started)
 	return true;
 }
 
-void TaggedAmount::cleanup()
-{
-/* TODO
-	for (auto it = claims.begin(); it != claims.end(); )
-	{
-		if (it->owner.expired())
-			it = unordered_erase(claims, it);
-		else
-			it++;
-	}
-*/
-}
-
 size_t TaggedAmount::n_claimed() const
 {
 	size_t claimed = 0;

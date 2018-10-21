@@ -51,9 +51,6 @@ struct TaggedAmount
 		assert(n_claimed() <= amount);
 	}
 
-	/** removes expired Tasks from the list of claims. should be called periodically by the user. */
-	void cleanup();
-
 	/** returns the number of claimed items. amount - n_claimed() equals to the maximum amount a very-low-priority owner can claim */
 	size_t n_claimed() const;
 

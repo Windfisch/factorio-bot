@@ -343,6 +343,9 @@ struct Scheduler
 
 // private:
 
+	/** remove all item claims for tasks that no longer exist */
+	void cleanup_item_claims();
+
 	FactorioGame* game;
 	int player_idx;
 
