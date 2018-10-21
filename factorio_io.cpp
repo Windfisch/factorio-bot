@@ -394,12 +394,14 @@ void FactorioGame::parse_mined_item(const string& data)
 
 void FactorioGame::parse_inventory_changed(const string& data)
 {
+	std::set<int> affected_players;
 	for (const string& update : split(data, ' '))
-	{
+	{ 
 		auto [player_id, item, diff, owner_str] = unpack<int,string,int,string>(update, ',');
 		bool has_owner = owner_str!="x";
 		int owning_action_id = has_owner ? stoi(owner_str) : -1;
 		const ItemPrototype* proto = item_prototypes.at(item).get();
+		affected_players.insert(player_id);
 		
 		if (size_t(player_id) >= players.size())
 		{
@@ -434,6 +436,12 @@ void FactorioGame::parse_inventory_changed(const string& data)
 			else
 				cout << "WARN: could not find action associated with action id " << owning_action_id << endl;
 		}
+	}
+	
+	for (int player : affected_players)
+	{
+		cout << "parse_inventory_changed(), player #"<<player<<"'s new inventory is " << endl;
+		players[player].inventory.dump();
 	}
 }
 

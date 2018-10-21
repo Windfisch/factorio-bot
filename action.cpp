@@ -67,6 +67,8 @@ namespace action {
 	{
 		execute_impl();
 		game->players[player].inventory.apply(inventory_balance_on_launch(), owner);
+		cout << "Launched action " << str() << ". Extrapolated inventory is now" << endl;
+		game->players[player].inventory.dump();
 	}
 
 	void WalkTo::start()
