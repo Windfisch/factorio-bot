@@ -28,6 +28,8 @@
 
 using namespace sched;
 
+std::unordered_map<owner_t, std::string> owner_names;
+
 static void assert_unique(const std::vector<ItemStack>& items)
 {
 	#ifndef NDEBUG
@@ -150,15 +152,7 @@ void TaggedInventory::dump() const
 		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
 		for (const auto& claim : tagged_amount.claims)
 		{
-			std::cout << "\t\t" << claim.owner;
-			/* TODO
-			if (auto owner = claim.owner.lock())
-				std::cout << "\t\t" << owner->name;
-			else
-				std::cout << "\t\t(null)";
-			*/
-
-			std::cout << " <- " << claim.amount << std::endl;
+			std::cout << "\t\t" << get_or(owner_names, claim.owner, "(?)") << " <- " << claim.amount << std::endl;
 		}
 	}
 }

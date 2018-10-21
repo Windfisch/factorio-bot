@@ -24,6 +24,8 @@
 #include <numeric>
 #include <boost/container/flat_map.hpp>
 #include <assert.h>
+#include <unordered_map>
+#include <string>
 
 struct Recipe;
 
@@ -31,6 +33,9 @@ struct ItemPrototype;
 struct ItemStack;
 
 using owner_t = intptr_t; // FIXME
+
+// DEBUG only
+extern std::unordered_map<owner_t, std::string> owner_names;
 
 struct TaggedAmount
 {
