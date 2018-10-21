@@ -28,7 +28,11 @@
 
 using namespace sched;
 
-std::unordered_map<owner_t, std::string> owner_names;
+owner_names_t owner_names;
+std::string owner_names_t::get(owner_t owner)
+{
+	return get_or(*this, owner, "[#"+std::to_string(owner)+"]");
+}
 
 static void assert_unique(const std::vector<ItemStack>& items)
 {
@@ -152,7 +156,7 @@ void TaggedInventory::dump() const
 		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
 		for (const auto& claim : tagged_amount.claims) if (claim.amount)
 		{
-			std::cout << "\t\t" << get_or(owner_names, claim.owner, "(?)") << " <- " << claim.amount << std::endl;
+			std::cout << "\t\t" << owner_names.get(claim.owner) << " <- " << claim.amount << std::endl;
 		}
 	}
 }

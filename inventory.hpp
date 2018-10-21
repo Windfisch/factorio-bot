@@ -35,7 +35,11 @@ struct ItemStack;
 using owner_t = intptr_t; // FIXME
 
 // DEBUG only
-extern std::unordered_map<owner_t, std::string> owner_names;
+struct owner_names_t : public std::unordered_map<owner_t, std::string>
+{
+	std::string get(owner_t owner);
+};
+extern owner_names_t owner_names;
 
 struct TaggedAmount
 {

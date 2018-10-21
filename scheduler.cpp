@@ -91,7 +91,7 @@ void Scheduler::cleanup_item_claims()
 		{
 			if (owners.find(iter->owner) == owners.end()) // this claim is stale. remove it!
 			{
-				cout << "removing stale claim for " << iter->owner << endl;
+				cout << "removing stale claim for " << owner_names.get(iter->owner) << endl;
 				iter = tagged_amount.claims.erase(iter);
 			}
 			else
