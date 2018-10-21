@@ -141,16 +141,16 @@ std::string Inventory::str() const
 }
 void Inventory::dump() const
 {
-	for (auto [proto,amount] : (*this))
+	for (auto [proto,amount] : (*this)) if (amount)
 		std::cout << "\t" << proto->name << ": " << amount << std::endl;
 }
 
 void TaggedInventory::dump() const
 {
-	for (const auto& [proto, tagged_amount] : (*this))
+	for (const auto& [proto, tagged_amount] : (*this)) if (tagged_amount.amount)
 	{
 		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
-		for (const auto& claim : tagged_amount.claims)
+		for (const auto& claim : tagged_amount.claims) if (claim.amount)
 		{
 			std::cout << "\t\t" << get_or(owner_names, claim.owner, "(?)") << " <- " << claim.amount << std::endl;
 		}
