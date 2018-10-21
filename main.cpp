@@ -394,8 +394,6 @@ int main(int argc, const char** argv)
 
 			bool actions_finished = player.tick_actions();
 
-			cout << "current task of player " << player.id << " is " << (task ? task->name : "(null)") << ", task_execution_state is " << int(task_execution_state) << endl;
-
 			switch (task_execution_state)
 			{
 				case TaskExecutionState::APPROACHING_START_LOCATION:
@@ -435,6 +433,8 @@ int main(int argc, const char** argv)
 
 						current_task = nullptr;
 						task_execution_state = TaskExecutionState::FINISHED;
+
+						scheduler.recalculate();
 					}
 					else
 						break;
@@ -442,7 +442,8 @@ int main(int argc, const char** argv)
 					[[fallthrough]];
 
 				case TaskExecutionState::FINISHED:
-					scheduler.recalculate();
+					//scheduler.recalculate();
+					break;
 			}
 
 			tick_craftinglist();
@@ -547,7 +548,7 @@ int main(int argc, const char** argv)
 		if (ent.proto->name.substr(0,4) == "tree")
 		{
 			mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-			if (mytask->goals->size() >= 1)
+			if (mytask->goals->size() >= 6)
 				break;
 		}
 	mytask->actions_changed();
