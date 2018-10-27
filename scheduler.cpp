@@ -1071,9 +1071,71 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		}
 	}
 
+
+	// special handling for wood, which can be easily mined by chopping some trees
+	const ItemPrototype* wood_item = &game->get_item_prototype("raw-wood");
+	int missing_wood = 0;
+	auto missing_iter = std::find_if(missing_items.begin(), missing_items.end(), [wood_item](auto x) { return x.proto == wood_item; });
+	if (missing_iter != missing_items.end())
+		missing_wood = missing_iter->amount;
+
+	if (missing_wood)
+		for (const auto& potential_tree : world_entities.around(player.position))
+			if ( int wood = get_or(potential_tree.proto->mine_results, wood_item, 0) )
+			{
+				const auto& tree = potential_tree;
+
+				auto tree_action = make_shared<action::CompoundAction>();
+				tree_action->subactions.push_back(make_shared<action::WalkTo>(game, player.id, tree.pos, ALLOWED_DISTANCE));
+				tree_action->subactions.push_back(make_shared<action::MineObject>(game, player.id, original_task->owner_id, tree));
+
+				cout << "calculating path from " << last_pos.str() << " to " << tree.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
+				// check if this tree is actually close enough
+				auto path = a_star(
+					last_pos, tree.pos,
+					game->walk_map,
+					ALLOWED_DISTANCE, 0.,
+					walk_distance_in_time(max_duration - time_spent)
+				);
+
+				cout << "\t->" << path.size() << endl;
+
+				Clock::duration tree_duration = path_walk_duration(path) + std::chrono::seconds(3); // FIXME magic number for mining that tree :|
+
+				if (time_spent + tree_duration <= max_duration)
+				{
+					cout << "visiting tree at " << tree.pos.str() << " for " << wood << " raw-wood ";
+					cout << "with a cost of " <<
+						chrono::duration_cast<chrono::seconds>(tree_duration).count() << " sec (" <<
+						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
+						" sec remaining)" << endl;
+
+					result->actions->subactions.push_back(move(tree_action));
+					result->end_location = tree.pos;
+					last_pos = tree.pos;
+					time_spent += tree_duration;
+
+					missing_wood -= wood;
+				}
+				// else: we can't afford going there. maybe try somewhere else.
+				else
+				{
+					cout << "not visiting tree at " << tree.pos.str() << " for " << wood << " raw-wood ";
+					cout << "with a cost of " <<
+						chrono::duration_cast<chrono::seconds>(tree_duration).count() << " sec (" <<
+						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
+						" sec remaining)" << endl;
+					break;
+				}
+
+				if (missing_wood <= 0)
+					break;
+			}
+
+
 	if (result->actions->subactions.empty())
 		return nullptr;
-	
+
 	result->duration = time_spent;
 
 	return result;
