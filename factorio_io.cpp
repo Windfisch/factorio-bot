@@ -317,16 +317,20 @@ void FactorioGame::parse_item_containers(const string& data_str)
 
 		if (auto entity = actual_entities.search_or_null(Entity(Pos_f(ent_x,ent_y),entity_prototypes.at(name).get())))
 		{
-			auto& data = entity->data<ContainerData>();
-			data.items.clear();
-
-			for (const string& content : split(contents, '%'))
+			if (auto* data = entity->data_or_null<ContainerData>())
 			{
-				auto [item, amount] = unpack<string, size_t>(content,':');
-				auto [_,inserted] = data.items.insert(pair{item_prototypes.at(item).get(), amount});
-				if (!inserted)
-					throw runtime_error("malformed parse_item_containers packet: duplicate item");
+				data->items.clear();
+
+				for (const string& content : split(contents, '%'))
+				{
+					auto [item, amount] = unpack<string, size_t>(content,':');
+					auto [_,inserted] = data->items.insert(pair{item_prototypes.at(item).get(), amount});
+					if (!inserted)
+						throw runtime_error("malformed parse_item_containers packet: duplicate item");
+				}
 			}
+			else
+				cout << "wtf, got inventory update for " << entity->str() << ", but it has no ContainerData associated" << endl;
 		}
 		else
 		{
