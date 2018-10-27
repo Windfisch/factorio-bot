@@ -25,7 +25,6 @@
 #include <string>
 #include <memory>
 
-struct ItemStack;
 struct ContainerData
 {
 	Inventory items;

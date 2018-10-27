@@ -948,7 +948,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 	#endif
 
 	// initialize the resulting collector task
-	auto result = make_shared<Task>("resource collector for " +original_task->name);
+	auto result = make_shared<Task>("resource collector for " + original_task->name);
 	result->start_location = player.position;
 	result->start_radius = std::numeric_limits<decltype(result->start_radius)>::infinity();
 	result->is_dependent = true;
@@ -1010,7 +1010,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				take_amount, container, INV_CHEST));
 			relevant = true;
 		}
-		cout << endl;
+		cout << "\b\b " << endl;
 
 		if (!missing_anything)
 		{

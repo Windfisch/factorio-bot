@@ -553,7 +553,7 @@ int main(int argc, const char** argv)
 				break;
 		}
 	mytask->actions_changed();
-	splayers[player_idx].scheduler.add_task(mytask);
+	//splayers[player_idx].scheduler.add_task(mytask);
 
 
 	mytask = make_shared<Task>("chest builder");
@@ -566,7 +566,7 @@ int main(int argc, const char** argv)
 	mytask->actions_changed();
 	mytask->update_actions_from_goals(&factorio, player_idx); // HACK
 	mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood")}, &factorio);
-	splayers[player_idx].scheduler.add_task(mytask);
+	//splayers[player_idx].scheduler.add_task(mytask);
 
 
 	mytask = make_shared<Task>("axe crafter");
