@@ -121,7 +121,9 @@ class FactorioGame
 		void rcon_call(std::string func, int player_id, std::string args);
 		void rcon_call(std::string func, int action_id, int player_id, std::string args);
 		std::string read_packet();
-		void parse_packet(const std::string& data);
+
+		/** parses a packet. returns true if this results in a consistent gamestate (i.e., on "tick" messages) */
+		bool parse_packet(const std::string& data);
 
 		// never use these functions directly, use player actions instead
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);

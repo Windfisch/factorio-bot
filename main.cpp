@@ -275,7 +275,7 @@ int main(int argc, const char** argv)
 	while(true)
 	{
 		string packet = factorio.read_packet();
-		if (packet == "STATIC_DATA_END")
+		if (packet == "0 STATIC_DATA_END")
 			break;
 		else
 			factorio.parse_packet(packet);
@@ -581,10 +581,13 @@ int main(int argc, const char** argv)
 
 	while (true)
 	{
-		factorio.parse_packet( factorio.read_packet() );
+		bool consistent_state = factorio.parse_packet( factorio.read_packet() );
 		frame++;
 		//cout << "frame " << frame << endl; if (frame>1000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
 		
+		if (!consistent_state)
+			continue;
+
 		for (auto& player : factorio.players)
 		{
 			auto& splayer = splayers[player.id];

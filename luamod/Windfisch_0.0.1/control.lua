@@ -57,6 +57,8 @@ client_local_data = nil -- DO NOT USE, will cause desyncs
 
 outfile="output1.txt"
 must_write_initstuff = true
+last_tick_in_file = nil -- this is nil inbetween any "tick:"-message and a subsequent proper message
+last_tick = 0
 
 local todo_next_tick = {}
 local crafting_queue = {} -- array of lists. crafting_queue[player_idx] is a list
@@ -97,13 +99,16 @@ function on_init()
 	game.write_file(outfile, "", false)
 end
 
-function write_file(data)
+function write_file(tick, data, donotupdate)
 	if must_write_initstuff then
 		must_write_initstuff = false
 		writeout_initial_stuff()
 	end
 
-	game.write_file(outfile, data, true)
+	game.write_file(outfile, tick.." "..data, true)
+	if donotupdate ~= true then
+		last_tick_in_file = tick
+	end
 end
 
 
@@ -138,7 +143,7 @@ function writeout_initial_stuff()
 	writeout_entity_prototypes()
 	writeout_item_prototypes()
 	writeout_recipes()
-	write_file("STATIC_DATA_END\n")
+	write_file(0,"STATIC_DATA_END\n")
 end
 
 function writeout_proto_picture_dir(name, dir, picspec)
@@ -333,7 +338,7 @@ function writeout_pictures()
 	-- this uses "|", "*" and ":" as separators on purpose, because these
 	-- may not be used in windows path names, and are thus unlikely to appear
 	-- in the image filenames.
-	write_file(header..table.concat(lines, "|").."\n")
+	write_file(0, header..table.concat(lines, "|").."\n")
 	print(table.concat(lines,"|"))
 end
 
@@ -363,7 +368,7 @@ function writeout_entity_prototypes()
 		end
 		table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mine_result)
 	end
-	write_file(header..table.concat(lines, "$").."\n")
+	write_file(0, header..table.concat(lines, "$").."\n")
 end
 
 function writeout_item_prototypes()
@@ -378,7 +383,7 @@ function writeout_item_prototypes()
 		table.insert(lines, prot.name.." FLUID nil 0 0 0 0")
 	end
 
-	write_file(header..table.concat(lines, "$").."\n")
+	write_file(0,header..table.concat(lines, "$").."\n")
 end
 
 function simplify_amount(prod)
@@ -407,7 +412,7 @@ function writeout_recipes()
 
 		table.insert(lines, rec.name.." "..(rec.enabled and "1" or "0").." "..rec.energy.." "..table.concat(ingredients,",").." "..table.concat(products,","))
 	end
-	write_file(header..table.concat(lines, "$").."\n")
+	write_file(0,header..table.concat(lines, "$").."\n")
 end
 
 function on_whoami()
@@ -437,7 +442,7 @@ function on_tick(event)
 		print("initial discovery, writing "..id.idx..".."..maxi.." ("..(id.idx/id.n*100).."% done)")
 		for i = id.idx, maxi do
 			local chunk = id.chunks[i]
-			on_chunk_generated({area={left_top={x=chunk.x*32, y=chunk.y*32}, right_bottom={x=32*chunk.x+32, y=32*chunk.y+32}}, surface=game.surfaces[1]})
+			on_chunk_generated({tick=event.tick, area={left_top={x=chunk.x*32, y=chunk.y*32}, right_bottom={x=32*chunk.x+32, y=32*chunk.y+32}}, surface=game.surfaces[1]})
 		end
 
 		id.idx = maxi+1
@@ -459,7 +464,7 @@ function on_tick(event)
 					w.idx = w.idx + 1
 					if w.idx > #w.waypoints then
 						player.walking_state = {walking=false}
-						action_completed(w.action_id)
+						action_completed(event.tick, w.action_id)
 						global.p[idx].walking = nil
 						dx = 0
 						dy = 0
@@ -536,7 +541,7 @@ function on_tick(event)
 					-- the entity to be mined has been deleted, but p[idx].mining is still true.
 					-- this means that on_mined_entity() has *not* been called, indicating that something
 					-- else has "stolen" what we actually wanted to mine :(
-					action_failed(global.p[idx].mining.action_id)
+					action_failed(event.tick, global.p[idx].mining.action_id)
 					complain("failed to mine " .. global.p[idx].mining.prototype.name)
 					global.p[idx].mining = nil
 				end
@@ -551,11 +556,11 @@ function on_tick(event)
 	end
 
 	if event.tick % 10 == 0 then
-		writeout_players()
+		writeout_players(event.tick)
 	end
 
 	if event.tick % 120 == 0 then
-		writeout_item_containers(game.surfaces['nauvis']) -- FIXME: trigger this upon actual chest changes!
+		writeout_item_containers(event.tick, game.surfaces['nauvis']) -- FIXME: trigger this upon actual chest changes!
 	end
 
 	-- periodically update the objects around the player to ensure that nothing is missed
@@ -568,7 +573,7 @@ function on_tick(event)
 
 				for xx = x-96, x+96, 32 do
 					for yy = y-96, y+96, 32 do
-						writeout_objects(player.surface, {left_top={x=xx,y=yy}, right_bottom={x=xx+32,y=yy+32}})
+						writeout_objects(event.tick, player.surface, {left_top={x=xx,y=yy}, right_bottom={x=xx+32,y=yy+32}})
 					end
 				end
 			end
@@ -582,6 +587,12 @@ function on_tick(event)
 		end
 		todo_next_tick = {}
 	end
+
+	if last_tick_in_file ~= nil then
+		write_file(event.tick, "tick: \n", true)
+		last_tick_in_file = nil
+	end
+	last_tick = event.tick
 end
 
 function on_mined_entity(event)
@@ -593,7 +604,7 @@ function on_mined_entity(event)
 				if mining.entity == event.entity then
 					complain("on_mined_entity mined the desired entity")
 					--write_file("complete: mining "..idx.."\n")
-					action_completed(mining.action_id)
+					action_completed(event.tick, mining.action_id)
 					complain("mined " .. mining.prototype.name)
 					
 					local proto = mining.prototype
@@ -613,14 +624,14 @@ function on_mined_entity(event)
 	end
 end
 
-function writeout_players()
+function writeout_players(tick)
 	local players={}
 	for idx, player in pairs(game.players) do
 		if player.connected and player.character then
 			table.insert(players, idx.." "..player.character.position.x.." "..player.character.position.y)
 		end
 	end
-	write_file("players: "..table.concat(players, ",").."\n")
+	write_file(tick,"players: "..table.concat(players, ",").."\n")
 end
 
 function on_sector_scanned(event)
@@ -666,12 +677,12 @@ function on_chunk_generated(event)
 	if chunk_xend > global.map_area.x2 then global.map_area.x2 = chunk_xend end
 	if chunk_yend > global.map_area.y2 then global.map_area.y2 = chunk_yend end
 
-	writeout_resources(surface, area)
-	writeout_objects(surface, area)
-	writeout_tiles(surface, area)
+	writeout_resources(event.tick, surface, area)
+	writeout_objects(event.tick, surface, area)
+	writeout_tiles(event.tick, surface, area)
 end
 
-function writeout_tiles(surface, area) -- SLOW! beastie can do ~2.8 per tick
+function writeout_tiles(tick, surface, area) -- SLOW! beastie can do ~2.8 per tick
 	--if my_client_id ~= 1 then return end
 	local header = "tiles "..area.left_top.x..","..area.left_top.y..";"..area.right_bottom.x..","..area.right_bottom.y..": "
 	
@@ -684,10 +695,10 @@ function writeout_tiles(surface, area) -- SLOW! beastie can do ~2.8 per tick
 		end
 	end
 
-	write_file(header..table.concat(line, ",").."\n")
+	write_file(tick, header..table.concat(line, ",").."\n")
 end
 
-function writeout_resources(surface, area) -- quite fast. beastie can do > 40, up to 75 per tick
+function writeout_resources(tick, surface, area) -- quite fast. beastie can do > 40, up to 75 per tick
 	--if my_client_id ~= 1 then return end
 	header = "resources "..area.left_top.x..","..area.left_top.y..";"..area.right_bottom.x..","..area.right_bottom.y..": "
 	line = ''
@@ -700,7 +711,7 @@ function writeout_resources(surface, area) -- quite fast. beastie can do > 40, u
 		end
 	end
 	table.insert(lines,line)
-	write_file(header..table.concat(lines,"").."\n")
+	write_file(tick, header..table.concat(lines,"").."\n")
 
 	line=nil
 end
@@ -719,7 +730,7 @@ function direction_str(d)
 	end
 end
 
-function writeout_objects(surface, area)
+function writeout_objects(tick, surface, area)
 	--if my_client_id ~= 1 then return end
 	header = "objects "..area.left_top.x..","..area.left_top.y..";"..area.right_bottom.x..","..area.right_bottom.y..": "
 	line = ''
@@ -761,12 +772,12 @@ function writeout_objects(surface, area)
 		end
 	end
 	table.insert(lines,line)
-	write_file(header..table.concat(lines,"").."\n")
+	write_file(tick, header..table.concat(lines,"").."\n")
 
 	line=nil
 end
 
-function writeout_item_containers(surface)
+function writeout_item_containers(tick, surface)
 	header = "item_containers: " -- fixme: only writeout per area
 	line = ''
 	lines={}
@@ -802,7 +813,7 @@ function writeout_item_containers(surface)
 		end
 	end
 	table.insert(lines,line)
-	write_file(header..table.concat(lines,"").."\n")
+	write_file(tick, header..table.concat(lines,"").."\n")
 
 	line=nil
 end
@@ -838,16 +849,16 @@ function on_player_mined_item(event)
 		count = 1
 	end
 
-	write_file("mined_item: "..event.player_index.." "..name.." "..count.."\n")
+	write_file(event.tick, "mined_item: "..event.player_index.." "..name.." "..count.."\n")
 end
 
 
-function action_completed(action_id)
-	write_file("action_completed: ok "..action_id.."\n")
+function action_completed(tick, action_id)
+	write_file(tick, "action_completed: ok "..action_id.."\n")
 end
 
-function action_failed(action_id)
-	write_file("action_completed: fail "..action_id.."\n")
+function action_failed(tick, action_id)
+	write_file(tick, "action_completed: fail "..action_id.."\n")
 end
 
 function on_some_entity_created(event)
@@ -859,9 +870,9 @@ function on_some_entity_created(event)
 
 	if ent.type == "pipe" or ent.type == "pipe-to-ground" or ent.type == "wall" or ent.type == "heat-pipe" then -- HACK to semi-correctly assign an orientation to pipes etc
 		-- need to write out neighboring entities as well, because they might have changed their orientation by this event
-		writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x)-1, y=math.floor(ent.position.y)-1}, right_bottom={x=math.floor(ent.position.x)+2, y=math.floor(ent.position.y)+2}})
+		writeout_objects(event.tick, ent.surface, {left_top={x=math.floor(ent.position.x)-1, y=math.floor(ent.position.y)-1}, right_bottom={x=math.floor(ent.position.x)+2, y=math.floor(ent.position.y)+2}})
 	else
-		writeout_objects(ent.surface, {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}})
+		writeout_objects(event.tick, ent.surface, {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}})
 	end
 
 	complain("on_some_entity_created: "..ent.name.." at "..ent.position.x..","..ent.position.y)
@@ -878,8 +889,9 @@ function on_some_entity_deleted(event)
 	
 	local surface = ent.surface
 	local area = {left_top={x=math.floor(ent.position.x), y=math.floor(ent.position.y)}, right_bottom={x=math.floor(ent.position.x)+1, y=math.floor(ent.position.y)+1}}
+	local tick = event.tick
 
-	table.insert(todo_next_tick, function () writeout_objects(surface, area ) end)
+	table.insert(todo_next_tick, function () writeout_objects(tick, surface, area ) end)
 	
 	complain("on_some_entity_deleted: "..ent.name.." at "..ent.position.x..","..ent.position.y)
 end
@@ -900,7 +912,7 @@ function on_player_crafted_item(event)
 				complain("player "..game.players[event.player_index].name.." has crafted "..queue[1].recipe..", but that's not all")
 			else
 				complain("player "..game.players[event.player_index].name.." has finished crafting "..queue[1].recipe.." with id "..queue[1].id)
-				action_completed(queue[1].id)
+				action_completed(event.tick, queue[1].id)
 				tmp_recent_item_addition.action_id = queue[1].id
 			end
 			table.remove(queue,1)
@@ -1002,7 +1014,7 @@ function on_inventory_changed(event)
 		print("\t"..att.amount.."x "..att.item.." -> "..(att.id or "unowned"))
 		table.insert(invstrings, player_idx..","..att.item..","..att.amount..","..(att.id or "x"))
 	end
-	write_file("inventory_changed: "..table.concat(invstrings, " ").."\n")
+	write_file(event.tick, "inventory_changed: "..table.concat(invstrings, " ").."\n")
 	print("-------------")
 	print("")
 	player_inventories[player_idx] = player_inv
@@ -1065,7 +1077,7 @@ function rcon_set_mining_target(action_id, player_id, name, position)
 	else
 		print("no entity to mine")
 		global.p[player_id].mining = nil
-		action_failed(action_id)
+		action_failed(last_tick, action_id)
 	end
 end
 
@@ -1095,7 +1107,7 @@ function rcon_place_entity(player_id, item_name, entity_position, direction)
 	if result == nil then
 		complain("placing item '"..item_name.."' failed, surface.create_entity returned nil :(")
 	else
-		on_some_entity_created({entity = result})
+		on_some_entity_created({tick=last_tick, entity = result})
 	end
 end
 

@@ -259,25 +259,28 @@ void FactorioGame::resolve_references_to_items()
 	}
 }
 
-void FactorioGame::parse_packet(const string& pkg)
+bool FactorioGame::parse_packet(const string& pkg)
 {
-	if (pkg=="") return;
+	if (pkg=="") return false;
 
-	auto p1 = pkg.find(' ');
-	auto p2 = pkg.find(':');
+	auto colon = pkg.find(':');
 
-	if (p1 == string::npos || p1 > p2)
-		p1 = p2;
+	if (colon == string::npos)
+		throw runtime_error("malformed packet: missing colon");
 
-	if (p2 == string::npos)
-		throw runtime_error("malformed packet");
+	vector<string> prelude = split(pkg.substr(0, colon), ' ');
+	string data = pkg.substr(colon+2); // skip space
 
-	string type = pkg.substr(0, p1);
+	if (prelude.size() != 2 && prelude.size() != 3)
+		throw runtime_error("malformed packed: invalid prelude");
+
+	string tickstr = prelude[0];
+	string type = prelude[1];
+
+	Area area;
+	if (prelude.size() >= 3)
+		area = Area(prelude[2]);
 	
-	Area area(pkg.substr(p1+1, p2-(p1+1)));
-	
-	string data = pkg.substr(p2+2); // skip space
-
 	if (type=="tiles")
 		parse_tiles(area, data);
 	else if (type=="resources")
@@ -305,8 +308,12 @@ void FactorioGame::parse_packet(const string& pkg)
 		parse_inventory_changed(data);
 	else if (type=="item_containers")
 		parse_item_containers(data);
+	else if (type=="tick")
+		return true;
 	else
 		throw runtime_error("unknown packet type '"+type+"'");
+	
+	return false;
 }
 
 void FactorioGame::parse_item_containers(const string& data_str)
