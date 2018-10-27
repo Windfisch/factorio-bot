@@ -40,6 +40,7 @@ struct ItemPrototype;
 struct EntityPrototype
 {
 	std::string name;
+	std::string type;
 	Area_f collision_box;
 	bool collides_player;
 	bool collides_object;
@@ -50,6 +51,7 @@ struct EntityPrototype
 	
 	EntityPrototype(const std::string& name_, const std::string& type_, const std::string& collision_str, const Area_f& collision_box_, bool mineable_, std::vector< std::pair<std::string, size_t> > mine_results_str_) :
 		name(name_),
+		type(type_),
 		collision_box(collision_box_),
 		collides_player(collision_str.find('P') != std::string::npos),
 		collides_object(collision_str.find('O') != std::string::npos),
