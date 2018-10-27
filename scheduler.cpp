@@ -34,6 +34,9 @@
 #include <limits>
 #include <optional>
 
+#include <experimental/array> // for make_array
+using std::experimental::make_array;
+
 using namespace std;
 
 static long sec(Clock::duration d)
@@ -931,7 +934,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 	const Player& player = game->players[player_idx];
 
-	auto missing_items = original_task->get_missing_items(task_inventories.at(original_task.get()));
+	vector<ItemStack> missing_items = original_task->get_missing_items(task_inventories.at(original_task.get()));
 	// TODO: desired_items, which are basically missing_items + 200. we consider chests only if
 	// missing_items > 0, but then we take as many items from it so that desired_items is satisfied.
 
@@ -1073,26 +1076,73 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 
 	// special handling for wood, which can be easily mined by chopping some trees
-	const ItemPrototype* wood_item = &game->get_item_prototype("raw-wood");
-	int missing_wood = 0;
-	auto missing_iter = std::find_if(missing_items.begin(), missing_items.end(), [wood_item](auto x) { return x.proto == wood_item; });
-	if (missing_iter != missing_items.end())
-		missing_wood = missing_iter->amount;
+	auto mineable_entitytypes = make_array("tree", "simple-entity");
+	auto mineable_itemtypes = make_array("raw-wood", "coal", "stone"); // avoid doing the expensive search on items that cannot be found there anyway.
 
-	if (missing_wood)
-		for (const auto& potential_tree : world_entities.around(player.position))
-			if ( int wood = get_or(potential_tree.proto->mine_results, wood_item, 0) )
+	bool do_search_mineable_entities = false;
+	for (const string& itemtype : mineable_itemtypes)
+	{
+		const ItemPrototype* item = &game->get_item_prototype(itemtype);
+		auto missing_iter = std::find_if(missing_items.begin(), missing_items.end(), [item](auto x) { return x.proto == item; });
+		if (missing_iter != missing_items.end() && missing_iter->amount > 0)
+		{
+			do_search_mineable_entities = true;
+			break;
+		}
+	}
+
+	if (do_search_mineable_entities)
+		for (const auto& potential_mineable : world_entities.around(player.position))
+			if (contains_vec(mineable_entitytypes, potential_mineable.proto->type))
 			{
-				const auto& tree = potential_tree;
+				const auto& mineable = potential_mineable;
+		
+				if (walk_duration_approx(last_pos, mineable.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
+				{
+					cout << "aborting due to duration approximation" << endl;
+					break;
+				}
 
-				auto tree_action = make_shared<action::CompoundAction>();
-				tree_action->subactions.push_back(make_shared<action::WalkTo>(game, player.id, tree.pos, ALLOWED_DISTANCE));
-				tree_action->subactions.push_back(make_shared<action::MineObject>(game, player.id, original_task->owner_id, tree));
+				bool relevant = false;
+				auto new_missing_items = missing_items;
+				cout << "missing: ";
+				bool missing_anything = false;
+				for (ItemStack& stack : new_missing_items)
+				{
+					if (stack.amount == 0)
+						continue;
 
-				cout << "calculating path from " << last_pos.str() << " to " << tree.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
-				// check if this tree is actually close enough
+					cout << stack.proto->name << "(" << stack.amount << "), ";
+					missing_anything = true;
+
+					int take_amount = get_or(mineable.proto->mine_results, stack.proto, 0);
+					if (take_amount > 0)
+					{
+						stack.amount -= min(stack.amount, size_t(take_amount));
+						relevant = true;
+					}
+				}
+				cout << "\b\b " << endl;
+
+				if (!missing_anything)
+				{
+					cout << "we've got everything we need" << endl;
+					break;
+				}
+				
+				if (!relevant)
+				{
+					cout << "not visiting mineable " << mineable.str() << " for ";
+					for (const auto& entry : mineable.proto->mine_results)
+						cout << entry.first->name << "(" << entry.second << "), ";
+					cout << " (irrelevant)" << endl;
+					continue;
+				}
+
+				cout << "calculating path from " << last_pos.str() << " to " << mineable.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
+				// check if this mineable is actually close enough
 				auto path = a_star(
-					last_pos, tree.pos,
+					last_pos, mineable.pos,
 					game->walk_map,
 					ALLOWED_DISTANCE, 0.,
 					walk_distance_in_time(max_duration - time_spent)
@@ -1100,36 +1150,41 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 				cout << "\t->" << path.size() << endl;
 
-				Clock::duration tree_duration = path_walk_duration(path) + std::chrono::seconds(3); // FIXME magic number for mining that tree :|
+				Clock::duration mineable_duration = path_walk_duration(path) + std::chrono::seconds(3); // FIXME magic number for mining that entity :|
 
-				if (time_spent + tree_duration <= max_duration)
+				if (time_spent + mineable_duration <= max_duration)
 				{
-					cout << "visiting tree at " << tree.pos.str() << " for " << wood << " raw-wood ";
-					cout << "with a cost of " <<
-						chrono::duration_cast<chrono::seconds>(tree_duration).count() << " sec (" <<
+					cout << "visiting mineable " << mineable.str() << " for ";
+					for (const auto& entry : mineable.proto->mine_results)
+						cout << entry.first->name << "(" << entry.second << "), ";
+					cout << "\b\b with a cost of " <<
+						chrono::duration_cast<chrono::seconds>(mineable_duration).count() << " sec (" <<
 						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
 						" sec remaining)" << endl;
 
-					result->actions->subactions.push_back(move(tree_action));
-					result->end_location = tree.pos;
-					last_pos = tree.pos;
-					time_spent += tree_duration;
+					auto mine_action = make_shared<action::CompoundAction>();
+					mine_action->subactions.push_back(make_shared<action::WalkTo>(game, player.id, mineable.pos, ALLOWED_DISTANCE));
+					mine_action->subactions.push_back(make_shared<action::MineObject>(game, player.id, original_task->owner_id, mineable));
 
-					missing_wood -= wood;
+					result->actions->subactions.push_back(move(mine_action));
+					result->end_location = mineable.pos;
+					last_pos = mineable.pos;
+					time_spent += mineable_duration;
+
+					missing_items = move(new_missing_items);
 				}
 				// else: we can't afford going there. maybe try somewhere else.
 				else
 				{
-					cout << "not visiting tree at " << tree.pos.str() << " for " << wood << " raw-wood ";
-					cout << "with a cost of " <<
-						chrono::duration_cast<chrono::seconds>(tree_duration).count() << " sec (" <<
+					cout << "not visiting mineable " << mineable.str() << " for ";
+					for (const auto& entry : mineable.proto->mine_results)
+						cout << entry.first->name << "(" << entry.second << "), ";
+					cout << "\b\b with a cost of " <<
+						chrono::duration_cast<chrono::seconds>(mineable_duration).count() << " sec (" <<
 						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
 						" sec remaining)" << endl;
 					break;
 				}
-
-				if (missing_wood <= 0)
-					break;
 			}
 
 

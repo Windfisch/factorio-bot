@@ -213,4 +213,13 @@ template <typename MapContainer> typename MapContainer::mapped_type get_or(const
 		return default_value;
 }
 
+template <typename Container, typename T> bool contains(const Container& container, const T& search_for)
+{
+	return container.find(search_for) != container.end();
+}
+template <typename Container, typename T> bool contains_vec(const Container& container, const T& search_for)
+{
+	return find(container.begin(), container.end(), search_for) != container.end();
+}
+
 #pragma GCC diagnostic pop
