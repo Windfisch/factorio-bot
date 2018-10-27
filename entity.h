@@ -31,7 +31,7 @@ struct ContainerData
 };
 
 struct MachineData : public ContainerData {};
-struct MiningDrillData {};
+struct MiningDrillData : public ContainerData {};
 
 using mvu = multivariant_utils<typelist<ContainerData, MachineData, MiningDrillData>>;
 
