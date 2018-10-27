@@ -113,8 +113,8 @@ struct InventoryPredicate : public GoalInterface
 	
 
 	
-	InventoryPredicate(Entity ent, ItemPrototype* item, size_t amount) :
-		entity(ent), type(POSITIVE), desired_inventory{{item,amount}} {}
+	InventoryPredicate(Entity ent, Inventory inv, inventory_t invtype, type_t type = POSITIVE) :
+		entity(ent), type(POSITIVE), desired_inventory(inv), inventory_type(invtype) {}
 	
 	virtual std::vector<std::shared_ptr<action::ActionBase>> _calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const;
 	virtual bool fulfilled(FactorioGame* game) const;
