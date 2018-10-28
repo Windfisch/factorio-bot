@@ -1257,10 +1257,24 @@ function rcon_insert_to_inventory(player_id, entity_name, entity_pos, inventory_
 
 	local count = 1
 	if items.count ~= nil then count=items.count end
-	local real_n = inventory.insert(items)
+
+	local available_count = player.get_item_count(items.name)
+
+	if available_count < count then
+		complain("cannot insert "..count.."x "..items.name..", because player #"..player_id.." only has "..available_count..". clamping...")
+		count = available_count
+	end
+
+	local real_n = 0
+	if count > 0 then real_n = inventory.insert({name=items.name, count=count}) end
 
 	if count ~= real_n then
-		complain("tried to insert "..count.." "..items.name.." but inserted " .. real_n)
+		complain("tried to insert "..count.."x "..items.name.." but inserted " .. real_n)
+	end
+
+	local check_n = player.remove_item({name=items.name, count=real_n})
+	if check_n ~= real_n then
+		complain("wtf, tried to take "..real_n.."x "..items.name.." from player #"..player_id.." but only got "..check_n..". Isn't supposed to happen?!")
 	end
 end
 function rcon_remove_from_inventory(player_id, entity_name, entity_pos, inventory_type, items)
@@ -1283,6 +1297,12 @@ function rcon_remove_from_inventory(player_id, entity_name, entity_pos, inventor
 
 	if count ~= real_n then
 		complain("tried to remove "..count.." "..items.name.." but removed " .. real_n)
+	end
+
+	local check_n = player.insert({name=items.name, count=real_n})
+
+	if check_n ~= real_n then
+		complain("wtf, couldn't insert "..real_n.."x "..items.name.." into player #"..player_id..", but only "..check_n..". dropping them :(.")
 	end
 end
 
