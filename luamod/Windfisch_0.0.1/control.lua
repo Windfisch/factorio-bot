@@ -910,7 +910,7 @@ function writeout_item_containers(tick, surface)
 	lines={}
 	
 	local i=defines.inventory
-	local inventory_types = { i.chest, i.assembling_machine_output, i.furnace_result }
+	local inventory_types = { 1,2,3,4,5,6,7,8 } -- FIXME HACK
 
 	-- TODO FIXME this is inefficient as hell
 	for idx, ent in pairs(surface.find_entities()) do
