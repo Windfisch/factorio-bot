@@ -19,10 +19,12 @@
 #pragma once
 
 #include "util.hpp"
+#include "defines.h"
 #include <memory>
 #include <algorithm>
 #include <numeric>
 #include <boost/container/flat_map.hpp>
+#include <boost/iterator/filter_iterator.hpp>
 #include <assert.h>
 #include <unordered_map>
 #include <string>
@@ -171,4 +173,85 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 
 	void dump() const;
 	std::string str() const;
+};
+
+struct MultiInventory
+{
+	struct key_t
+	{
+		const ItemPrototype* item;
+		inventory_t inv;
+
+		bool operator< (const key_t& o) const
+		{
+			if (item < o.item) return true;
+			if (item > o.item) return false;
+			return inv < o.inv;
+		}
+	};
+	using container_t = boost::container::flat_map<key_t, size_t>;
+	using iterator_t = container_t::iterator;
+	using item_iterator_t = iterator_t;
+	using const_iterator_t = container_t::const_iterator;
+	using const_item_iterator_t = const_iterator_t;
+	
+	struct Predicate
+	{
+		inventory_t inv;
+		bool operator()(const container_t::value_type& x)
+		{
+			return x.first.inv == inv;
+		}
+	};
+
+	using inv_iterator_t = boost::filter_iterator<Predicate, iterator_t>;
+	using const_inv_iterator_t = boost::filter_iterator<Predicate, const_iterator_t>;
+
+	size_t& get(const ItemPrototype* item, inventory_t inv) { return container[key_t{item,inv}]; }
+	size_t get_or(const ItemPrototype* item, inventory_t inv, size_t default_value) const {
+		auto it = container.find(key_t{item,inv});
+		if (it != container.end())
+			return it->second;
+		else
+			return default_value;
+	}
+
+	iterator_t begin() { return container.begin(); }
+	iterator_t end() { return container.end(); }
+
+	item_iterator_t item_begin(const ItemPrototype* item) { return container.lower_bound(key_t{item, INV_MIN}); }
+	item_iterator_t item_end(const ItemPrototype* item) { return container.upper_bound(key_t{item, INV_MAX}); }
+
+	inv_iterator_t inv_begin(inventory_t inv) {
+		return inv_iterator_t(Predicate{inv}, container.begin(), container.end());
+	}
+	inv_iterator_t inv_end(inventory_t inv) {
+		return inv_iterator_t(Predicate{inv}, container.end(), container.end());
+	}
+
+	const_iterator_t begin() const { return container.begin(); }
+	const_iterator_t end() const { return container.end(); }
+
+	const_item_iterator_t item_begin(const ItemPrototype* item) const { return container.lower_bound(key_t{item, INV_MIN}); }
+	const_item_iterator_t item_end(const ItemPrototype* item) const { return container.upper_bound(key_t{item, INV_MAX}); }
+
+	const_inv_iterator_t inv_begin(inventory_t inv) const {
+		return const_inv_iterator_t(Predicate{inv}, container.begin(), container.end());
+	}
+	const_inv_iterator_t inv_end(inventory_t inv) const {
+		return const_inv_iterator_t(Predicate{inv}, container.end(), container.end());
+	}
+
+	void clear() { container.clear(); }
+
+	std::pair<iterator_t, bool> insert(inventory_t inv, const ItemPrototype* item, size_t val)
+	{
+		return container.insert(std::pair{ key_t{item,inv}, val });
+	}
+
+	void dump() const;
+	Inventory get_inventory(inventory_t type) const;
+	
+	private:
+		 container_t container;
 };

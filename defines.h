@@ -19,6 +19,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 enum dir4_t
 {
@@ -47,7 +48,8 @@ enum dir8_t
 
 enum inventory_t
 {
-	INV_FUEL,
+	INV_MIN = 0,
+	INV_FUEL = 0,
 	INV_BURNT_RESULT,
 	INV_CHEST,
 	INV_FURNACE_SOURCE,
@@ -80,7 +82,17 @@ enum inventory_t
 	INV_CAR_AMMO,
 	INV_CARGO_WAGON,
 	INV_TURRET_AMMO,
-	INV_BEACON_MODULES
+	INV_BEACON_MODULES,
+	INV_MAX
 };
 
+struct inventory_flag_t
+{
+	bool put:1; // we may put to the inventory
+	bool take:1; // we may take from the inventory
+};
+
+extern inventory_flag_t inventory_flags[];
+
 extern std::string inventory_names[];
+extern const std::unordered_map<std::string, inventory_t> inventory_types;

@@ -65,6 +65,133 @@ local crafting_queue = {} -- array of lists. crafting_queue[player_idx] is a lis
 local recent_item_additions   = {} -- recent_item_additions[player_index].{tick,itemlist,recipe?,action_id?}, itemlist = { {"foo",2}, {"bar",17} }
 local player_inventories = {} -- array of dicts ("itemname" -> amount)
 
+function inventory_type_name(invtype, enttype)
+	local burner = {
+		[defines.inventory.fuel] = "fuel",
+		[defines.inventory.burnt_result] = "burnt_result"
+	}
+
+	local chest = {
+		[defines.inventory.chest] = "chest"
+	}
+
+	local furnace = {
+		[defines.inventory.furnace_source] = "furnace_source",
+		[defines.inventory.furnace_result] = "furnace_result",
+		[defines.inventory.furnace_modules] = "furnace_modules"
+	}
+
+	local player = {
+		[defines.inventory.player_quickbar] = "player_quickbar",
+		[defines.inventory.player_main] = "player_main",
+		[defines.inventory.player_guns] = "player_guns",
+		[defines.inventory.player_ammo] = "player_ammo",
+		[defines.inventory.player_armor] = "player_armor",
+		[defines.inventory.player_tools] = "player_tools",
+		[defines.inventory.player_vehicle] = "player_vehicle",
+		[defines.inventory.player_trash] = "player_trash"
+	}
+
+	local god = {
+		[defines.inventory.god_quickbar] = "god_quickbar",
+		[defines.inventory.god_main] = "god_main"
+	}
+
+	local roboport = {
+		[defines.inventory.roboport_robot] = "roboport_robot",
+		[defines.inventory.roboport_material] = "roboport_material"
+	}
+
+	local robot = {
+		[defines.inventory.robot_cargo] = "robot_cargo",
+		[defines.inventory.robot_repair] = "robot_repair"
+	}
+
+	local machine = {
+		[defines.inventory.assembling_machine_input] = "assembling_machine_input",
+		[defines.inventory.assembling_machine_output] = "assembling_machine_output",
+		[defines.inventory.assembling_machine_modules] = "assembling_machine_modules"
+	}
+
+	local lab = {
+		[defines.inventory.lab_input] = "lab_input",
+		[defines.inventory.lab_modules] = "lab_modules"
+	}
+
+	local mining_drill = {
+		[defines.inventory.mining_drill_modules] = "mining_drill_modules"
+	}
+
+	local item = {
+		[defines.inventory.item_main] = "item_main"
+	}
+
+	local silo = {
+		[defines.inventory.rocket] = "rocket",
+		[defines.inventory.rocket_silo_rocket] = "rocket_silo_rocket",
+		[defines.inventory.rocket_silo_result] = "rocket_silo_result"
+	}
+
+	local car = {
+		[defines.inventory.car_trunk] = "car_trunk",
+		[defines.inventory.car_ammo] = "car_ammo"
+	}
+
+	local wagon = {
+		[defines.inventory.cargo_wagon] = "cargo_wagon"
+	}
+
+	local turret = {
+		[defines.inventory.turret_ammo] = "turret_ammo"
+	}
+
+	local beacon = {
+		[defines.inventory.beacon_modules] = "beacon_modules"
+	}
+
+	local corpse = {
+		[defines.inventory.character_corpse] = "character_corpse"
+	}
+
+	local map = {
+		["player"] = {player},
+		["container"] = {chest},
+		["locomotive"] = {burner, car},
+		["car"] = {burner, car},
+		["wagon"] = {wagon, car},
+		["robot"] = {robot},
+		["roboport"] = {roboport},
+		["boiler"] = {burner},
+		["reactor"] = {burner},
+		["drill"] = {burner,mining_drill,machine},
+		["machine"] = {machine,burner},
+		["furnace"] = {furnace,burner},
+		["lab"] = {lab,burner},
+		["silo"] = {silo},
+		--["radar"] = {}, -- TODO FIXME
+		["turret"] = {turret},
+		["?"] = {machine, burner, player}
+	}
+
+	local lastpart = enttype:match(".*-\\([^-]*\\)")
+	if lastpart == nil then lastpart = enttype end
+
+	local mymap = map[lastpart]
+	if mymap == nil then
+		mymap = map["?"]
+	else
+		local offset = #mymap
+		for i,x in ipairs(map["?"]) do
+			mymap[offset+i] = x
+		end
+	end
+	for _,m in ipairs(mymap) do
+		if m[invtype] ~= nil then
+			return m[invtype]
+		end
+	end
+end
+
 function complain(text)
 	print(text)
 	game.forces["player"].print(text)
@@ -789,21 +916,24 @@ function writeout_item_containers(tick, surface)
 	for idx, ent in pairs(surface.find_entities()) do
 		--if area.left_top.x <= ent.position.x and ent.position.x < area.right_bottom.x and area.left_top.y <= ent.position.y and ent.position.y < area.right_bottom.y then
 		if ent.name ~= "player" then
-			local invtypes_present = {}
+			local has_inventory = false
+
+			local inventory_strings = {}
+
 			for _,inventory_type in ipairs(inventory_types) do
-				if ent.get_inventory(inventory_type) ~= nil then
-					table.insert(invtypes_present, inventory_type)
+				local inv = ent.get_inventory(inventory_type)
+				if inv ~= nil then
+					has_inventory = true
+					local inventory_content = {}
+					for item,amount in pairs(inv.get_contents()) do
+						table.insert(inventory_content, item..":"..amount)
+					end
+					table.insert(inventory_strings, inventory_type_name(inventory_type, ent.type).."="..table.concat(inventory_content, "%"))
 				end
 			end
-			if #invtypes_present > 0 then
-				local items = sum_inventory(ent, invtypes_present)
-				local itemstrs = {}
 
-				for item,amount in pairs(items) do
-					table.insert(itemstrs, item..":"..amount)
-				end
-
-				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..table.concat(itemstrs,"%")
+			if has_inventory then
+				line=line..","..ent.name.." "..ent.position.x.." "..ent.position.y.." "..table.concat(inventory_strings,"+")
 
 				if idx % 100 == 0 then
 					table.insert(lines,line)

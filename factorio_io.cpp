@@ -326,14 +326,20 @@ void FactorioGame::parse_item_containers(const string& data_str)
 		{
 			if (auto* data = entity->data_or_null<ContainerData>())
 			{
-				data->items.clear();
+				data->inventories.clear();
 
-				for (const string& content : split(contents, '%'))
+				for (const string& inv_string : split(contents, '+'))
 				{
-					auto [item, amount] = unpack<string, size_t>(content,':');
-					auto [_,inserted] = data->items.insert(pair{item_prototypes.at(item).get(), amount});
-					if (!inserted)
-						throw runtime_error("malformed parse_item_containers packet: duplicate item");
+					auto [invtype_str, invcontent] = unpack<string, string>(inv_string, '=');
+					inventory_t invtype = inventory_types.at("defines.inventory."+invtype_str);
+
+					for (const string& itemstack : split(invcontent, '%'))
+					{
+						auto [item, amount] = unpack<string, size_t>(itemstack,':');
+						auto [_,inserted] = data->inventories.insert(invtype, item_prototypes.at(item).get(), amount);
+						if (!inserted)
+							throw runtime_error("malformed parse_item_containers packet: duplicate item");
+					}
 				}
 			}
 			else

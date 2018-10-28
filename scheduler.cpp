@@ -27,6 +27,7 @@
 #include "constants.h"
 
 #include <boost/functional/hash.hpp>
+#include <boost/range/iterator_range_core.hpp>
 
 #include <vector>
 #include <utility>
@@ -36,6 +37,9 @@
 
 #include <experimental/array> // for make_array
 using std::experimental::make_array;
+
+using boost::iterator_range;
+using boost::make_iterator_range;
 
 using namespace std;
 
@@ -1002,16 +1006,22 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			cout << stack.proto->name << "(" << stack.amount << "), ";
 			missing_anything = true;
 
-			auto iter = data->items.find(stack.proto);
-			if (iter == data->items.end())
-				continue;
+			for (const auto& x : make_iterator_range(data->inventories.item_begin(stack.proto), data->inventories.item_end(stack.proto)))
+			{
+				size_t amount_available = x.second;
+				inventory_t inventory_type = x.first.inv;
+				assert(x.first.item == stack.proto);
 
-			size_t take_amount = min(iter->second, stack.amount);
-			stack.amount -= take_amount;
-			chest_action->subactions.push_back(make_shared<action::TakeFromInventory>(
-				game, player.id, original_task->owner_id, stack.proto,
-				take_amount, container, INV_CHEST));
-			relevant = true;
+				if (inventory_flags[inventory_type].take && amount_available > 0)
+				{
+					size_t take_amount = min(amount_available, stack.amount);
+					stack.amount -= take_amount;
+					chest_action->subactions.push_back(make_shared<action::TakeFromInventory>(
+						game, player.id, original_task->owner_id, stack.proto,
+						take_amount, container, inventory_type));
+					relevant = true;
+				}
+			}
 		}
 		cout << "\b\b " << endl;
 

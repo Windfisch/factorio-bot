@@ -20,6 +20,10 @@
 #include "factorio_io.h"
 #include "util.hpp"
 
+#include <boost/range/iterator_range_core.hpp>
+
+using boost::make_iterator_range;
+
 using namespace std;
 
 const int REACH = 2; // FIXME magic constant. move to common header
@@ -78,19 +82,21 @@ vector<shared_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(Factorio
 
 bool InventoryPredicate::fulfilled(FactorioGame* game) const
 {
-	const Inventory& actual_inventory = game->actual_entities.search(entity).data<ContainerData>().items;
+	const MultiInventory& actual_inventory = game->actual_entities.search(entity).data<ContainerData>().inventories;
 	if (type == POSITIVE)
 	{
 		for (auto [item, amount] : desired_inventory)
-			if (get_or(actual_inventory, item) < amount)
+			if (actual_inventory.get_or(item, inventory_type, 0) < amount)
 				return false;
 		return true;
 	}
 	else
 	{
-		for (auto [item,amount] : actual_inventory)
-			if (get_or(desired_inventory, item) > amount)
+		for (const auto& [key, amount] : make_iterator_range(actual_inventory.inv_begin(inventory_type), actual_inventory.inv_end(inventory_type)))
+		{
+			if (get_or(desired_inventory, key.item) > amount)
 				return false;
+		}
 		return true;
 	}
 }
@@ -106,18 +112,18 @@ vector<shared_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 	{
 		for (auto [item, desired_amount] : desired_inventory)
 		{
-			auto actual_amount = get_or(data.items, item);
+			auto actual_amount = data.inventories.get_or(item, inventory_type, 0);
 			if (actual_amount < desired_amount)
 				result.push_back(make_unique<action::PutToInventory>(game, player, owner, item, desired_amount-actual_amount, entity, inventory_type));
 		}
 	}
 	else
 	{
-		for (auto [item, actual_amount] : data.items)
+		for (const auto& [key, actual_amount] : make_iterator_range(data.inventories.inv_begin(inventory_type), data.inventories.inv_end(inventory_type)))
 		{
-			auto desired_amount = get_or(desired_inventory, item);
+			auto desired_amount = get_or(desired_inventory, key.item);
 			if (actual_amount > desired_amount)
-				result.push_back(make_unique<action::TakeFromInventory>(game, player, owner, item, actual_amount-desired_amount, ent, inventory_type));
+				result.push_back(make_unique<action::TakeFromInventory>(game, player, owner, key.item, actual_amount-desired_amount, ent, inventory_type));
 		}
 	}
 

@@ -312,7 +312,7 @@ void MapBox::give_detailed_info(const Pos& pos)
 	const Entity& entity = *first;
 	cout << "Entity of type '" << entity.proto->name << "' at " << entity.pos.str() << endl;
 	if (const auto* data = entity.data_or_null<ContainerData>())
-		data->items.dump();
+		data->inventories.dump();
 }
 
 int MapBox::handle(int event)

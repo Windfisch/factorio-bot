@@ -27,7 +27,7 @@
 
 struct ContainerData
 {
-	Inventory items;
+	MultiInventory inventories;
 };
 
 struct MachineData : public ContainerData {};

@@ -160,3 +160,26 @@ void TaggedInventory::dump() const
 		}
 	}
 }
+
+void MultiInventory::dump() const
+{
+	std::vector<inventory_t> types;
+	for (const auto& [key, val] : container)
+	{
+		if (!contains_vec(types, key.inv))
+			types.push_back(key.inv);
+	}
+	for (inventory_t type : types)
+	{
+		std::cout << inventory_names[type] << std::endl;
+		get_inventory(type).dump();
+	}
+}
+
+Inventory MultiInventory::get_inventory(inventory_t type) const
+{
+	Inventory result;
+	for (const_inv_iterator_t it = inv_begin(type); it != inv_end(type); it++)
+		result[it->first.item] = it->second;
+	return result;
+}
