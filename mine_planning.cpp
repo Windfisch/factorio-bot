@@ -545,6 +545,13 @@ static vector<Pos> filter_positions(const ResourcePatch& patch, const FactorioGa
 	return result;
 }
 
+std::vector<PlannedEntity> plan_early_smelter_rig(const ResourcePatch& patch, const FactorioGame* game)
+{
+	const EntityPrototype* furnace = &game->get_entity_prototype("stone-furnace");
+	const EntityPrototype* miner = &game->get_entity_prototype("burner-mining-drill");
+	return plan_early_mine(patch, game, { Entity(Pos_f(-1,0), furnace), Entity(Pos_f(1,0), miner, WEST) }, Pos(4,2), Area(0,-1, 2,1), WEST);
+}
+
 std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const FactorioGame* game, std::vector<Entity> rig, Pos size, Area mining_area, dir4_t side)
 {
 	vector<PlannedEntity> result;

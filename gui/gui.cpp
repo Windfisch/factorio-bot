@@ -385,8 +385,9 @@ int MapBox::handle(int event)
 						cout << "planning mine" << endl;
 
 						display_debug_entities.clear();
-						display_debug_entities.insert_all( plan_mine(
-							patch->positions, pos, *gui->game) );
+						display_debug_entities.insert_all( plan_early_smelter_rig(*patch, gui->game) );
+						//display_debug_entities.insert_all( plan_mine(
+						//	patch->positions, pos, *gui->game) );
 					}
 					else
 					{
