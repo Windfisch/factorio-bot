@@ -283,29 +283,31 @@ int main(int argc, const char** argv)
 	cout << "done reading static data" << endl;
 
 	goal::GoalList test_goals;
-	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(1,1), &factorio.get_entity_prototype("assembling-machine-1"))) );
-	test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(-3,4), &factorio.get_entity_prototype("wooden-chest"))) );
-	test_goals.push_back( make_unique<goal::RemoveEntity>(Entity(Pos(12,12), &factorio.get_entity_prototype("tree-01"))) );
-	auto test_actions = test_goals.calculate_actions(&factorio, 1, nullopt);
-	test_goals.dump(&factorio);
-	cout << "ActionList" << endl;
-	item_balance_t balance;
-	Pos pos{0,0};
-	for (const auto& a : test_actions)
 	{
-		auto [newpos, duration] = a->walk_result(pos);
-		auto bal = a->inventory_balance();
+		test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(1,1), &factorio.get_entity_prototype("assembling-machine-1"))) );
+		test_goals.push_back( make_unique<goal::PlaceEntity>(Entity(Pos(-3,4), &factorio.get_entity_prototype("wooden-chest"))) );
+		test_goals.push_back( make_unique<goal::RemoveEntity>(Entity(Pos(12,12), &factorio.get_entity_prototype("tree-01"))) );
+		auto test_actions = test_goals.calculate_actions(&factorio, 1, nullopt);
+		test_goals.dump(&factorio);
+		cout << "ActionList" << endl;
+		item_balance_t balance;
+		Pos pos{0,0};
+		for (const auto& a : test_actions)
+		{
+			auto [newpos, duration] = a->walk_result(pos);
+			auto bal = a->inventory_balance();
 
-		cout << "\t" << a->str() << " | walks from " << pos.str() << " to " << newpos.str() << " in " << std::chrono::duration_cast<chrono::milliseconds>(duration).count() << "ms" << endl;
-		for (auto [k,v] : bal)
-			cout << "\t\t" << k->name << " -> " << v << endl;
-		pos = newpos;
+			cout << "\t" << a->str() << " | walks from " << pos.str() << " to " << newpos.str() << " in " << std::chrono::duration_cast<chrono::milliseconds>(duration).count() << "ms" << endl;
+			for (auto [k,v] : bal)
+				cout << "\t\t" << k->name << " -> " << v << endl;
+			pos = newpos;
 
-		accumulate_map(balance, a->inventory_balance());
+			accumulate_map(balance, a->inventory_balance());
+		}
+		cout << "total item balance for this task:" << endl;
+		for (auto [k,v] : balance)
+			cout << "\t" << k->name << " -> " << v << endl;
 	}
-	cout << "total item balance for this task:" << endl;
-	for (auto [k,v] : balance)
-		cout << "\t" << k->name << " -> " << v << endl;
 
 	//exit(0);
 
@@ -535,46 +537,49 @@ int main(int argc, const char** argv)
 	for (size_t i=0; i<=player_idx; i++)
 		splayers.emplace_back(&factorio, i);
 
-	/*auto mytask = make_shared<Task>("mytask");
-	mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
-	mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
-	mytask->priority_ = 5;
-	mytask->dump();
-
-	cout << "\n\n" << endl;*/
-
-	auto mytask = make_shared<Task>("wood chopper");
-	mytask->goals.emplace();
-	for (const auto& ent : factorio.actual_entities.around(Pos(0,0)))
-		if (ent.proto->name.substr(0,4) == "tree")
-		{
-			mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-			if (mytask->goals->size() >= 6)
-				break;
-		}
-	mytask->actions_changed();
-	//splayers[player_idx].scheduler.add_task(mytask);
-
-
-	mytask = make_shared<Task>("chest builder");
-	mytask->goals.emplace();
-	for (int i=0; i<10; i++)
+	// create some initial tasks
 	{
-		mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(Pos_f(0.5+i, -10.5), &factorio.get_entity_prototype("wooden-chest")  )));
+		/*auto mytask = make_shared<Task>("mytask");
+		mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
+		mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
+		mytask->priority_ = 5;
+		mytask->dump();
+
+		cout << "\n\n" << endl;*/
+
+		auto mytask = make_shared<Task>("wood chopper");
+		mytask->goals.emplace();
+		for (const auto& ent : factorio.actual_entities.around(Pos(0,0)))
+			if (ent.proto->name.substr(0,4) == "tree")
+			{
+				mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
+				if (mytask->goals->size() >= 6)
+					break;
+			}
+		mytask->actions_changed();
+		//splayers[player_idx].scheduler.add_task(mytask);
+
+
+		mytask = make_shared<Task>("chest builder");
+		mytask->goals.emplace();
+		for (int i=0; i<10; i++)
+		{
+			mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(Pos_f(0.5+i, -10.5), &factorio.get_entity_prototype("wooden-chest")  )));
+		}
+		mytask->priority_ = -999; // very very important
+		mytask->actions_changed();
+		mytask->update_actions_from_goals(&factorio, player_idx); // HACK
+		mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood")}, &factorio);
+		//splayers[player_idx].scheduler.add_task(mytask);
+
+
+		mytask = make_shared<Task>("axe crafter");
+		mytask->goals.reset();
+		mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
+		mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
+		mytask->actions_changed();
+		splayers[player_idx].scheduler.add_task(mytask); // FIXME DEBUG
 	}
-	mytask->priority_ = -999; // very very important
-	mytask->actions_changed();
-	mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-	mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood")}, &factorio);
-	//splayers[player_idx].scheduler.add_task(mytask);
-
-
-	mytask = make_shared<Task>("axe crafter");
-	mytask->goals.reset();
-	mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
-	mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
-	mytask->actions_changed();
-	splayers[player_idx].scheduler.add_task(mytask); // FIXME DEBUG
 
 
 	start_mines_t start_mines = find_start_mines(&factorio, &gui);

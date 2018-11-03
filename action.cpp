@@ -26,8 +26,6 @@
 
 using namespace std;
 
-constexpr int MINING_DISTANCE = 1;
-
 namespace action {
 	Registry registry;
 
@@ -135,7 +133,7 @@ namespace action {
 		{
 			const Pos& from = waypoints[i];
 			const Pos& to = waypoints[i+1];
-			seconds += (from-to).len() / WALKING_SPEED;
+			seconds += float((from-to).len() / WALKING_SPEED);
 		}
 
 		return pair(waypoints.back(), chrono::milliseconds(int(1000*seconds)));
