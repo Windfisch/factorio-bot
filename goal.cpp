@@ -61,7 +61,7 @@ bool PlaceEntity::fulfilled(FactorioGame* game) const
 }
 vector<shared_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
-	const float CLEAR_MARGIN = 0.1; // FIXME magic number
+	const float CLEAR_MARGIN = 0.1f; // FIXME magic number
 	vector<shared_ptr<action::ActionBase>> result;
 
 	// clear the area from trees and rocks first

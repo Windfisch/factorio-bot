@@ -983,7 +983,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 				//cout << "merging" << endl;
 				neighbor->merge_into(*resource_patch);
 				resource_patches.erase(neighbor);
-				assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
+				// FIXME??? assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
 			}
 			else
 			{

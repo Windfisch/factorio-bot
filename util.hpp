@@ -54,6 +54,7 @@
 #include <vector>
 #include <optional>
 #include <memory>
+#include <cmath>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -221,5 +222,8 @@ template <typename Container, typename T> bool contains_vec(const Container& con
 {
 	return find(container.begin(), container.end(), search_for) != container.end();
 }
+
+inline int ceili(double f) { return int(std::ceil(f)); }
+inline int floori(double f) { return int(std::floor(f)); }
 
 #pragma GCC diagnostic pop

@@ -26,6 +26,7 @@
 #include "area.hpp"
 #include "mine_planning.h"
 #include "factorio_io.h"
+#include "util.hpp"
 
 // TODO FIXME:
 // - avoid places that cover multiple ores
@@ -571,13 +572,13 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 	int row_width, row_step;
 	if (vertical)
 	{
-		row_width = ceil(rig_area.size().x);
-		row_step = ceil(rig_area.size().y);
+		row_width = ceili(rig_area.size().x);
+		row_step = ceili(rig_area.size().y);
 	}
 	else
 	{
-		row_width = ceil(rig_area.size().y);
-		row_step = ceil(rig_area.size().x);
+		row_width = ceili(rig_area.size().y);
+		row_step = ceili(rig_area.size().x);
 	}
 
 	vector<int> counts(vertical ? bounding_box.size().x : bounding_box.size().y);
