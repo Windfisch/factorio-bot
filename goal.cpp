@@ -61,8 +61,19 @@ bool PlaceEntity::fulfilled(FactorioGame* game) const
 }
 vector<shared_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
-	// TODO FIXME: clear area first. ensure that the player isn't in the way.
+	const float CLEAR_MARGIN = 0.1; // FIXME magic number
 	vector<shared_ptr<action::ActionBase>> result;
+
+	// clear the area from trees and rocks first
+	Area_f area_to_clear = entity.collision_box().expand(CLEAR_MARGIN);
+	for (const Entity& offending_entity : game->actual_entities.overlap_range(area_to_clear))
+		if (offending_entity.proto->type == "tree" || offending_entity.proto->type == "simple-entity")
+		{
+			result.push_back( make_unique<action::WalkTo>(game, player, offending_entity.pos, REACH) );
+			result.push_back( make_unique<action::MineObject>(game, player, nullopt, offending_entity) );
+		}
+	
+	// TODO FIXME: ensure that the player isn't in the way.
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
 	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity.pos, entity.direction) );
 	return result;
