@@ -643,15 +643,21 @@ _MapGui_impl::_MapGui_impl(FactorioGame* game_, string datapath_)
 	tick_timer.add(0.2, [](void* ptr){static_cast<_MapGui_impl*>(ptr)->tick();}, this);
 }
 
+#define assert_throw(exp) \
+	( (exp) ? (void)0 : throw std::runtime_error(#exp))
 static shared_ptr<Fl_Image> crop_and_flip_image(const Fl_RGB_Image& img, int x, int y, int w, int h, bool flip_x=false, bool flip_y=false)
 {
-	assert(img.d() >= 1);
-	assert(x >= 0 && x < img.w());
-	assert(y >= 0 && y < img.h());
-
 	int ld = img.ld();
+	string debugstr = "W=" + std::to_string(img.w()) + ", H=" + std::to_string(img.h()) + ", x=" + std::to_string(x) + ", y=" + std::to_string(y) + ", w=" + std::to_string(w) + ", h=" + std::to_string(h) + ", d=" + std::to_string(img.d()) + ",ld=" + std::to_string(img.ld()) + ","+std::to_string(ld);
 	if (ld == 0) ld = img.w() * img.d();
-	cout << "W="<<img.w()<<", H="<<img.h()<<", w="<<w<<", h="<<h<<", d="<<img.d()<<",ld="<<img.ld()<<","<<ld<<endl;
+	
+	assert_throw(img.d() >= 1);
+	assert_throw(x >= 0 && x < img.w());
+	assert_throw(y >= 0 && y < img.h());
+	assert_throw(x+w <= img.w());
+	assert_throw(y+h <= img.h());
+
+	cout << debugstr << endl;
 
 
 	// copy the region of interest into a new array, flip as appropriate
