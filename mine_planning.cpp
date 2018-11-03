@@ -509,7 +509,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 }
 
 /** returns all mining-drill positions at which the it would touch at least one bit of the resource patch */
-unordered_set<Pos> dilate_positions(const vector<Pos>& positions, Area kernel)
+static unordered_set<Pos> dilate_positions(const vector<Pos>& positions, Area kernel)
 {
 	unordered_set<Pos> result;
 	for (Pos pos : positions)
@@ -520,10 +520,10 @@ unordered_set<Pos> dilate_positions(const vector<Pos>& positions, Area kernel)
 }
 
 /** returns all mining-drill positions that 1. are pure and 2. have the miner covered at least by 66% */
-vector<Pos> filter_positions(const ResourcePatch& patch, const FactorioGame* game, Area mining_area)
+static vector<Pos> filter_positions(const ResourcePatch& patch, const FactorioGame* game, Area mining_area)
 {
 	vector<Pos> result;
-	const int min_amount = 0.66 * mining_area.size().x * mining_area.size().y;
+	const int min_amount = int(0.66 * mining_area.size().x * mining_area.size().y);
 
 	for (Pos pos : dilate_positions(patch.positions, mining_area))
 	{

@@ -92,7 +92,7 @@ template<typename T> struct Area_
 		                   Pos_<int>(int(std::ceil(right_bottom.x)), int(std::ceil(right_bottom.y))) );
 	}
 
-	Area_<T> rotate(dir4_t rot) const // assumes that the box is originally in NORTH orientation. i.e., passing rot=NORTH will do nothing, passing EAST will rotate 90deg clockwise etc
+	[[nodiscard]] Area_<T> rotate(dir4_t rot) const // assumes that the box is originally in NORTH orientation. i.e., passing rot=NORTH will do nothing, passing EAST will rotate 90deg clockwise etc
 	{
 		assert(rot == NORTH || rot == EAST || rot == SOUTH || rot == WEST);
 		switch (rot)
@@ -106,12 +106,16 @@ template<typename T> struct Area_
 		assert(false);
 	}
 
-	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
-	Area_<T> expand(T radius) const { return Area_<T>(left_top-Pos_<T>(radius,radius), right_bottom+Pos_<T>(radius,radius)); }
-	Area_<T> expand(Pos_<T> point) const { return Area_<T>( std::min(left_top.x, point.x), std::min(left_top.y, point.y), std::max(right_bottom.x, point.x), std::max(right_bottom.y, point.y) ); }
-	Area_<T> expand(Area_<T> other) const { return Area_<T>( std::min(left_top.x, other.left_top.x), std::min(left_top.y, other.left_top.y), std::max(right_bottom.x, other.right_bottom.x), std::max(right_bottom.y, other.right_bottom.y) ); }
-	T radius() const { return std::max( std::max( left_top.x, left_top.y), std::max( right_bottom.x, right_bottom.y) ); }
-	Area_<T> intersect(Area_<T> other) const
+	[[nodiscard]] Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
+	[[nodiscard]] Area_<T> expand(T radius) const { return Area_<T>(left_top-Pos_<T>(radius,radius), right_bottom+Pos_<T>(radius,radius)); }
+
+	template <typename U=T> [[nodiscard]] typename std::enable_if< std::is_integral<U>::value, Area_<T> >::type expand(Pos_<T> point) const
+	{
+		return expand(Area_<T>(point, point+Pos_<T>(1,1)));
+	}
+	[[nodiscard]] Area_<T> expand(Area_<T> other) const { return Area_<T>( std::min(left_top.x, other.left_top.x), std::min(left_top.y, other.left_top.y), std::max(right_bottom.x, other.right_bottom.x), std::max(right_bottom.y, other.right_bottom.y) ); }
+	[[nodiscard]] T radius() const { return std::max( std::max( left_top.x, left_top.y), std::max( right_bottom.x, right_bottom.y) ); }
+	[[nodiscard]] Area_<T> intersect(Area_<T> other) const
 	{
 		return Area_<T>(
 				Pos_<T>(
@@ -124,7 +128,7 @@ template<typename T> struct Area_
 				)
 			);
 	}
-	bool intersects(Area_<T> other) const { return !intersect(other).empty(); }
+	[[nodiscard]] bool intersects(Area_<T> other) const { return !intersect(other).empty(); }
 };
 
 typedef Area_<int> Area;

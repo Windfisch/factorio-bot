@@ -51,7 +51,7 @@ namespace action
 
 	struct ActionBase
 	{
-		friend class Registry;
+		friend struct Registry;
 
 		virtual bool is_finished() const = 0;
 		private: virtual void start() = 0; public: // FIXME ugly

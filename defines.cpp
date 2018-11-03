@@ -58,10 +58,10 @@ string inventory_names[] = {
 	"defines.inventory.beacon_modules"
 };
 
-inventory_flag_t IN = {true, false};
-inventory_flag_t OUT = {false, true};
-inventory_flag_t INOUT = {true, true};
-inventory_flag_t NONE = {false, false};
+static inventory_flag_t IN = {true, false};
+static inventory_flag_t OUT = {false, true};
+static inventory_flag_t INOUT = {true, true};
+static inventory_flag_t NONE = {false, false};
 
 inventory_flag_t inventory_flags[] = {
 	IN, //"defines.inventory.fuel",

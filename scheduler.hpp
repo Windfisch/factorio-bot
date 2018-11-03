@@ -182,7 +182,7 @@ struct Task
 	  */
 	std::vector<ItemStack> required_items; // can be calculated from goals
 
-	Task(std::string name_) : name(name_), priority_(0), start_radius(3), owner_id(intptr_t(this)) /* FIXME HACK OH MY GOD NO */
+	Task(std::string name_) : name(name_), priority_(0), owner_id(intptr_t(this/* FIXME HACK OH MY GOD NO */)), start_radius(3)
 	{
 		owner_names[owner_id] = name;
 	}

@@ -34,25 +34,13 @@ std::string owner_names_t::get(owner_t owner)
 	return get_or(*this, owner, "[#"+std::to_string(owner)+"]");
 }
 
-static void assert_unique(const std::vector<ItemStack>& items)
-{
-	#ifndef NDEBUG
-	std::unordered_set<const ItemPrototype*> set;
-	for (const auto [item, _] : items)
-	{
-		auto [__, inserted] = set.insert(item);
-		assert(!inserted);
-	}
-	#endif
-}
-
 bool TaggedInventory::can_satisfy(const std::vector<ItemStack>& items_, std::optional<owner_t> owner)
 {
 	boost::container::flat_map<const ItemPrototype*, size_t> items;
 	for (auto [item, amount] : items_)
 		items[item]+=amount;
 
-	for (const auto [item, amount] : items)
+	for (const auto& [item, amount] : items)
 		if ((*this)[item].available_to(owner) < amount)
 			return false;
 	
