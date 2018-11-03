@@ -567,30 +567,31 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 	for (Pos pos : possible_positions)
 	{
 		map.at(pos).value = true;
-		bounding_box.expand(pos);
+		bounding_box = bounding_box.expand(pos);
 	}
 
-	bool vertical = (side == NORTH || side == SOUTH);
+	bool vertical = (side == WEST || side == EAST);
 	int direction = (side == NORTH || side == WEST) ? 1 : -1;
 
-	Area_f rig_area = rig.front().collision_box();
-	for (const Entity& ent : rig)
-		rig_area.expand(ent.collision_box());
 	int row_width, row_step;
 	if (vertical)
 	{
-		row_width = ceili(rig_area.size().x);
-		row_step = ceili(rig_area.size().y);
+		row_width = ceili(size.x);
+		row_step = ceili(size.y);
 	}
 	else
 	{
-		row_width = ceili(rig_area.size().y);
-		row_step = ceili(rig_area.size().x);
+		row_width = ceili(size.y);
+		row_step = ceili(size.x);
 	}
 
-	vector<int> counts(vertical ? bounding_box.size().x : bounding_box.size().y);
+	vector<int> counts(vertical ? bounding_box.size().x : bounding_box.size().y, 0);
+	cout << "counts.size() == " << counts.size() << ", boundingbox = " << bounding_box.str() << endl;
 	for (Pos pos : possible_positions)
-		counts[ vertical ? pos.x : pos.y ]++;
+	{
+		Pos relpos = pos - bounding_box.left_top;
+		counts[ vertical ? relpos.x : relpos.y ]++;
+	}
 	
 	int diminish_size = vertical ? mining_area.size().x : mining_area.size().y;
 
@@ -599,6 +600,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 		int max_count = 0;
 		for (int j = i; j < i + diminish_size && j < counts.size(); j++)
 			max_count = max(max_count, counts[j]);
+		cout << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
 		if (counts[i] < 0.5 * max_count)
 			counts[i] = 0;
 		else
@@ -607,8 +609,9 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 	for (int i = counts.size()-1; i >= 0; i--)
 	{
 		int max_count = 0;
-		for (size_t j = i; j > i - diminish_size && j >= 0; j--)
+		for (int j = i; j > i - diminish_size && j >= 0; j--)
 			max_count = max(max_count, counts[j]);
+		cout << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
 		if (counts[i] < 0.5 * max_count)
 			counts[i] = 0;
 		else
