@@ -585,6 +585,8 @@ int main(int argc, const char** argv)
 		frame++;
 		//cout << "frame " << frame << endl; if (frame>1000) break; // useful for profiling with gprof / -pg option, since we must cleanly exit then (not by ^C)
 		
+		GUI::wait(0.001);
+
 		if (!consistent_state)
 			continue;
 
@@ -714,7 +716,5 @@ int main(int argc, const char** argv)
 				}
 			}
 		}
-
-		GUI::wait(0.001);
 	}
 }
