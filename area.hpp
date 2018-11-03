@@ -59,6 +59,8 @@ template<typename T> struct Area_
 
 	bool operator==(const Area_<T>& other) const { return this->left_top==other.left_top && this->right_bottom==other.right_bottom; }
 
+	bool empty() const { return !(left_top <= right_bottom); }
+
 	void normalize()
 	{
 		if (left_top.x > right_bottom.x)
@@ -74,6 +76,12 @@ template<typename T> struct Area_
 	bool contains_y(T y) const { return left_top.y <= y && y < right_bottom.y; }
 
 	T diameter() const { return std::max(right_bottom.x - left_top.x, right_bottom.y - left_top.y); }
+	T radius_around(Pos_<T> p) const
+	{
+		Pos_<T> rel_left_top = left_top - p;
+		Pos_<T> rel_right_bottom = right_bottom - p;
+		return std::max( std::max(rel_left_top.x, rel_left_top.y), std::max(rel_right_bottom.x, rel_right_bottom.y) );
+	}
 
 	Pos_<T> size() const { return right_bottom - left_top; }
 	
@@ -101,6 +109,7 @@ template<typename T> struct Area_
 	Area_<T> shift(Pos_<T> offset) const { return Area_<T>(left_top+offset, right_bottom+offset); }
 	Area_<T> expand(T radius) const { return Area_<T>(left_top-Pos_<T>(radius,radius), right_bottom+Pos_<T>(radius,radius)); }
 	Area_<T> expand(Pos_<T> point) const { return Area_<T>( std::min(left_top.x, point.x), std::min(left_top.y, point.y), std::max(right_bottom.x, point.x), std::max(right_bottom.y, point.y) ); }
+	Area_<T> expand(Area_<T> other) const { return Area_<T>( std::min(left_top.x, other.left_top.x), std::min(left_top.y, other.left_top.y), std::max(right_bottom.x, other.right_bottom.x), std::max(right_bottom.y, other.right_bottom.y) ); }
 	T radius() const { return std::max( std::max( left_top.x, left_top.y), std::max( right_bottom.x, right_bottom.y) ); }
 	Area_<T> intersect(Area_<T> other) const
 	{
@@ -115,6 +124,7 @@ template<typename T> struct Area_
 				)
 			);
 	}
+	bool intersects(Area_<T> other) const { return !intersect(other).empty(); }
 };
 
 typedef Area_<int> Area;

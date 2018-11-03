@@ -1,7 +1,7 @@
 include config.mk
 
 EXE=bot
-COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o scheduler.o goal.o gui/gui.o # objects used for $(EXE)
+COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o scheduler.o goal.o entity.o gui/gui.o # objects used for $(EXE)
 
 ALLTESTS=test/worldlist test/scheduler
 

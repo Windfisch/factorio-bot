@@ -655,7 +655,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 {
 	// move all entities in the area from actual_entities to the temporary pending_entities list.
 	vector<Entity> pending_entities;
-	auto range = actual_entities.range(area);
+	auto range = actual_entities.within_range(area);
 	for (auto it = range.begin(); it != range.end();)
 	{
 		pending_entities.push_back(std::move(*it));
@@ -730,7 +730,7 @@ void FactorioGame::update_walkmap(const Area& area)
 			for (int i=0; i<4; i++)
 				view.at(x,y).margins[i] = 1.;
 
-	for (const auto& ent : actual_entities.range(area))
+	for (const auto& ent : actual_entities.within_range(area))
 	{
 		// update walk_t information
 		if (ent.proto->collides_player)

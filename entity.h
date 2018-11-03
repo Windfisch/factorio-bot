@@ -24,6 +24,7 @@
 #include "inventory.hpp"
 #include <string>
 #include <memory>
+#include <algorithm>
 
 struct ContainerData
 {
@@ -39,6 +40,8 @@ struct ItemPrototype;
 
 struct EntityPrototype
 {
+	static double max_collision_box_size;
+
 	std::string name;
 	std::string type;
 	Area_f collision_box;
@@ -59,6 +62,8 @@ struct EntityPrototype
 		mine_results_str(mine_results_str_),
 		data_kind(mvu::invalid_index)
 		{
+			max_collision_box_size = std::max(max_collision_box_size, collision_box_.radius_around(Pos_f(0,0)));
+
 			if (type_ == "container" || type_ == "logistic-container")
 				data_kind = mvu::index<ContainerData>();
 			else if (type_ == "mining-drill")
@@ -73,6 +78,8 @@ struct EntityPrototype
 struct Entity
 {
 	Pos_f get_pos() const { return pos; } // WorldList<Entity> wants to call this.
+	Area_f get_extent() const { return collision_box(); } // WorldList<Entity> wants to call this.
+	static double get_max_extent() { return EntityPrototype::max_collision_box_size; } // same
 
 	Pos_f pos;
 	const EntityPrototype* proto = nullptr;

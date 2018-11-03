@@ -79,7 +79,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 			return r;
 		}
 
-		template <bool is_const>
+		template <bool is_const, bool use_center> // if use_center is true, then Range::contains(entity->pos) is used. Otherwise, Range::intersects(entity->collision_box()) is used.
 		class range_iterator : public std::iterator<std::bidirectional_iterator_tag,
 			T, // value_type
 			typename std::vector<T>::iterator::difference_type,
@@ -114,6 +114,14 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				
 				vec_t curr_vec;
 				iter_t iter;
+				
+				bool is_relevant(const iter_t& it)
+				{
+					if constexpr (use_center)
+						return range.contains(it->get_pos());
+					else
+						return range.intersects(it->get_extent());
+				}
 
 				// advances curr_pos one or more times until the next existing chunk has been found.
 				// returns true on success and false if we moved past the end.
@@ -183,12 +191,12 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 							}
 							else
 							{
-								assert(*this == range_iterator<is_const>(parent, range, true));
+								assert((*this == range_iterator<is_const, use_center>(parent, range, true)));
 								break;
 							}
 							// else stay at this end() position.
 						}
-					} while (!range.contains(iter->get_pos()));
+					} while (!is_relevant(iter));
 				}
 
 				// retreats iter one or more times until the next valid entry has been found.
@@ -210,13 +218,21 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 								assert(false);
 						}
 						--iter;
-					} while (!range.contains(iter->get_pos()));
+					} while (!is_relevant(iter));
+				}
+				
+				static double get_extent_margin()
+				{
+					if constexpr (!use_center)
+						return T::get_max_extent();
+					else
+						return 0;
 				}
 
 				range_iterator(parentptr parent_, const Area_f& range_, bool give_end=false) :
 					parent(parent_), range(range_),
-					left_top(Pos::tile_to_chunk(range_.left_top.to_int_floor())),
-					right_bottom(Pos::tile_to_chunk_ceil(range_.right_bottom.to_int_floor()))
+					left_top(Pos::tile_to_chunk( (range_.left_top - Pos_f(get_extent_margin(), get_extent_margin())).to_int_floor() )),
+					right_bottom(Pos::tile_to_chunk_ceil((range_.right_bottom + Pos_f(get_extent_margin(), get_extent_margin())).to_int_floor() ))
 				{
 					curr_vec = nullptr;
 
@@ -229,7 +245,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						if (curr_vec)
 						{
 							iter = curr_vec->begin();
-							if (!range.contains(iter->get_pos()) )
+							if (!is_relevant(iter))
 								incr();
 						}
 					}
@@ -249,15 +265,15 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				range_iterator() : parent(nullptr) {}
 
 				// copy-ctor
-				//range_iterator(const range_iterator<is_const>&) = default;
+				//range_iterator(const range_iterator<is_const, use_center>&) = default;
 
-				bool operator==(range_iterator<is_const> other) const
+				bool operator==(range_iterator<is_const, use_center> other) const
 				{
 					if (!parent) return this->parent == other.parent;
 					else return this->parent == other.parent && this->range == other.range && this->curr_vec == other.curr_vec && (!this->curr_vec || !other.curr_vec || this->iter == other.iter);
 				}
 
-				bool operator!=(range_iterator<is_const> other) const { return !(*this==other); }
+				bool operator!=(range_iterator<is_const, use_center> other) const { return !(*this==other); }
 
 				reftype operator*() const
 				{
@@ -268,33 +284,33 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				
 				ptrtype operator->() const { return &**this; }
 
-				range_iterator<is_const>& operator++()
+				range_iterator<is_const, use_center>& operator++()
 				{
 					incr();
 					return *this;
 				}
 
-				range_iterator<is_const>& operator--()
+				range_iterator<is_const, use_center>& operator--()
 				{
 					decr();
 					return *this;
 				}
 
-				range_iterator<is_const> operator++(int)
+				range_iterator<is_const, use_center> operator++(int)
 				{
-					range_iterator<is_const> tmp = *this;
+					range_iterator<is_const, use_center> tmp = *this;
 					++(*this);
 					return tmp;
 				}
-				range_iterator<is_const> operator--(int)
+				range_iterator<is_const, use_center> operator--(int)
 				{
-					range_iterator<is_const> tmp = *this;
+					range_iterator<is_const, use_center> tmp = *this;
 					--(*this);
 					return tmp;
 				}
 		};
 
-		template <bool is_const>
+		template <bool is_const, bool use_center>
 		class Range_
 		{
 			private:
@@ -305,10 +321,10 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				Range_(ptr_type parent_, Area_f area_) : parent(parent_), area(area_) {}
 			
 			public:
-				typedef WorldList<T,EqualComparator>::range_iterator<is_const> iterator;
+				typedef WorldList<T,EqualComparator>::range_iterator<is_const, use_center> iterator;
 
 				// allows to construct a ConstRange from a Range
-				Range_( const Range_<false>& other ) : parent(other.parent), area(other.area) {}
+				Range_( const Range_<false, use_center>& other ) : parent(other.parent), area(other.area) {}
 				
 				// this could be done more nicely with even more template metaprogramming
 				// Range_ is not const-correct. this means, if you have a const reference
@@ -321,8 +337,10 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				iterator end() { return iterator(parent, area, true); }
 		};
 
-		typedef Range_<true> ConstRange;
-		typedef Range_<false> Range;
+		typedef Range_<true, true> ConstWithinRange;
+		typedef Range_<false, true> WithinRange;
+		typedef Range_<true, false> ConstOverlapRange;
+		typedef Range_<false, false> OverlapRange;
 
 
 
@@ -403,7 +421,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 					worklist.clear();
 					for (size_t i=0; i<n_ranges; i++)
 					{
-						auto range = parent->range(ranges[i]);
+						auto range = parent->within_range(ranges[i]);
 						auto end = range.end();
 						for (auto it = range.begin(); it != end; it++)
 						{
@@ -578,10 +596,14 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		/** returns an iterable wrapper that enumerates all items sorted by their distance to `center` */
 		Around around(const Pos_f& center) { return Around(this, center); }
 
-		/** returns an iterable wrapper that enumerates all items contained in `area` in arbitrary order */
-		ConstRange range(const Area_f& area) const { return ConstRange(this, area); }
-		/** returns an iterable wrapper that enumerates all items contained in `area` in arbitrary order */
-		Range range(const Area_f& area) { return Range(this, area); }
+		/** returns an iterable wrapper that enumerates all items whose center is contained in `area` in arbitrary order */
+		ConstWithinRange within_range(const Area_f& area) const { return ConstWithinRange(this, area); }
+		/** returns an iterable wrapper that enumerates all items whose center is contained in `area` in arbitrary order */
+		WithinRange within_range(const Area_f& area) { return WithinRange(this, area); }
+		/** returns an iterable wrapper that enumerates all items whose extent overlaps `area` in arbitrary order */
+		ConstOverlapRange overlap_range(const Area_f& area) const { return ConstOverlapRange(this, area); }
+		/** returns an iterable wrapper that enumerates all items whose extent overlaps `area` in arbitrary order */
+		OverlapRange overlap_range(const Area_f& area) { return OverlapRange(this, area); }
 		
 		/** inserts `thing` to the WorldList, copy */
 		void insert(const T& thing)
@@ -626,7 +648,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 		  * Around::iterators that contain the thing pointed to by `iter` in their inner_/outer_radius are invalidated,
 		  * while those who are in a different ring remain valid.
 		  */
-		typename Range::iterator erase(typename Range::iterator iter)
+		template<bool use_center> typename Range_<false, use_center>::iterator erase(range_iterator<false, use_center> iter)
 		{
 			assert(iter.parent == this);
 			assert(iter.curr_vec);
@@ -636,7 +658,7 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 			auto tmp = iter.iter;
 			if (++tmp == iter.curr_vec->end()) // we're erasing the last element of a vector
 			{
-				typename Range::iterator result = iter;
+				typename Range_<false, use_center>::iterator result = iter;
 				result++;
 				// this will move result to the begin of the next chunk (if it exists)
 				
@@ -662,13 +684,13 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 						else
 						{
 							result.curr_vec = nullptr;
-							result.iter = typename Range::iterator::iter_t(); // null iterator
+							result.iter = typename Range_<false, use_center>::iterator::iter_t(); // null iterator
 						}
 					}
 					else
 						result.iter = result.curr_vec->end();
 
-					assert(result == typename Range::iterator(iter.parent, iter.range, true));
+					assert((result == typename Range_<false, use_center>::iterator(iter.parent, iter.range, true)));
 				}
 
 				return result;
@@ -681,8 +703,8 @@ class WorldList : public std::unordered_map< Pos, std::vector<T> >
 				// iter still points to the same location, which now holds a different element.
 				// we need to check whether that element fulfills the filter criteria of the iterator
 				// and if not, advance the iterator.
-				typename Range::iterator result = iter;
-				if (!result.range.contains(result.iter->get_pos()) )
+				typename Range_<false, use_center>::iterator result = iter;
+				if (!result.is_relevant(result.iter))
 					result.incr();
 				
 				return result;
