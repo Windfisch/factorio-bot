@@ -211,6 +211,7 @@ struct DesiredEntity : public Entity
 	std::weak_ptr<Entity> corresponding_actual_entity;
 	std::shared_ptr<Entity> get_actual();
 	
+	DesiredEntity(const Entity& ent) : Entity(ent) {}
 	DesiredEntity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
 		: Entity(pos_, proto_, direction_) {}
 };
@@ -218,7 +219,8 @@ struct DesiredEntity : public Entity
 struct PlannedEntity : public DesiredEntity
 {
 	int level; // at which facility-level to place this
-	
+
+	PlannedEntity(int level_, const Entity& ent) : DesiredEntity(ent), level(level_) {}
 	PlannedEntity(int level_, const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)
 		: DesiredEntity(pos_, proto_, direction_), level(level_) {}
 	PlannedEntity(const Pos_f& pos_, const EntityPrototype* proto_, dir4_t direction_=NORTH)

@@ -506,3 +506,139 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 
 	return result;
 }
+
+/** returns all mining-drill positions at which the it would touch at least one bit of the resource patch */
+unordered_set<Pos> dilate_positions(const vector<Pos>& positions, Area kernel)
+{
+	unordered_set<Pos> result;
+	for (Pos pos : positions)
+		for (int x = kernel.left_top.x; x < kernel.right_bottom.x; x++)
+			for (int y = kernel.left_top.y; y < kernel.right_bottom.y; y++)
+				result.insert(pos-Pos(x,y));
+	return result;
+}
+
+/** returns all mining-drill positions that 1. are pure and 2. have the miner covered at least by 66% */
+vector<Pos> filter_positions(const ResourcePatch& patch, const FactorioGame* game, Area mining_area)
+{
+	vector<Pos> result;
+	const int min_amount = 0.66 * mining_area.size().x * mining_area.size().y;
+
+	for (Pos pos : dilate_positions(patch.positions, mining_area))
+	{
+		bool valid = true;
+		int amount = 0;
+		for (int x = mining_area.left_top.x; x < mining_area.right_bottom.x; x++)
+			for (int y = mining_area.left_top.y; y < mining_area.right_bottom.y; y++)
+			{
+				const auto& entry = game->resource_map.at(pos + Pos(x,y));
+				if (entry.type != Resource::NONE && entry.type != patch.type)
+					valid = false;
+				else if (game->resource_map.at(pos + Pos(x,y)).type == patch.type)
+					amount++;
+			}
+
+		if (valid && amount > min_amount)
+			result.push_back(pos);
+	}
+	return result;
+}
+
+std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const FactorioGame* game, std::vector<Entity> rig, Pos size, Area mining_area, dir4_t side)
+{
+	vector<PlannedEntity> result;
+
+	vector<Pos> possible_positions = filter_positions(patch, game, mining_area);
+	if (possible_positions.empty())
+		return {};
+
+	struct value_t { bool value = false; };
+	WorldMap<value_t> map;
+
+	Area bounding_box(possible_positions.front(), possible_positions.front());
+	for (Pos pos : possible_positions)
+	{
+		map.at(pos).value = true;
+		bounding_box.expand(pos);
+	}
+
+	bool vertical = (side == NORTH || side == SOUTH);
+	int direction = (side == NORTH || side == WEST) ? 1 : -1;
+
+	Area_f rig_area = rig.front().collision_box();
+	for (const Entity& ent : rig)
+		rig_area.expand(ent.collision_box());
+	int row_width, row_step;
+	if (vertical)
+	{
+		row_width = ceil(rig_area.size().x);
+		row_step = ceil(rig_area.size().y);
+	}
+	else
+	{
+		row_width = ceil(rig_area.size().y);
+		row_step = ceil(rig_area.size().x);
+	}
+
+	vector<int> counts(vertical ? bounding_box.size().x : bounding_box.size().y);
+	for (Pos pos : possible_positions)
+		counts[ vertical ? pos.x : pos.y ]++;
+	
+	int diminish_size = vertical ? mining_area.size().x : mining_area.size().y;
+
+	for (int i = 0; i < counts.size(); i++)
+	{
+		int max_count = 0;
+		for (int j = i; j < i + diminish_size && j < counts.size(); j++)
+			max_count = max(max_count, counts[j]);
+		if (counts[i] < 0.5 * max_count)
+			counts[i] = 0;
+		else
+			break;
+	}
+	for (int i = counts.size()-1; i >= 0; i--)
+	{
+		int max_count = 0;
+		for (size_t j = i; j > i - diminish_size && j >= 0; j--)
+			max_count = max(max_count, counts[j]);
+		if (counts[i] < 0.5 * max_count)
+			counts[i] = 0;
+		else
+			break;
+	}
+	
+	int n = 0;
+	for (int i = (direction > 0) ? 0 : counts.size()-1; i >= 0 && i < counts.size();)
+	{
+		if (counts[i])
+		{
+			int jmax = vertical ? bounding_box.size().y : bounding_box.size().x;
+			bool secondary_direction = 1;
+
+			for (int j = (secondary_direction > 0) ? 0 : jmax-1; j >= 0 && j < jmax;)
+			{
+				Pos pos = bounding_box.left_top + Pos(i,j);
+				if (map.at(pos).value)
+				{
+					cout << "placing rig #" << n << " at " << pos.str() << endl;
+					for (const Entity& ent : rig)
+					{
+						PlannedEntity pent(n, ent);
+						pent.pos = pent.pos + pos;
+						result.push_back(pent);
+					}
+					
+					n++;
+					j += row_step * secondary_direction;
+				}
+				else
+					j += secondary_direction;
+			}
+
+			i += row_width * direction;
+		}
+		else
+			i += direction;
+	}
+	return result;
+}
