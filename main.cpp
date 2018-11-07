@@ -29,10 +29,10 @@ using namespace sched;
 
 static float cluster_quality(int diam, size_t coal_size, size_t iron_size, size_t copper_size, size_t stone_size)
 {
-	const float COAL_SIZE = 25*10;
+	const float COAL_SIZE = 100;
 	const float IRON_SIZE = 25*10;
 	const float COPPER_SIZE = 25*10;
-	const float STONE_SIZE = 25*5;
+	const float STONE_SIZE = 100;
 	return (diam + 50)
 		/ min(1.f,coal_size/COAL_SIZE) // penalize too-small chunks
 		/ min(1.f,iron_size/IRON_SIZE)
