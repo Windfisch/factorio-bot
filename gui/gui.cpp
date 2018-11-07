@@ -384,8 +384,22 @@ int MapBox::handle(int event)
 					{
 						cout << "planning mine" << endl;
 
+						vector<PlannedEntity> facility;
+						switch (patch->type)
+						{
+							case Resource::COAL:
+								facility = plan_early_coal_rig(*patch, gui->game);
+								break;
+							case Resource::STONE:
+								facility = plan_early_chest_rig(*patch, gui->game);
+								break;
+							default:
+								facility = plan_early_smelter_rig(*patch, gui->game);
+								break;
+						}
+
 						display_debug_entities.clear();
-						display_debug_entities.insert_all( plan_early_smelter_rig(*patch, gui->game) );
+						display_debug_entities.insert_all(facility);
 						//display_debug_entities.insert_all( plan_mine(
 						//	patch->positions, pos, *gui->game) );
 					}

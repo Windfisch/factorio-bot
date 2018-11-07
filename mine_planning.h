@@ -31,3 +31,5 @@ std::vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos dest
 std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const FactorioGame* game, std::vector<Entity> rig, Pos size, Area mining_area, dir4_t side);
 
 std::vector<PlannedEntity> plan_early_smelter_rig(const ResourcePatch& patch, const FactorioGame* game);
+std::vector<PlannedEntity> plan_early_chest_rig(const ResourcePatch& patch, const FactorioGame* game);
+std::vector<PlannedEntity> plan_early_coal_rig(const ResourcePatch& patch, const FactorioGame* game);
