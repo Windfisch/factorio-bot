@@ -641,6 +641,34 @@ int main(int argc, const char** argv)
 						task->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("raw-wood")}, &factorio);
 
 					splayers[player_idx].scheduler.add_task(task);
+					
+					/*if ((key=='2' || key=='1') && facility.level == 1) // special handling for the first iron drill or coal
+					{
+						auto task2 = make_shared<Task>("facility first fill");
+						task2->priority_ = 0;
+						task2->goals.emplace();
+						if (key=='2')
+						{
+							// fill with some wood
+							const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
+							const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
+							const int n_wood = 4;
+							for (const auto& ent : facility.entities) if (ent.level < facility.level)
+							{
+								if (ent.proto == miner)
+									task2->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&factorio.get_item_prototype("raw-wood"), n_wood*2}}, INV_FUEL));
+								else if (ent.proto == furnace)
+									task2->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&factorio.get_item_prototype("raw-wood"), n_wood}}, INV_FUEL));
+							}
+						}
+						else if (key=='1')
+						{
+							// add one wood
+							task2->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&factorio.get_item_prototype("raw-wood"), 1}}, INV_FUEL));
+						}
+						task2->actions_changed();
+						splayers[player_idx].scheduler.add_task(task2);
+					}*/
 					break;
 				}
 				case '5':
