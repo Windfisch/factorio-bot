@@ -64,7 +64,11 @@ namespace action {
 	void PrimitiveAction::start()
 	{
 		execute_impl();
-		game->players[player].inventory.apply(inventory_balance_on_launch(), owner);
+		item_balance_t negative_balance;
+		item_balance_t balance = inventory_balance_on_launch();
+		std::copy_if (balance.begin(), balance.end(), std::inserter(negative_balance, negative_balance.end()), [](auto elem){return elem.second < 0;} );
+
+		game->players[player].inventory.apply(negative_balance, owner);
 		cout << "Launched action " << str() << ". Extrapolated inventory is now" << endl;
 		game->players[player].inventory.dump();
 	}
