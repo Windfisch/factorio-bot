@@ -23,6 +23,7 @@
 #include "scheduler.hpp"
 #include "gui/gui.h"
 #include "goal.hpp"
+#include "mine_planning.h"
 
 using namespace std;
 using namespace sched;
@@ -584,6 +585,20 @@ int main(int argc, const char** argv)
 
 	start_mines_t start_mines = find_start_mines(&factorio, &gui);
 
+	struct facility_t
+	{
+		vector<PlannedEntity> entities;
+		int level = 0;
+
+		facility_t(const vector<PlannedEntity>& e) : entities(e), level(0) {}
+	};
+	
+	std::array<facility_t,4> facilities = {
+		facility_t(plan_early_coal_rig(*start_mines.coal, &factorio)),
+		facility_t(plan_early_smelter_rig(*start_mines.iron, &factorio)),
+		facility_t(plan_early_smelter_rig(*start_mines.copper, &factorio)),
+		facility_t(plan_early_chest_rig(*start_mines.stone, &factorio)) };
+
 	while (true)
 	{
 		bool consistent_state = factorio.parse_packet( factorio.read_packet() );
@@ -606,6 +621,65 @@ int main(int argc, const char** argv)
 		{
 			switch(key)
 			{
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				{
+					facility_t& facility = facilities[key - '1'];
+					facility.level++;
+					auto task = make_shared<Task>("facility upgrade");
+					task->priority_ = 0;
+					task->goals.emplace();
+					for (const auto& ent : facility.entities) if (ent.level < facility.level)
+						task->goals->push_back(make_unique<goal::PlaceEntity>(ent));
+					task->actions_changed();
+					task->update_actions_from_goals(&factorio, player_idx); // HACK
+					if (key=='2' && facility.level == 1) // special handling for the first iron drill
+						task->auto_craft_from({&factorio.get_item_prototype("burner-mining-drill"), &factorio.get_item_prototype("stone-furnace"), &factorio.get_item_prototype("raw-wood")}, &factorio);
+					else
+						task->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("raw-wood")}, &factorio);
+
+					splayers[player_idx].scheduler.add_task(task);
+					break;
+				}
+				case '5':
+				{
+					const ItemPrototype* coal = &factorio.get_item_prototype("coal");
+					int n_coal = 0;
+					for (const auto& ent : factorio.actual_entities.within_range(Area(-200,-200,200,200)))
+						if (const ContainerData* data = ent.data_or_null<ContainerData>())
+							for (const auto& [key,val] : data->inventories)
+								if (key.item == coal && inventory_flags[key.inv].take)
+									n_coal += val;
+					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
+
+					int n_consumers = facilities[0].level*4 + facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;
+					int coal_per_furnace = n_coal / n_consumers;
+					cout << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
+
+
+					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
+					const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
+					auto task = make_shared<Task>("coal refill");
+					task->priority_ = 0;
+					task->goals.emplace();
+					for (const facility_t& facility : facilities)
+						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.level)
+						{
+							if (ent.proto == miner)
+								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace*2}}, INV_FUEL));
+							else if (ent.proto == furnace)
+								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace}}, INV_FUEL));
+						}
+
+					task->actions_changed();
+					task->update_actions_from_goals(&factorio, player_idx); // HACK
+					splayers[player_idx].scheduler.add_task(task);
+
+					break;
+				}
+					
 				case 'a':
 					cout << "scheduler.update_item_allocation()" << endl;
 					splayers[player_idx].scheduler.update_item_allocation();
@@ -663,7 +737,7 @@ int main(int argc, const char** argv)
 					}
 					break;
 				}
-				case '1':
+				case '7':
 				{
 					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
 
@@ -677,7 +751,7 @@ int main(int argc, const char** argv)
 					splayers[player_idx].scheduler.add_task(mytask);
 					break;
 				}
-				case '2':
+				case '8':
 				{
 					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
 
@@ -691,7 +765,7 @@ int main(int argc, const char** argv)
 					splayers[player_idx].scheduler.add_task(mytask);
 					break;
 				}
-				case '4':
+				case '9':
 				{
 					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
 
@@ -705,7 +779,7 @@ int main(int argc, const char** argv)
 					splayers[player_idx].scheduler.add_task(mytask);
 					break;
 				}
-				case '3':
+				case '0':
 				{
 					Pos pos = start_mines.coal->positions[0] + Pos_f(0.5,0.5);
 
