@@ -163,8 +163,9 @@ namespace action
 
 	struct WalkTo : public CompoundAction
 	{
-		Pos destination;
+		Area_f destination;
 		double allowed_distance;
+		double min_distance;
 
 		FactorioGame* game;
 		int player;
@@ -173,10 +174,11 @@ namespace action
 
 		std::optional<Pos> first_pos() const
 		{
-			return destination;
+			return destination.center();
 		}
 
-		WalkTo(FactorioGame* game_, int player_, Pos destination_, double allowed_distance_ = 1.) { game = game_; player = player_; destination = destination_; allowed_distance = allowed_distance_; }
+		WalkTo(FactorioGame* game_, int player_, Area_f destination_, double allowed_distance_ = 1., double min_distance_ = 0.) { game = game_; player = player_; destination = destination_; allowed_distance = allowed_distance_; min_distance = min_distance_; }
+		[[deprecated]] WalkTo(FactorioGame* game_, int player_, Pos destination_, double allowed_distance_ = 1.) : WalkTo(game_, player_, Area_f(destination_,destination_), allowed_distance_) {}
 		private: void start(); public: // FIXME ugly
 
 		

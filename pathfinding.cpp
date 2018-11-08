@@ -76,17 +76,18 @@ vector<Pos> cleanup_path(const vector<Pos>& path)
 	return result;
 }
 
-vector<Pos> a_star(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
+vector<Pos> a_star(const Pos& start, const Area_f& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
 {
 	return cleanup_path(a_star_raw(start, end, map, allowed_distance, min_distance, length_limit, size));
 }
 
-vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
+vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
 {
 	if (ceil(min_distance) >= allowed_distance)
 		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");
-	
-	Area view_area(start, end);
+
+	Area view_area = end;
+	view_area = view_area.expand(start);
 	view_area.normalize();
 	auto view = map.view(view_area.left_top, view_area.right_bottom, Pos(0,0));
 
@@ -110,7 +111,7 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 		if (current.f >= length_limit*OVERAPPROXIMATE) // this (and any subsequent) entry is guaranteed
 			break;                                 // to exceed the length_limit.
 
-		if ((current.pos-end).len() <= allowed_distance && (current.pos-end).len() >= min_distance)
+		if (distance(current.pos,end) <= allowed_distance && distance(current.pos,end) >= min_distance)
 		{
 			// found goal.
 
@@ -178,7 +179,7 @@ vector<Pos> a_star_raw(const Pos& start, const Pos& end, WorldMap<walk_t>& map, 
 				if (succ.openlist_handle != openlist_handle_t() && succ.g_val < new_g) // ignore this successor, when a better way is already known
 					continue;
 
-				double f = new_g + heuristic(successor, end);
+				double f = new_g + heuristic(successor, end.center());
 				succ.predecessor = current.pos;
 				succ.g_val = new_g;
 				

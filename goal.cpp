@@ -26,7 +26,11 @@ using boost::make_iterator_range;
 
 using namespace std;
 
-const int REACH = 2; // FIXME magic constant. move to common header
+const int RESOURCE_REACH = 2; // max distance for mining a tree, ore field or simple-entity
+const int REACH = 4; // max distance for mining a player-built entity // FIXME magic constant. move to common header
+const int SAFETY_DISTANCE = 2; // minimum distance for building a player-built entity
+
+static_assert(REACH > SAFETY_DISTANCE);
 
 namespace goal
 {
@@ -69,12 +73,12 @@ vector<shared_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioG
 	for (const Entity& offending_entity : game->actual_entities.overlap_range(area_to_clear))
 		if (offending_entity.proto->type == "tree" || offending_entity.proto->type == "simple-entity")
 		{
-			result.push_back( make_unique<action::WalkTo>(game, player, offending_entity.pos, REACH) );
+			result.push_back( make_unique<action::WalkTo>(game, player, offending_entity.pos, RESOURCE_REACH) );
 			result.push_back( make_unique<action::MineObject>(game, player, nullopt, offending_entity) );
 		}
 	
 	// TODO FIXME: ensure that the player isn't in the way.
-	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
+	result.push_back( make_unique<action::WalkTo>(game, player, entity.collision_box(), REACH, SAFETY_DISTANCE) );
 	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity.pos, entity.direction) );
 	return result;
 }
@@ -86,7 +90,10 @@ bool RemoveEntity::fulfilled(FactorioGame* game) const
 vector<shared_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(FactorioGame* game, int player, std::optional<owner_t> owner) const
 {
 	vector<shared_ptr<action::ActionBase>> result;
-	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, REACH) );
+
+	bool is_resource = entity.proto->type == "tree" || entity.proto->type == "simple-entity" || entity.proto->type == "resource";
+
+	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos, is_resource ? RESOURCE_REACH : REACH) );
 	result.push_back( make_unique<action::MineObject>(game, player, owner, entity) );
 	return result;
 }

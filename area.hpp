@@ -138,3 +138,5 @@ template <> Area_<int>::Area_(std::string str);
 template <> Area_<double>::Area_(std::string str);
 extern template struct Area_<int>;
 extern template struct Area_<double>;
+
+double distance(Pos_f a, Area_f b);

@@ -75,7 +75,7 @@ namespace action {
 
 	void WalkTo::start()
 	{
-		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance);
+		std::vector<Pos> waypoints = a_star(game->players[player].position.to_int(), destination, game->walk_map, allowed_distance, min_distance);
 		subactions.push_back(unique_ptr<ActionBase>(new WalkWaypoints(game,player,nullopt, waypoints)));
 
 		registry.start_action(subactions[0]);
@@ -124,7 +124,7 @@ namespace action {
 	std::pair<Pos, Clock::duration> WalkTo::walk_result(Pos current_position) const
 	{
 		// TODO FIXME: if we've a detailed path, return that one
-		return pair(destination, chrono::milliseconds( int(1000*(destination-current_position).len() / WALKING_SPEED) ));
+		return pair(destination.center(), chrono::milliseconds( int(1000*(current_position - destination.center()).len() / WALKING_SPEED) ));
 	}
 
 	std::pair<Pos, Clock::duration> WalkWaypoints::walk_result(Pos current_position) const

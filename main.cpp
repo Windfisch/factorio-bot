@@ -230,10 +230,10 @@ static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gu
 		GUI::Color color = GUI::Color(255,0,255);
 		color.blend( GUI::Color(127,127,127), (state.count%5)/4.0f);
 
-		gui->line(state.last, g->destination, color);
-		gui->rect(g->destination, 2, GUI::Color(255,127,0));
+		gui->line(state.last, g->destination.center(), color);
+		gui->rect(g->destination.left_top, g->destination.right_bottom, GUI::Color(255,127,0));
 
-		state.last = g->destination;
+		state.last = g->destination.center();
 		state.count++;
 	}
 	else if (auto g = dynamic_cast<const TakeFromInventory*>(action))
