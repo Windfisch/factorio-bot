@@ -656,13 +656,21 @@ int main(int argc, const char** argv)
 							task->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&factorio.get_item_prototype("raw-wood"), 1}}, INV_FUEL));
 						}
 					}
+					if (key=='1' && facility.level > 1)
+					{
+						// put one coal in the coal drill
+						task->goals->push_back(make_shared<goal::InventoryPredicate>(
+							static_cast<goal::PlaceEntity*>(task->goals->back().get())->entity,
+							Inventory{{&factorio.get_item_prototype("coal"), 1}}, INV_FUEL
+						));
+					}
 					
 					task->actions_changed();
 					task->update_actions_from_goals(&factorio, player_idx); // HACK
 					if (key=='2' && facility.level == 1) // special handling for the first iron drill
 						task->auto_craft_from({&factorio.get_item_prototype("burner-mining-drill"), &factorio.get_item_prototype("stone-furnace"), &factorio.get_item_prototype("raw-wood")}, &factorio);
 					else
-						task->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("raw-wood")}, &factorio);
+						task->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("raw-wood"), &factorio.get_item_prototype("coal")}, &factorio);
 
 					splayers[player_idx].scheduler.add_task(task);
 					
