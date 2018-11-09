@@ -100,7 +100,8 @@ vector<shared_ptr<action::ActionBase>> RemoveEntity::_calculate_actions(Factorio
 
 bool InventoryPredicate::fulfilled(FactorioGame* game) const
 {
-	const MultiInventory& actual_inventory = game->actual_entities.search(entity).data<ContainerData>().inventories;
+	Entity* ent = game->actual_entities.search_or_null(entity);
+	const MultiInventory& actual_inventory = ent ? ent->data<ContainerData>().inventories : MultiInventory();
 	if (type == POSITIVE)
 	{
 		for (auto [item, amount] : desired_inventory)
@@ -123,25 +124,25 @@ vector<shared_ptr<action::ActionBase>> InventoryPredicate::_calculate_actions(Fa
 	vector<shared_ptr<action::ActionBase>> result;
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.pos) );
 
-	Entity& ent = game->actual_entities.search(entity);
-	const auto& data = ent.data<ContainerData>();
+	Entity* ent = game->actual_entities.search_or_null(entity);
+	const MultiInventory& actual_inventory = ent ? ent->data<ContainerData>().inventories : MultiInventory();
 
 	if (type == POSITIVE)
 	{
 		for (auto [item, desired_amount] : desired_inventory)
 		{
-			auto actual_amount = data.inventories.get_or(item, inventory_type, 0);
+			auto actual_amount = actual_inventory.get_or(item, inventory_type, 0);
 			if (actual_amount < desired_amount)
 				result.push_back(make_unique<action::PutToInventory>(game, player, owner, item, desired_amount-actual_amount, entity, inventory_type));
 		}
 	}
 	else
 	{
-		for (const auto& [key, actual_amount] : make_iterator_range(data.inventories.inv_begin(inventory_type), data.inventories.inv_end(inventory_type)))
+		for (const auto& [key, actual_amount] : make_iterator_range(actual_inventory.inv_begin(inventory_type), actual_inventory.inv_end(inventory_type)))
 		{
 			auto desired_amount = get_or(desired_inventory, key.item);
 			if (actual_amount > desired_amount)
-				result.push_back(make_unique<action::TakeFromInventory>(game, player, owner, key.item, actual_amount-desired_amount, ent, inventory_type));
+				result.push_back(make_unique<action::TakeFromInventory>(game, player, owner, key.item, actual_amount-desired_amount, *ent, inventory_type));
 		}
 	}
 
