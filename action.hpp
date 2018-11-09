@@ -266,10 +266,11 @@ namespace action
 
 	struct PlaceEntity : public PrimitiveAction
 	{
-		PlaceEntity(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, Pos_f pos_, dir4_t direction_=NORTH) : PrimitiveAction(game,player,owner), item(item_), pos(pos_), direction(direction_) {}
+		PlaceEntity(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, const Entity& entity_) : PrimitiveAction(game,player,owner), entity(entity_), item(item_) {}
+		[[deprecated]] PlaceEntity(FactorioGame* game, int player, std::optional<owner_t> owner, const ItemPrototype* item_, Pos_f pos_, dir4_t direction_=NORTH) : PrimitiveAction(game,player,owner), entity(pos_, item_->place_result, direction_), item(item_) {}
+		
+		Entity entity;
 		const ItemPrototype* item;
-		Pos_f pos;
-		dir4_t direction;
 		
 		std::string str() const;
 

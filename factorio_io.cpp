@@ -275,6 +275,12 @@ bool FactorioGame::parse_packet(const string& pkg)
 		throw runtime_error("malformed packed: invalid prelude");
 
 	string tickstr = prelude[0];
+
+	int tick = stoi(tickstr);
+	if (last_tick > tick)
+		cout << "wtf, tick decreased from " << last_tick << " to " << tick << endl;
+	last_tick = tick;
+
 	string type = prelude[1];
 
 	Area area;
@@ -653,12 +659,33 @@ void FactorioGame::resource_bookkeeping(const Area& area, WorldMap<Resource>::Vi
 
 void FactorioGame::parse_objects(const Area& area, const string& data)
 {
+	// clean up pending_entities
+	for (auto it = pending_entities.begin(); it != pending_entities.end(); )
+	{
+		if (it->last_valid_tick < get_tick())
+		{
+			cout << "removing timed out pending entity" << endl;
+			it = unordered_erase(pending_entities, it);
+		}
+		else
+			it++;
+	}
+
+	bool debug_pending_entities = false;
+	if (pending_entities.size() > 0)
+	{
+		// FIXME DEBUG only
+		debug_pending_entities = true;
+		cout << "pending_entities.size() == " << pending_entities.size() << endl;
+		for (const auto& pe : pending_entities)
+			cout << "-> pending entity: " << pe.entity.str() << " (best before " << pe.last_valid_tick << ")" << endl;
+	}
+
 	// move all entities in the area from actual_entities to the temporary pending_entities list.
-	vector<Entity> pending_entities;
 	auto range = actual_entities.within_range(area);
 	for (auto it = range.begin(); it != range.end();)
 	{
-		pending_entities.push_back(std::move(*it));
+		pending_entities.push_back({get_tick(), std::move(*it)});
 		it = actual_entities.erase(it);
 	}
 
@@ -697,9 +724,9 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		// try to find ent in pending_entities
 		stats.total++;
 		for (auto it = pending_entities.begin(); it != pending_entities.end(); )
-			if (it->mostly_equals(ent)) // found (modulo rotation and data_ptr)
+			if (it->entity.mostly_equals(ent)) // found (modulo rotation and data_ptr)
 			{
-				ent.takeover_data(*it);
+				ent.takeover_data(it->entity);
 				it = unordered_erase(pending_entities, it);
 				stats.reused++;
 				break;
@@ -711,9 +738,9 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		actual_entities.insert(std::move(ent));
 	}
 
-	/*if (pending_entities.size() > 0)
+	if (debug_pending_entities)
 		cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << (stats.total-stats.reused) << " and deleted " << pending_entities.size() << endl; // DEBUG
-	*/
+	
 	
 	// finally, update the walkmap; because our entities have a certain size, we must update a larger portion
 	update_walkmap(area.expand(int(ceil(max_entity_radius))));

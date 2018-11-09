@@ -105,7 +105,8 @@ namespace action {
 
 	void PlaceEntity::execute_impl()
 	{
-		game->place_entity(player, item->name, pos, direction);
+		game->place_entity(player, item->name, entity.pos, entity.direction);
+		game->register_pending_entity(game->get_tick() + 60 /* FIXME MAGIC NUMBER */, entity);
 		finished = true;
 	}
 
@@ -197,7 +198,7 @@ namespace action {
 
 	string PlaceEntity::str() const
 	{
-		return "PlaceEntity(" + item->name + "@" + pos.str() + ")";
+		return "PlaceEntity(" + item->name + " -> " + entity.str() + ")";
 	}
 
 	string PutToInventory::str() const

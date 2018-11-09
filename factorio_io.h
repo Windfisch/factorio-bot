@@ -106,6 +106,15 @@ class FactorioGame
 		  */
 		void floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area /* FIXME remove the area parameter */, int x, int y, int radius);
 		int next_free_resource_id = 1;
+		int last_tick = 0;
+
+
+		struct best_before_entity_t
+		{
+			int last_valid_tick;
+			Entity entity;
+		};
+		std::vector<best_before_entity_t> pending_entities;
 
 		/** changes the type of the resource-field 'entry' to new_type (which can be NONE, in which case
 		  * `entity` will be ignored). The resulting patch_id will always be NOT_YET_ASSIGNED.
@@ -124,6 +133,8 @@ class FactorioGame
 
 		/** parses a packet. returns true if this results in a consistent gamestate (i.e., on "tick" messages) */
 		bool parse_packet(const std::string& data);
+		int get_tick() { return last_tick; }
+		void register_pending_entity(int tick, const Entity& ent) { pending_entities.push_back({tick,ent}); }
 
 		// never use these functions directly, use player actions instead
 		void set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints);

@@ -79,7 +79,7 @@ vector<shared_ptr<action::ActionBase>> PlaceEntity::_calculate_actions(FactorioG
 	
 	// TODO FIXME: ensure that the player isn't in the way.
 	result.push_back( make_unique<action::WalkTo>(game, player, entity.collision_box(), REACH, SAFETY_DISTANCE) );
-	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity.pos, entity.direction) );
+	result.push_back( make_unique<action::PlaceEntity>(game, player, owner, game->get_item_for(entity.proto), entity) );
 	return result;
 }
 
