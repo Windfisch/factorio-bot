@@ -29,6 +29,7 @@
 struct ContainerData
 {
 	MultiInventory inventories;
+	bool fuel_is_output = false;
 };
 
 struct MachineData : public ContainerData {};

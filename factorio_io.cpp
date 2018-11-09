@@ -678,7 +678,11 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		debug_pending_entities = true;
 		cout << "pending_entities.size() == " << pending_entities.size() << endl;
 		for (const auto& pe : pending_entities)
+		{
 			cout << "-> pending entity: " << pe.entity.str() << " (best before " << pe.last_valid_tick << ")" << endl;
+			if (const ContainerData* data = pe.entity.data_or_null<ContainerData>())
+				cout << "  fuel_is_output = " << data->fuel_is_output << endl;
+		}
 	}
 
 	// move all entities in the area from actual_entities to the temporary pending_entities list.
