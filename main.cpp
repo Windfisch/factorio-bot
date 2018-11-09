@@ -674,9 +674,12 @@ int main(int argc, const char** argv)
 					int n_coal = 0;
 					for (const auto& ent : factorio.actual_entities.within_range(Area(-200,-200,200,200)))
 						if (const ContainerData* data = ent.data_or_null<ContainerData>())
+						{
+							cout << "considering " << ent.str() << " with fuel_is_output = " << data->fuel_is_output << endl;
 							for (const auto& [key,val] : data->inventories)
-								if (key.item == coal && inventory_flags[key.inv].take)
+								if (key.item == coal && (inventory_flags[key.inv].take || (key.inv == INV_FUEL && data->fuel_is_output)))
 									n_coal += val;
+						}
 					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
 
 					int n_consumers = facilities[0].level*4 + facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;

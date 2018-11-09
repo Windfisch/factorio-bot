@@ -1012,7 +1012,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				inventory_t inventory_type = x.first.inv;
 				assert(x.first.item == stack.proto);
 
-				if (inventory_flags[inventory_type].take && amount_available > 0)
+				if ((inventory_flags[inventory_type].take || (inventory_type == INV_FUEL && data->fuel_is_output)) && amount_available > 0)
 				{
 					size_t take_amount = min(amount_available, stack.amount);
 					stack.amount -= take_amount;
