@@ -88,9 +88,7 @@ struct Entity
 
 	std::string str() const { return proto->name+"@"+pos.str(); }
 
-private:
 	refcount_base* data_ptr;
-public:
 
 	//bool operator==(const Entity& that) const { return this->pos==that.pos && this->proto==that.proto && this->direction==that.direction && this->data_ptr == that.data_ptr; }
 	constexpr bool mostly_equals(const Entity& that) const { return this->pos==that.pos && this->proto==that.proto; }
@@ -129,6 +127,11 @@ public:
 	template <typename T> const T* data_or_null() const
 	{
 		return mvu::get_or_null<const T>(proto->data_kind, data_ptr);
+	}
+
+	void make_unique()
+	{
+		data_ptr = mvu::clone(proto->data_kind, data_ptr);
 	}
 
 	~Entity()

@@ -108,6 +108,27 @@ template <size_t I, typename... As>
 		}
 	};
 
+template <typename Types, size_t I> struct clone_helper;
+template <size_t I, typename T, typename... Ts>
+	struct clone_helper<typelist<T,Ts...>, I>
+	{
+		static constexpr refcount_base* clone(size_t type_idx, const refcount_base* orig)
+		{
+			if (type_idx == I)
+				return static_cast<refcount_base*>( new refcounted<T>(static_cast<const refcounted<T>*>(orig)->data) );
+			else
+				return clone_helper<typelist<Ts...>, I+1>::clone(type_idx, orig);
+		}
+	};
+template <size_t I>
+	struct clone_helper<typelist<>, I>
+	{
+		static constexpr refcount_base* clone(size_t, const refcount_base*)
+		{
+			return nullptr;
+		}
+	};
+
 template <typename Types, size_t I> struct delete_helper;
 template <size_t I, typename T, typename... Ts>
 	struct delete_helper<typelist<T,Ts...>, I>
@@ -211,6 +232,10 @@ template <typename... Ts, typename... As>
 		static constexpr refcount_base* make(size_t type_idx, As&&... args)
 		{
 			return detail::make_helper<typelist<Ts...>, 0, typelist<As...>>::make(type_idx, std::forward<As>(args)...);
+		}
+		static constexpr refcount_base* clone(size_t type_idx, const refcount_base* orig)
+		{
+			return detail::clone_helper<typelist<Ts...>, 0>::clone(type_idx, orig);
 		}
 		static constexpr void del(size_t type_idx, refcount_base* ptr)
 		{

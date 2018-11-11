@@ -310,7 +310,7 @@ void MapBox::give_detailed_info(const Pos& pos)
 		return;
 	}
 	const Entity& entity = *first;
-	cout << "Entity of type '" << entity.proto->name << "' at " << entity.pos.str() << endl;
+	cout << "Entity of type '" << entity.proto->name << "' at " << entity.pos.str() << " (data=" << entity.data_ptr << ")" << endl;
 	if (const auto* data = entity.data_or_null<ContainerData>())
 	{
 		cout << "  fuel_is_output = " << data->fuel_is_output << endl;

@@ -651,6 +651,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 					for (const Entity& ent : rig)
 					{
 						PlannedEntity pent(n, ent);
+						pent.make_unique();
 						pent.pos = pent.pos + pos;
 						result.push_back(pent);
 					}
