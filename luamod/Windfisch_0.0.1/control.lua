@@ -473,27 +473,29 @@ function writeout_entity_prototypes()
 	header = "entity_prototypes: "
 	lines = {}
 	for name, prot in pairs(game.entity_prototypes) do
-		local coll = ""
-		local mine_result = ""
-		if prot.collision_mask ~= nil then
-			if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
-			if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
-		end
-		if prot.mineable_properties.minable then
-			mine_result = ""
-			local array = {}
-			if (prot.mineable_properties.products == nil) then
-				print("wtf, entity "..name.." is mineable, but has no products?!")
-			else
-				for itemname,amount in pairs(products_to_dict(prot.mineable_properties.products)) do
-					table.insert(array, itemname..":"..amount)
-				end
+		if string.sub(name, 1, 8) ~= "DATA_RAW" then
+			local coll = ""
+			local mine_result = ""
+			if prot.collision_mask ~= nil then
+				if prot.collision_mask['player-layer'] then coll=coll.."P" else coll=coll.."p" end
+				if prot.collision_mask['object-layer'] then coll=coll.."O" else coll=coll.."o" end
 			end
-			mine_result = table.concat(array, ",")
-		else
-			mine_result = "-"
+			if prot.mineable_properties.minable then
+				mine_result = ""
+				local array = {}
+				if (prot.mineable_properties.products == nil) then
+					print("wtf, entity "..name.." is mineable, but has no products?!")
+				else
+					for itemname,amount in pairs(products_to_dict(prot.mineable_properties.products)) do
+						table.insert(array, itemname..":"..amount)
+					end
+				end
+				mine_result = table.concat(array, ",")
+			else
+				mine_result = "-"
+			end
+			table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mine_result)
 		end
-		table.insert(lines, prot.name.." "..prot.type.." "..coll.." "..aabb_str(prot.collision_box).." "..mine_result)
 	end
 	write_file(0, header..table.concat(lines, "$").."\n")
 end
