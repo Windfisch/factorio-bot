@@ -10,6 +10,34 @@ dumping crafting_order:
 	task task #0 with priority 42 has eta = 15s of which 0s have already passed
 	task task #1 with priority 17 has eta = 305s of which 0s have already passed
 	task task #2 with priority 99 has no eta yet
+calculate_crafts for task #0: available_inventory is:
+	iron: 40
+	coppercable: 40
+	circuit: 3
+checking whether circuit can be crafted... yes
+checking whether machine can be crafted... yes
+calculate_crafts for task #1: available_inventory is:
+	iron: 80
+	stone: 230
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+checking whether furnace can be crafted... yes
+limiting size...
 got 20 crafts
 	craft circuit for task task #0
 	craft machine for task task #0
@@ -76,19 +104,19 @@ next task is modest task
 --------------------------------------------------------------------------------
 testing with the following tasks: crafting task(44) 
 queueing task 'crafting task' with duration 43s and max_granted 4s
-missing: iron(46), copper(18), 
+missing: iron(46), copper(18),  
 calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
 	->10
 visiting chest at 10.000000,-2.000000 for copper(17),  with a cost of 1 sec (9223372036 sec remaining)
-missing: iron(46), copper(1), 
+missing: iron(46), copper(1),  
 calculating path from 10,-2 to 10.000000,70.000000 with a length limit of 8.21074e+10
 	->71
 visiting chest at 10.000000,70.000000 for copper(1),  with a cost of 7 sec (9223372035 sec remaining)
-missing: iron(46), 
+missing: iron(46),  
 calculating path from 10,70 to 100.000000,30.000000 with a length limit of 8.21074e+10
 	->90
 visiting chest at 100.000000,30.000000 for iron(46),  with a cost of 11 sec (9223372027 sec remaining)
-missing: 
+missing:  
 we've got everything we need
 desired schedule:
 <================= 0 resource collector for crafting task 20 ==================>
@@ -104,17 +132,17 @@ next task is resource collector for crafting task
 --------------------------------------------------------------------------------
 testing with the following tasks: greedy task(42) 
 queueing task 'greedy task' with duration 0s and max_granted 0s
-missing: iron(17), belt(42), 
+missing: iron(17), belt(42),  
 calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
 	->10
 visiting chest at 10.000000,-2.000000 for belt(42),  with a cost of 1 sec (9223372036 sec remaining)
-missing: iron(17), 
+missing: iron(17),  
 not visiting chest at 10.000000,70.000000 (irrelevant)
-missing: iron(17), 
+missing: iron(17),  
 calculating path from 10,-2 to 100.000000,30.000000 with a length limit of 8.21074e+10
 	->90
 visiting chest at 100.000000,30.000000 for iron(17),  with a cost of 11 sec (9223372035 sec remaining)
-missing: 
+missing:  
 we've got everything we need
 desired schedule:
 <================== 0 resource collector for greedy task 12 ===================>

@@ -295,7 +295,9 @@ static void test_get_next_task(FactorioGame* game, int playerid)
 static Entity make_chest(Pos_f pos, Inventory inventory)
 {
 	Entity result { pos, &entities.chest };
-	result.data<ContainerData>().items = inventory;
+	MultiInventory& minv = result.data<ContainerData>().inventories;
+	for (const auto& [key,value] : inventory)
+		minv.insert(INV_CHEST, key, value);
 	return result;
 }
 
@@ -304,6 +306,7 @@ int main()
 
 
 	FactorioGame game("dummy");
+	game.parse_packet("0 item_prototypes: raw-wood item nil 100 4000000 0 0$coal item nil 50 8000000 0 0$stone item nil 50 0 0 0");
 
 
 	pathfinding::walk_t walkable;

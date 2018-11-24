@@ -68,7 +68,7 @@ static WL makeWL();
 
 static void show(const WL& l)
 {
-	WL::ConstRange r(l.range( Area_f(0,0,100,100) ));
+	WL::ConstWithinRange r(l.within_range( Area_f(0,0,100,100) ));
 	for (auto& x : r) { cout << "\t" << x.pos.str() << endl; }
 }
 
@@ -77,9 +77,9 @@ static void test_erase(WL l, size_t i)
 {
 	cout << "erasing element #" << i << ": ";
 
-	WL::Range r = l.range( Area_f(0,0,100,100) );
+	WL::WithinRange r = l.within_range( Area_f(0,0,100,100) );
 
-	WL::Range::iterator it = r.begin();
+	WL::WithinRange::iterator it = r.begin();
 	advance(it, i);
 
 	cout << "elem = " << it->pos.str();
