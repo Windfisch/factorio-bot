@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <iostream>
+#include "logging.hpp"
 
 #include "rcon.h"
 
@@ -124,7 +125,8 @@ void Rcon::connect(std::string host, int port, std::string password)
 
 void Rcon::Packet::dump()
 {
-	std::cout << "id=" << id << ", type=" << type << ", data=" << data << ", datalen=" << data.length() << std::endl;
+	Logger log("rcon_dump");
+	log << "id=" << id << ", type=" << type << ", data=" << data << ", datalen=" << data.length() << std::endl;
 }
 
 void Rcon::send(uint32_t id, pkgtype type, const std::string& data)

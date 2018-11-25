@@ -27,6 +27,7 @@
 #include "mine_planning.h"
 #include "factorio_io.h"
 #include "util.hpp"
+#include "logging.hpp"
 
 // TODO FIXME:
 // - avoid places that cover multiple ores
@@ -97,6 +98,7 @@ vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destinati
 */
 vector<PlannedEntity> plan_mine(const std::vector<Pos>& positions, Pos destination, unsigned side_max, const EntityPrototype* belt_proto, const EntityPrototype* machine_proto, int outerx, int outery)
 {
+	Logger log("mine_planning");
 	auto things = plan_rectgrid_belt(positions, destination, side_max, outerx, outery, 3, 3);
 	vector<PlannedEntity> result;
 
@@ -165,6 +167,7 @@ static vector<thing_t> plan_rectgrid_belt(const std::vector<Pos>& positions, Pos
 // [ build plan, quality ]
 static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>& grid, const Pos& size, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side)
 {
+	Logger log("detail");
 	vector<thing_t> best_result;
 	int best_cost = INT_MAX;
 	int best_ystart = 0;
@@ -187,7 +190,7 @@ static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>&
 	}
 
 	assert(best_cost != INT_MAX);
-	cout << "best has cost " << best_cost << " with ystart = " << best_ystart << endl;
+	log << "best has cost " << best_cost << " with ystart = " << best_ystart << endl;
 
 	return pair< vector<thing_t>, int >(best_result, best_cost);
 }
@@ -195,6 +198,7 @@ static pair< vector<thing_t>, int > plan_rectgrid_belt_horiz(const vector<bool>&
 // a belt at position i is located between drill(i-1) and drill(i)
 static vector<size_t> plan_belts(const vector< vector<size_t> >& rows, unsigned side_max, bool start_south=true)
 {
+	Logger log("detail");
 	int a=0;
 	int side[2] = {0,0};
 
@@ -220,7 +224,7 @@ static vector<size_t> plan_belts(const vector< vector<size_t> >& rows, unsigned 
 		side[a] += size1;
 		side[1-a] += size2;
 		
-		cout << (belts.back()!=i ? ">>" : "**") << " i=" << i << ", sides = " << side[0] << "/" << side[1] << " (max=" << side_max << ")" << endl;
+		log << (belts.back()!=i ? ">>" : "**") << " i=" << i << ", sides = " << side[0] << "/" << side[1] << " (max=" << side_max << ")" << endl;
 	}
 
 	return belts;
@@ -228,42 +232,45 @@ static vector<size_t> plan_belts(const vector< vector<size_t> >& rows, unsigned 
 
 template <typename T> void dump(const vector<T>& xs, string name = "") // DEBUG
 {
+	Logger log("dump");
 	if (name != "")
-		cout << name << ": ";
+		log << name << ": ";
 	for (const T& x : xs)
-		cout << x << " ";
-	cout << endl;
+		log << x << " ";
+	log << endl;
 }
 template <typename T> void dump(const vector<vector<T>>& vecs, string name = "") // DEBUG
 {
-	cout << name << "{\n";
+	Logger log("dump");
+	log << name << "{\n";
 	for (const auto& vec : vecs)
 	{
-		cout << "  ";
+		log << "  ";
 		dump(vec);
 	}
-	cout << "}\n";
+	log << "}\n";
 }
 
 static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid, const Pos& size, int ystart, int outerx, int outery, int innerx, int innery, unsigned side_max, int preferred_y_out, dir4_t x_side_)
 {
+	Logger log("detail");
 	assert(-outery < ystart && ystart <= 0);
 	assert(innerx < outerx);
 	assert(innery < outery);
 
-	cout << "laying out with ystart = " << ystart << endl;
-	cout << "  ";
+	log << "laying out with ystart = " << ystart << endl;
+	log << "  ";
 	for (int x=0; x<size.x; x+=5)
-		cout << ".    ";
-	cout << endl;
+		log << ".    ";
+	log << endl;
 	for (int y=0; y<size.y; y++)
 	{
-		cout << ((y+ystart+outery)%outery==0 ? ". " : "  ");
+		log << ((y+ystart+outery)%outery==0 ? ". " : "  ");
 		for (int x=0; x<size.x; x++)
-			cout << (grid[x*size.y + y] ? "X" : ".");
-		cout << endl;
+			log << (grid[x*size.y + y] ? "X" : ".");
+		log << endl;
 	}
-	cout << endl;
+	log << endl;
 
 	if (preferred_y_out < 0) preferred_y_out = 0;
 	else if (preferred_y_out >= size.y) preferred_y_out = size.y-1;
@@ -349,7 +356,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		? MINE_NORTH
 		: MINE_SOUTH;
 	
-	cout << "preferred_rowrange = " << preferred_rowrange << ", mine_direction = " << (mine_direction == MINE_NORTH ? "MINE_NORTH" : "MINE_SOUTH") << " = " << mine_direction << endl;
+	log << "preferred_rowrange = " << preferred_rowrange << ", mine_direction = " << (mine_direction == MINE_NORTH ? "MINE_NORTH" : "MINE_SOUTH") << " = " << mine_direction << endl;
 
 	
 	// calculate the directions (right to left or left to right) of the belt rows
@@ -372,7 +379,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 	size_t i=preferred_rowrange;
 	do
 	{
-		cout << "loop, i = " << i << endl;
+		log << "loop, i = " << i << endl;
 		// consider the i-th belt group. start from the preferred mine_direction
 		// (i.e., the end of the belt) and lay belts reverse in a zig-zag fashion.
 		// also place and connect the miners on the way
@@ -383,7 +390,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		int start = mine_direction == MINE_NORTH ? range.first : range.second-2;
 		int end   = mine_direction == MINE_NORTH ? range.second : range.first-2;
 
-		cout << "\tstart = " << start << ", end = " << end << endl;
+		log << "\tstart = " << start << ", end = " << end << endl;
 
 		assert (SANE_MOD(start,2) == SANE_MOD(end,2));
 
@@ -395,7 +402,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 				: -x_side );
 			
 			int y = row*outery + ystart;
-			cout << "\trow = " << row << " @ y = " << y << " should go to " << (lay_dir == LAY_LEFT ? "left" : "right") << endl;
+			log << "\trow = " << row << " @ y = " << y << " should go to " << (lay_dir == LAY_LEFT ? "left" : "right") << endl;
 
 			belt_rows.emplace_back(row, lay_dir, row!=start);
 		}
@@ -415,7 +422,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		int row = belt_rows[i].row;
 		layout_direction_t lay_dir = belt_rows[i].dir;
 		bool connect_from_prev = belt_rows[i].connect_from_prev;
-		cout << "\nlaying out belt row " << i << " with direction " << lay_dir << endl;
+		log << "\nlaying out belt row " << i << " with direction " << lay_dir << endl;
 
 		int belt_y = row*outery + ystart;
 
@@ -440,9 +447,9 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		else
 			sort(machines.begin(), machines.end(), [](const auto& a, const auto& b) {return a.first.x > b.first.x;});
 
-		cout << "machines: ";
-		for (auto m : machines) cout << m.first.str() << " ";
-		cout << endl;
+		log << "machines: ";
+		for (auto m : machines) log << m.first.str() << " ";
+		log << endl;
 
 		const int output_offset = outerx/2; // integer division rounds down
 		int xbegin = machines[0].first.x + output_offset;
@@ -451,7 +458,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		if (connect_from_prev)
 		{
 			assert(i > 0);
-			cout << "\tconnect_from_prev:TODO" << endl;
+			log << "\tconnect_from_prev:TODO" << endl;
 			int prevrow = belt_rows[i-1].row;
 			int prev_belt_y = prevrow*outery + ystart;
 			
@@ -467,7 +474,7 @@ static vector<thing_t> plan_rectgrid_belt_horiz_ystart(const vector<bool>& grid,
 		}
 		else
 		{
-			cout << "\toutput at " << Pos(xbegin, belt_y).str() << endl;
+			log << "\toutput at " << Pos(xbegin, belt_y).str() << endl;
 		}
 		
 
@@ -570,6 +577,7 @@ std::vector<PlannedEntity> plan_early_smelter_rig(const ResourcePatch& patch, co
 
 std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const FactorioGame* game, std::vector<Entity> rig, Pos size, Area mining_area, dir4_t side)
 {
+	Logger log("mine_planning");
 	vector<PlannedEntity> result;
 
 	vector<Pos> possible_positions = filter_positions(patch, game, mining_area);
@@ -602,7 +610,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 	}
 
 	vector<int> counts(vertical ? bounding_box.size().x : bounding_box.size().y, 0);
-	cout << "counts.size() == " << counts.size() << ", boundingbox = " << bounding_box.str() << endl;
+	log << "counts.size() == " << counts.size() << ", boundingbox = " << bounding_box.str() << endl;
 	for (Pos pos : possible_positions)
 	{
 		Pos relpos = pos - bounding_box.left_top;
@@ -616,7 +624,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 		int max_count = 0;
 		for (int j = i; j < i + diminish_size && j < counts.size(); j++)
 			max_count = max(max_count, counts[j]);
-		cout << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
+		log << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
 		if (counts[i] < 0.5 * max_count)
 			counts[i] = 0;
 		else
@@ -627,7 +635,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 		int max_count = 0;
 		for (int j = i; j > i - diminish_size && j >= 0; j--)
 			max_count = max(max_count, counts[j]);
-		cout << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
+		log << "diminishing at " << i << ", max_count is " << max_count << ", counts[i] = " << counts[i] << endl;
 		if (counts[i] < 0.5 * max_count)
 			counts[i] = 0;
 		else
@@ -647,7 +655,7 @@ std::vector<PlannedEntity> plan_early_mine(const ResourcePatch& patch, const Fac
 				Pos pos = bounding_box.left_top + Pos(i,j);
 				if (map.at(pos).value)
 				{
-					cout << "placing rig #" << n << " at " << pos.str() << endl;
+					log << "placing rig #" << n << " at " << pos.str() << endl;
 					for (const Entity& ent : rig)
 					{
 						PlannedEntity pent(n, ent);

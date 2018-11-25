@@ -19,6 +19,7 @@
 #include "goal.hpp"
 #include "factorio_io.h"
 #include "util.hpp"
+#include "logging.hpp"
 
 #include <boost/range/iterator_range_core.hpp>
 
@@ -169,15 +170,17 @@ string InventoryPredicate::str() const
 
 void GoalList::dump() const
 {
-	cout << "GoalList:" << endl;
+	Logger log("goallist_dump");
+	log << "GoalList:" << endl;
 	for (const auto& goal : (*this))
-		cout << "\t" << goal->str() << endl;
+		log << "\t" << goal->str() << endl;
 }
 void GoalList::dump(FactorioGame* game) const
 {
-	cout << "GoalList:" << endl;
+	Logger log("goallist_dump");
+	log << "GoalList:" << endl;
 	for (const auto& goal : (*this))
-		cout << "\t" << goal->str(game) << endl;
+		log << "\t" << goal->str(game) << endl;
 }
 
 }

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include "factorio_io.h"
 #include <climits>
+#include "logging.hpp"
 
 using namespace std;
 
@@ -31,9 +32,10 @@ namespace action {
 
 	void Registry::start_action(const std::shared_ptr<ActionBase>& action)
 	{
+		Logger log("action_registry");
 		if (auto primitive_action = std::dynamic_pointer_cast<PrimitiveAction>(action))
 		{
-			cout << "inserting action #" << primitive_action->id << " into the registry" << endl;
+			log << "inserting action #" << primitive_action->id << " into the registry" << endl;
 			(*this)[primitive_action->id] = primitive_action;
 		}
 		action->start();
@@ -63,13 +65,15 @@ namespace action {
 
 	void PrimitiveAction::start()
 	{
+		Logger log("action");
+
 		execute_impl();
 		item_balance_t negative_balance;
 		item_balance_t balance = inventory_balance_on_launch();
 		std::copy_if (balance.begin(), balance.end(), std::inserter(negative_balance, negative_balance.end()), [](auto elem){return elem.second < 0;} );
 
 		game->players[player].inventory.apply(negative_balance, owner);
-		cout << "Launched action " << str() << ". Extrapolated inventory is now" << endl;
+		log << "Launched action " << str() << ". Extrapolated inventory is now" << endl;
 		game->players[player].inventory.dump();
 	}
 
@@ -83,7 +87,8 @@ namespace action {
 
 	void WalkWaypoints::execute_impl()
 	{
-		cout << "WalkWaypoints from " << waypoints[0].str() << " to " << waypoints.back().str() << endl;
+		Logger log("verbose");
+		log << "WalkWaypoints from " << waypoints[0].str() << " to " << waypoints.back().str() << endl;
 		game->set_waypoints(id, player, waypoints);
 	}
 

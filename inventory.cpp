@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <iostream>
 #include <boost/container/flat_map.hpp>
+#include "logging.hpp"
 
 using namespace sched;
 
@@ -133,24 +134,27 @@ std::string Inventory::str() const
 }
 void Inventory::dump() const
 {
+	Logger log("inventory_dump");
 	for (auto [proto,amount] : (*this)) if (amount)
-		std::cout << "\t" << proto->name << ": " << amount << std::endl;
+		log << "\t" << proto->name << ": " << amount << std::endl;
 }
 
 void TaggedInventory::dump() const
 {
+	Logger log("inventory_dump");
 	for (const auto& [proto, tagged_amount] : (*this)) if (tagged_amount.amount)
 	{
-		std::cout << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
+		log << "\t" << proto->name << ": " << tagged_amount.amount << std::endl;
 		for (const auto& claim : tagged_amount.claims) if (claim.amount)
 		{
-			std::cout << "\t\t" << owner_names.get(claim.owner) << " <- " << claim.amount << std::endl;
+			log << "\t\t" << owner_names.get(claim.owner) << " <- " << claim.amount << std::endl;
 		}
 	}
 }
 
 void MultiInventory::dump() const
 {
+	Logger log("inventory_dump");
 	std::vector<inventory_t> types;
 	for (const auto& [key, val] : container)
 	{
@@ -159,7 +163,7 @@ void MultiInventory::dump() const
 	}
 	for (inventory_t type : types)
 	{
-		std::cout << inventory_names[type] << std::endl;
+		log << inventory_names[type] << std::endl;
 		get_inventory(type).dump();
 	}
 }

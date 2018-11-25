@@ -1,7 +1,7 @@
 include config.mk
 
 EXE=bot
-COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o scheduler.o goal.o entity.o gui/gui.o # objects used for $(EXE)
+COMMONOBJECTS=factorio_io.o rcon.o area.o pathfinding.o defines.o action.o mine_planning.o inventory.o scheduler.o goal.o entity.o gui/gui.o logging.o # objects used for $(EXE)
 
 ALLTESTS=test/worldlist test/scheduler
 
@@ -168,7 +168,7 @@ gui/%.o: gui/%.cpp
 
 $(EXE): $(COMMONOBJECTS) main.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
-rcon-client: rcon-client.o rcon.o
+rcon-client: rcon-client.o rcon.o logging.o
 	$(LINK) $(LINKFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 compile_commands.json:

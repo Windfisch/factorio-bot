@@ -24,6 +24,7 @@
 #include "gui/gui.h"
 #include "goal.hpp"
 #include "mine_planning.h"
+#include "logging.hpp"
 
 using namespace std;
 using namespace sched;
@@ -53,6 +54,7 @@ struct start_mines_t
 
 static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_f pos = Pos_f(0.,0.))
 {
+	Logger log("find_start_mines");
 	start_mines_t result;
 
 	// FIXME: we treat "known && !can_walk" as water and "known && can_walk" as land. this is suboptimal.
@@ -129,11 +131,11 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 			for (auto& copper : patches[Resource::COPPER])
 				for (auto& stone : patches[Resource::STONE])
 				{
-					cout << endl;
-					cout << "coal:\t" << coal.second->bounding_box.center().str() << endl;
-					cout << "iron:\t" << iron.second->bounding_box.center().str() << endl;
-					cout << "copper:\t" << copper.second->bounding_box.center().str() << endl;
-					cout << "stone:\t" << stone.second->bounding_box.center().str() << endl;
+					log << endl;
+					log << "coal:\t" << coal.second->bounding_box.center().str() << endl;
+					log << "iron:\t" << iron.second->bounding_box.center().str() << endl;
+					log << "copper:\t" << copper.second->bounding_box.center().str() << endl;
+					log << "stone:\t" << stone.second->bounding_box.center().str() << endl;
 
 					// calculate the bounding box enclosing the 4-tuple of essential resources
 					int x1 = min( coal  .second->bounding_box.center().x,
@@ -157,7 +159,7 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 					if (cluster_quality(diam, coal.second->size(), iron.second->size(), copper.second->size(), stone.second->size()) > best)
 						continue; // we're worse than the best even without extending the diameter to include water. discard and continue.
 
-					cout << "diam = " << diam << endl;
+					log << "diam = " << diam << endl;
 
 					// find the closest water source and calculate the new bounding box
 					Pos_f box_center = Pos_f((x1+x2)/2., (y1+y2)/2.);
@@ -168,7 +170,7 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 						if ((water_pos.pos - box_center).len() >= 1.5*(best_water_diam-diam/2) )
 							break;
 
-						cout << ".";
+						log << ".";
 						
 						int new_diam = max(
 							max(x2,water_pos.pos.x)-min(x1,water_pos.pos.x),
@@ -178,12 +180,12 @@ static start_mines_t find_start_mines(FactorioGame* game, GUI::MapGui* gui, Pos_
 						{
 							best_water_diam = new_diam;
 							best_water_pos = water_pos.pos;
-							cout << "\b*";
+							log << "\b*";
 						}
 					}
-					cout << endl;
-					cout << "found water at " << best_water_pos.str() << endl;
-					cout << "best_water_diam = " << best_water_diam << endl;
+					log << endl;
+					log << "found water at " << best_water_pos.str() << endl;
+					log << "best_water_diam = " << best_water_diam << endl;
 
 					x1 = min(x1, best_water_pos.x);
 					y1 = min(y1, best_water_pos.y);
@@ -223,10 +225,11 @@ struct debug_draw_actions_state_t
 #pragma GCC diagnostic ignored "-Wshadow"
 static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gui, debug_draw_actions_state_t& state)
 {
+	Logger log("debug_draw");
 	using namespace action;
 	if (auto g = dynamic_cast<const WalkTo*>(action))
 	{
-		cout << "WalkTo " << g->destination.str() << endl;
+		log << "WalkTo " << g->destination.str() << endl;
 		GUI::Color color = GUI::Color(255,0,255);
 		color.blend( GUI::Color(127,127,127), (state.count%5)/4.0f);
 
@@ -238,12 +241,12 @@ static void debug_draw_actions(const action::ActionBase* action, GUI::MapGui* gu
 	}
 	else if (auto g = dynamic_cast<const TakeFromInventory*>(action))
 	{
-		cout << "TakeFromInventory" << endl;
+		log << "TakeFromInventory" << endl;
 		gui->rect(state.last,1, GUI::Color(0,127,255));
 	}
 	else if (auto g = dynamic_cast<const CompoundAction*>(action))
 	{
-		cout << "recursing into CompoundAction" << endl;
+		log << "recursing into CompoundAction" << endl;
 		for (const auto& sub : g->subactions)
 			debug_draw_actions(sub.get(), gui, state);
 	}
@@ -370,7 +373,8 @@ int main(int argc, const char** argv)
 
 		void update_task(FactorioGame* game, Player& player, const std::shared_ptr<Task>& task)
 		{
-			cout << "Player " << player.id << "'s current task has changed from "
+			Logger log("strategy");
+			log << "Player " << player.id << "'s current task has changed from "
 				<< (current_task ? current_task->name : "(null)")
 				<< " to " << (task ? task->name : "(null)") << endl;
 			
@@ -388,6 +392,7 @@ int main(int argc, const char** argv)
 
 		void tick_scheduler(FactorioGame* game, Player& player)
 		{
+			Logger log("strategy");
 			std::shared_ptr<Task> task = scheduler.get_current_task();
 
 			if (current_task != task)
@@ -402,7 +407,7 @@ int main(int argc, const char** argv)
 				case TaskExecutionState::APPROACHING_START_LOCATION:
 					if (actions_finished)
 					{
-						cout << "player #" << player.id << " has approached task '" << current_task->name << "''s start location" << endl;
+						log << "player #" << player.id << " has approached task '" << current_task->name << "''s start location" << endl;
 						task_execution_state = TaskExecutionState::AWAITING_LAUNCH;
 					}
 					else
@@ -412,7 +417,7 @@ int main(int argc, const char** argv)
 				case TaskExecutionState::AWAITING_LAUNCH:
 					if (player.inventory.can_satisfy(current_task->required_items, current_task->owner_id))
 					{
-						cout << "player #" << player.id << " has launched task '" << current_task->name << "'" << endl;
+						log << "player #" << player.id << " has launched task '" << current_task->name << "'" << endl;
 						player.set_actions(current_task->actions);
 						actions_finished = false;
 						task_execution_state = TaskExecutionState::LAUNCHED;
@@ -422,16 +427,16 @@ int main(int argc, const char** argv)
 				case TaskExecutionState::LAUNCHED:
 					if (actions_finished)
 					{
-						cout << "player #" << player.id << "'s task '" << current_task->name << "' has finished. ";
+						log << "player #" << player.id << "'s task '" << current_task->name << "' has finished. ";
 						if (current_task->goals.has_value())
 						{
-							cout << "Its goals are " << (current_task->goals->all_fulfilled(game) ? "" : "NOT ") << "fulfilled:" << endl;
+							log << "Its goals are " << (current_task->goals->all_fulfilled(game) ? "" : "NOT ") << "fulfilled:" << endl;
 							current_task->goals->dump(game);
 						}
 						else
-							cout << "It had no goals, only actions (which have been executed)" << endl;
+							log << "It had no goals, only actions (which have been executed)" << endl;
 						
-						cout << "removing that task from the scheduler..." << endl;
+						log << "removing that task from the scheduler..." << endl;
 						scheduler.remove_task(current_task);
 
 						current_task = nullptr;
@@ -454,6 +459,7 @@ int main(int argc, const char** argv)
 
 		void tick_craftinglist()
 		{
+			Logger log("craftinglist");
 			assert( (current_crafting_action!=nullptr) == current_craft.has_value() );
 			if (current_crafting_action)
 				assert(current_crafting_action->recipe == current_craft->second);
@@ -464,13 +470,13 @@ int main(int argc, const char** argv)
 				if (current_crafting_action->is_finished())
 				{
 					auto t = current_craft->first.lock();
-					cout << "player #" << scheduler.player_idx << " has finished crafting " << current_craft->second->name << "(" << (t ? t->name : "?") << ")" << endl;
+					log << "player #" << scheduler.player_idx << " has finished crafting " << current_craft->second->name << "(" << (t ? t->name : "?") << ")" << endl;
 
 					scheduler.confirm_current_craft(current_craft.value());
 					current_crafting_action = nullptr;
 					current_craft = nullopt;
 
-					cout << "there is " << (scheduler.peek_current_craft() ? "a" : "no") << " next craft." << endl;
+					log << "there is " << (scheduler.peek_current_craft() ? "a" : "no") << " next craft." << endl;
 				}
 			}
 
@@ -478,38 +484,38 @@ int main(int argc, const char** argv)
 			// TODO FIXME: ugly.
 			if (current_craft.has_value() != scheduler.peek_current_craft().has_value() || (current_craft.has_value() && scheduler.peek_current_craft().has_value() && !Scheduler::owned_recipe_t_equal(current_craft.value(), scheduler.peek_current_craft().value())))
 			{
-				cout << "player #" << scheduler.player_idx << "'s current_craft has changed from ";
+				log << "player #" << scheduler.player_idx << "'s current_craft has changed from ";
 				if (current_craft.has_value())
 				{
-					cout << current_craft->second->name;
+					log << current_craft->second->name;
 					if (auto t = current_craft->first.lock())
-						cout << "(" << t->name << ")";
+						log << "(" << t->name << ")";
 					else
-						cout << "(?)";
+						log << "(?)";
 				}
 				else
-					cout << "(null)";
+					log << "(null)";
 
-				cout << " to ";
+				log << " to ";
 				
 				if (scheduler.peek_current_craft().has_value())
 				{
-					cout << scheduler.peek_current_craft()->second->name;
+					log << scheduler.peek_current_craft()->second->name;
 					if (auto t = scheduler.peek_current_craft()->first.lock())
-						cout << "(" << t->name << ")";
+						log << "(" << t->name << ")";
 					else
-						cout << "(?)";
+						log << "(?)";
 				}
 				else
-					cout << "(null)";
+					log << "(null)";
 
-				cout << endl;
+				log << endl;
 
 				
 				// abort the previous craft
 				if (current_craft.has_value())
 				{
-					cout << "aborting previous craft" << endl;
+					log << "aborting previous craft" << endl;
 					current_crafting_action->abort();
 					scheduler.retreat_current_craft(current_craft.value());
 					current_crafting_action = nullptr;
@@ -619,6 +625,7 @@ int main(int argc, const char** argv)
 
 		if (int key = gui.key())
 		{
+			Logger log("menu");
 			switch(key)
 			{
 				case '1':
@@ -678,12 +685,13 @@ int main(int argc, const char** argv)
 				}
 				case '5':
 				{
+					Logger log2("detail");
 					const ItemPrototype* coal = &factorio.get_item_prototype("coal");
 					int n_coal = 0;
 					for (const auto& ent : factorio.actual_entities.within_range(Area(-200,-200,200,200)))
 						if (const ContainerData* data = ent.data_or_null<ContainerData>())
 						{
-							cout << "considering " << ent.str() << " with fuel_is_output = " << data->fuel_is_output << endl;
+							log2 << "considering " << ent.str() << " with fuel_is_output = " << data->fuel_is_output << endl;
 							for (const auto& [key,val] : data->inventories)
 								if (key.item == coal && (inventory_flags[key.inv].take || (key.inv == INV_FUEL && data->fuel_is_output)))
 									n_coal += val;
@@ -692,7 +700,7 @@ int main(int argc, const char** argv)
 
 					int n_consumers = facilities[0].level*4 + facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;
 					int coal_per_furnace = n_coal / n_consumers;
-					cout << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
+					log << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
 
 
 					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
@@ -717,7 +725,7 @@ int main(int argc, const char** argv)
 				}
 					
 				case 'a':
-					cout << "scheduler.update_item_allocation()" << endl;
+					log << "scheduler.update_item_allocation()" << endl;
 					splayers[player_idx].scheduler.update_item_allocation();
 					break;
 
@@ -726,12 +734,12 @@ int main(int argc, const char** argv)
 					break;
 
 				case 'r':
-					cout << "scheduler.recalculate()" << endl;
+					log << "scheduler.recalculate()" << endl;
 					splayers[player_idx].scheduler.recalculate();
 					break;
 				case 't':
 				{
-					cout << "adding an important task" << endl;
+					log << "adding an important task" << endl;
 					auto mytask = make_shared<Task>("important chopper");
 					mytask->goals.emplace();
 					mytask->priority_ = -100;
@@ -748,7 +756,7 @@ int main(int argc, const char** argv)
 				}
 				case 'y':
 				{
-					cout << "adding a less important task" << endl;
+					log << "adding a less important task" << endl;
 					auto mytask = make_shared<Task>("nice chopper");
 					mytask->goals.emplace();
 					mytask->priority_ = 100;

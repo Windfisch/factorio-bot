@@ -18,13 +18,14 @@
 
 #pragma GCC optimize "-O2"
 
+#define DEBUG_PATHFINDING
 
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <unordered_set>
 #ifdef DEBUG_PATHFINDING
-#include <iostream>
+#include "logging.hpp"
 #endif
 
 #include <boost/heap/binomial_heap.hpp>
@@ -83,6 +84,10 @@ vector<Pos> a_star(const Pos& start, const Area_f& end, WorldMap<walk_t>& map, d
 
 vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& map, double allowed_distance, double min_distance, double length_limit, double size)
 {
+	#ifdef DEBUG_PATHFINDING
+	Logger log("pathfinding");
+	#endif
+
 	if (ceil(min_distance) >= allowed_distance)
 		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");
 
@@ -128,8 +133,8 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 			reverse(result.begin(), result.end());
 
 			#ifdef DEBUG_PATHFINDING
-			for (auto pos : result) cout << pos.str() << " - ";
-			cout<<endl;
+			for (auto pos : result) log << pos.str() << " - ";
+			log<<endl;
 			#endif
 
 			goto a_star_cleanup;
@@ -205,7 +210,7 @@ a_star_cleanup:
 	}
 
 	#ifdef DEBUG_PATHFINDING
-	cout << "took " << n_iterations << " iterations or " << (n_iterations / (start-end).len()) << " it/dist" << endl;
+	log << "took " << n_iterations << " iterations or " << (n_iterations / (start-end.center()).len()) << " it/dist" << endl;
 	#endif
 
 	return result;

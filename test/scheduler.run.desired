@@ -1,43 +1,43 @@
 task #0 -> crafting_list.time_remaining() = 15000ms
 task #1 -> crafting_list.time_remaining() = 290000ms
 task #2 -> crafting_list.time_remaining() = 50000ms
-queueing task 'task #1' with duration 290s and max_granted 29s
-queueing task 'task #0' with duration 15s and max_granted 30s
-	task #0 skips task #1 which now has granted 15s of max 29s
-queueing task 'task #2' with duration 50s and max_granted 35s
-	task #2 may not skip task #1 which has already granted 15s of max 29s. we have requested 50s more
+scheduler.detail: queueing task 'task #1' with duration 290s and max_granted 29s
+scheduler.detail: queueing task 'task #0' with duration 15s and max_granted 30s
+scheduler.detail: 	task #0 skips task #1 which now has granted 15s of max 29s
+scheduler.detail: queueing task 'task #2' with duration 50s and max_granted 35s
+scheduler.detail: 	task #2 may not skip task #1 which has already granted 15s of max 29s. we have requested 50s more
 dumping crafting_order:
 	task task #0 with priority 42 has eta = 15s of which 0s have already passed
 	task task #1 with priority 17 has eta = 305s of which 0s have already passed
 	task task #2 with priority 99 has no eta yet
-calculate_crafts for task #0: available_inventory is:
-	iron: 40
-	coppercable: 40
-	circuit: 3
-checking whether circuit can be crafted... yes
-checking whether machine can be crafted... yes
-calculate_crafts for task #1: available_inventory is:
-	iron: 80
-	stone: 230
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-checking whether furnace can be crafted... yes
-limiting size...
+scheduler: calculate_crafts for task #0: available_inventory is:
+scheduler.detail.inventory_dump: 	iron: 40
+scheduler.detail.inventory_dump: 	coppercable: 40
+scheduler.detail.inventory_dump: 	circuit: 3
+scheduler.detail: checking whether circuit can be crafted... yes
+scheduler.detail: checking whether machine can be crafted... yes
+scheduler: calculate_crafts for task #1: available_inventory is:
+scheduler.detail.inventory_dump: 	iron: 80
+scheduler.detail.inventory_dump: 	stone: 230
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: checking whether furnace can be crafted... yes
+scheduler.detail: limiting size...
 got 20 crafts
 	craft circuit for task task #0
 	craft machine for task task #0
@@ -89,68 +89,78 @@ task 'modest task' is missing the following items:
 
 --------------------------------------------------------------------------------
 testing with the following tasks: modest task(100) 
-queueing task 'modest task' with duration 0s and max_granted 0s
-desired schedule:
-<============================= 0 modest task 120 ==============================>
-|     .      .      .     .      :      .     .      .      .     |      . 110 sec
-actual schedule:
- <============================= 2 modest task 122 =============================>
-|     .      .     .      .     :      .     .      .     .      |     .      . 120 sec
--> okay :)
+scheduler.detail: queueing task 'modest task' with duration 0s and max_granted 0s
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <============================= 0 modest task 120 ==============================>
+calculate_schedule.schedule_dump: |     .      .      .     .      :      .     .      .      .     |      . 110 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:  <============================= 2 modest task 122 =============================>
+calculate_schedule.schedule_dump: |     .      .     .      .     :      .     .      .     .      |     .      . 120 sec
+calculate_schedule: -> okay :)
 next task is modest task
 
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 testing with the following tasks: crafting task(44) 
-queueing task 'crafting task' with duration 43s and max_granted 4s
-missing: iron(46), copper(18),  
-calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
-	->10
-visiting chest at 10.000000,-2.000000 for copper(17),  with a cost of 1 sec (9223372036 sec remaining)
-missing: iron(46), copper(1),  
-calculating path from 10,-2 to 10.000000,70.000000 with a length limit of 8.21074e+10
-	->71
-visiting chest at 10.000000,70.000000 for copper(1),  with a cost of 7 sec (9223372035 sec remaining)
-missing: iron(46),  
-calculating path from 10,70 to 100.000000,30.000000 with a length limit of 8.21074e+10
-	->90
-visiting chest at 100.000000,30.000000 for iron(46),  with a cost of 11 sec (9223372027 sec remaining)
-missing:  
-we've got everything we need
-desired schedule:
-<================= 0 resource collector for crafting task 20 ==================>
-|  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
-actual schedule:
-<================= 0 resource collector for crafting task 20 ==================>
-|  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
--> okay :)
+scheduler.detail: queueing task 'crafting task' with duration 43s and max_granted 4s
+calculate_schedule.build_collector_task: missing: iron(46), copper(18),  
+calculate_schedule.build_collector_task: calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
+calculate_schedule.build_collector_task.pathfinding: 0,0 - 1,0 - 2,0 - 3,0 - 4,0 - 5,0 - 6,0 - 7,-1 - 8,-1 - 9,-2 - 
+calculate_schedule.build_collector_task.pathfinding: took 10 iterations or 0.980581 it/dist
+calculate_schedule.build_collector_task: 	->10
+calculate_schedule.build_collector_task: visiting chest at 10.000000,-2.000000 for copper(17),  with a cost of 1 sec (9223372036 sec remaining)
+calculate_schedule.build_collector_task: missing: iron(46), copper(1),  
+calculate_schedule.build_collector_task: calculating path from 10,-2 to 10.000000,70.000000 with a length limit of 8.21074e+10
+calculate_schedule.build_collector_task.pathfinding: 10,-2 - 10,-1 - 10,0 - 10,1 - 10,2 - 10,3 - 10,4 - 10,5 - 10,6 - 10,7 - 10,8 - 10,9 - 10,10 - 10,11 - 10,12 - 10,13 - 10,14 - 10,15 - 10,16 - 10,17 - 10,18 - 10,19 - 10,20 - 10,21 - 10,22 - 10,23 - 10,24 - 10,25 - 10,26 - 10,27 - 10,28 - 10,29 - 10,30 - 10,31 - 10,32 - 10,33 - 10,34 - 10,35 - 10,36 - 10,37 - 10,38 - 10,39 - 10,40 - 10,41 - 10,42 - 10,43 - 10,44 - 10,45 - 10,46 - 10,47 - 10,48 - 10,49 - 10,50 - 10,51 - 10,52 - 10,53 - 10,54 - 10,55 - 10,56 - 10,57 - 10,58 - 10,59 - 10,60 - 10,61 - 10,62 - 10,63 - 10,64 - 10,65 - 10,66 - 10,67 - 10,68 - 
+calculate_schedule.build_collector_task.pathfinding: took 71 iterations or 0.986111 it/dist
+calculate_schedule.build_collector_task: 	->71
+calculate_schedule.build_collector_task: visiting chest at 10.000000,70.000000 for copper(1),  with a cost of 7 sec (9223372035 sec remaining)
+calculate_schedule.build_collector_task: missing: iron(46),  
+calculate_schedule.build_collector_task: calculating path from 10,70 to 100.000000,30.000000 with a length limit of 8.21074e+10
+calculate_schedule.build_collector_task.pathfinding: 10,70 - 11,69 - 12,68 - 13,67 - 14,66 - 15,65 - 16,64 - 17,64 - 18,63 - 19,63 - 20,63 - 21,62 - 22,62 - 23,61 - 24,61 - 25,60 - 26,60 - 27,60 - 28,59 - 29,59 - 30,58 - 31,58 - 32,58 - 33,57 - 34,57 - 35,56 - 36,56 - 37,56 - 38,55 - 39,55 - 40,54 - 41,54 - 42,54 - 43,53 - 44,53 - 45,52 - 46,52 - 47,52 - 48,51 - 49,51 - 50,50 - 51,50 - 52,50 - 53,49 - 54,49 - 55,48 - 56,48 - 57,47 - 58,47 - 59,47 - 60,46 - 61,46 - 62,45 - 63,45 - 64,45 - 65,44 - 66,44 - 67,43 - 68,43 - 69,43 - 70,42 - 71,42 - 72,41 - 73,41 - 74,41 - 75,40 - 76,40 - 77,39 - 78,39 - 79,39 - 80,38 - 81,38 - 82,37 - 83,37 - 84,37 - 85,36 - 86,36 - 87,35 - 88,35 - 89,34 - 90,34 - 91,34 - 92,33 - 93,33 - 94,32 - 95,32 - 96,32 - 97,31 - 98,31 - 99,30 - 
+calculate_schedule.build_collector_task.pathfinding: took 90 iterations or 0.913812 it/dist
+calculate_schedule.build_collector_task: 	->90
+calculate_schedule.build_collector_task: visiting chest at 100.000000,30.000000 for iron(46),  with a cost of 11 sec (9223372027 sec remaining)
+calculate_schedule.build_collector_task: missing:  
+calculate_schedule.build_collector_task: we've got everything we need
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <================= 0 resource collector for crafting task 20 ==================>
+calculate_schedule.schedule_dump: |  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump: <================= 0 resource collector for crafting task 20 ==================>
+calculate_schedule.schedule_dump: |  .   .   .   .   :   .  .   .   .   |   .   .  .   .   :   .   .   .  .   | 20 sec
+calculate_schedule: -> okay :)
 next task is resource collector for crafting task
 
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 testing with the following tasks: greedy task(42) 
-queueing task 'greedy task' with duration 0s and max_granted 0s
-missing: iron(17), belt(42),  
-calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
-	->10
-visiting chest at 10.000000,-2.000000 for belt(42),  with a cost of 1 sec (9223372036 sec remaining)
-missing: iron(17),  
-not visiting chest at 10.000000,70.000000 (irrelevant)
-missing: iron(17),  
-calculating path from 10,-2 to 100.000000,30.000000 with a length limit of 8.21074e+10
-	->90
-visiting chest at 100.000000,30.000000 for iron(17),  with a cost of 11 sec (9223372035 sec remaining)
-missing:  
-we've got everything we need
-desired schedule:
-<================== 0 resource collector for greedy task 12 ===================>
-|     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
-actual schedule:
-<================== 0 resource collector for greedy task 12 ===================>
-|     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
--> okay :)
+scheduler.detail: queueing task 'greedy task' with duration 0s and max_granted 0s
+calculate_schedule.build_collector_task: missing: iron(17), belt(42),  
+calculate_schedule.build_collector_task: calculating path from 0,0 to 10.000000,-2.000000 with a length limit of 8.21074e+10
+calculate_schedule.build_collector_task.pathfinding: 0,0 - 1,0 - 2,0 - 3,0 - 4,0 - 5,0 - 6,0 - 7,-1 - 8,-1 - 9,-2 - 
+calculate_schedule.build_collector_task.pathfinding: took 10 iterations or 0.980581 it/dist
+calculate_schedule.build_collector_task: 	->10
+calculate_schedule.build_collector_task: visiting chest at 10.000000,-2.000000 for belt(42),  with a cost of 1 sec (9223372036 sec remaining)
+calculate_schedule.build_collector_task: missing: iron(17),  
+calculate_schedule.build_collector_task: not visiting chest at 10.000000,70.000000 (irrelevant)
+calculate_schedule.build_collector_task: missing: iron(17),  
+calculate_schedule.build_collector_task: calculating path from 10,-2 to 100.000000,30.000000 with a length limit of 8.21074e+10
+calculate_schedule.build_collector_task.pathfinding: 10,-2 - 11,-2 - 12,-2 - 13,-2 - 14,-2 - 15,-2 - 16,-2 - 17,-2 - 18,-2 - 19,-2 - 20,-2 - 21,-2 - 22,-2 - 23,-1 - 24,-1 - 25,0 - 26,0 - 27,0 - 28,1 - 29,1 - 30,2 - 31,2 - 32,2 - 33,3 - 34,3 - 35,4 - 36,4 - 37,4 - 38,5 - 39,5 - 40,6 - 41,6 - 42,6 - 43,7 - 44,7 - 45,8 - 46,8 - 47,8 - 48,9 - 49,9 - 50,10 - 51,10 - 52,10 - 53,11 - 54,11 - 55,12 - 56,12 - 57,13 - 58,13 - 59,13 - 60,14 - 61,14 - 62,15 - 63,15 - 64,15 - 65,16 - 66,16 - 67,17 - 68,17 - 69,17 - 70,18 - 71,18 - 72,19 - 73,19 - 74,19 - 75,20 - 76,20 - 77,21 - 78,21 - 79,21 - 80,22 - 81,22 - 82,23 - 83,23 - 84,23 - 85,24 - 86,24 - 87,25 - 88,25 - 89,26 - 90,26 - 91,26 - 92,27 - 93,27 - 94,28 - 95,28 - 96,28 - 97,29 - 98,29 - 99,30 - 
+calculate_schedule.build_collector_task.pathfinding: took 90 iterations or 0.942215 it/dist
+calculate_schedule.build_collector_task: 	->90
+calculate_schedule.build_collector_task: visiting chest at 100.000000,30.000000 for iron(17),  with a cost of 11 sec (9223372035 sec remaining)
+calculate_schedule.build_collector_task: missing:  
+calculate_schedule.build_collector_task: we've got everything we need
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <================== 0 resource collector for greedy task 12 ===================>
+calculate_schedule.schedule_dump: |     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump: <================== 0 resource collector for greedy task 12 ===================>
+calculate_schedule.schedule_dump: |     .     .      .     .     :      .     .     .      .     |     .      . 12 sec
+calculate_schedule: -> okay :)
 next task is resource collector for greedy task
 
 --------------------------------------------------------------------------------
@@ -158,89 +168,89 @@ next task is resource collector for greedy task
 now with some inventory
 --------------------------------------------------------------------------------
 testing with the following tasks: modest task(100) crafting task(44) 
-queueing task 'crafting task' with duration 43s and max_granted 4s
-queueing task 'modest task' with duration 0s and max_granted 4s
-	modest task skips crafting task which now has granted 0s of max 4s
-desired schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
--> okay :)
-desired schedule:
-<================== 0 modest task 120 ===================>
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
-<========= 2 modest task 122 ==========>
-                                        <======= 125 crafting task 245 ========>
-|  .  .  .   .  :  .  .   .  .  |  .   .  .  .  :   .  .  .  .   |  .  .  .   . 240 sec
--> not okay, reverting
+scheduler.detail: queueing task 'crafting task' with duration 43s and max_granted 4s
+scheduler.detail: queueing task 'modest task' with duration 0s and max_granted 4s
+scheduler.detail: 	modest task skips crafting task which now has granted 0s of max 4s
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: -> okay :)
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <================== 0 modest task 120 ===================>
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump: <========= 2 modest task 122 ==========>
+calculate_schedule.schedule_dump:                                         <======= 125 crafting task 245 ========>
+calculate_schedule.schedule_dump: |  .  .  .   .  :  .  .   .  .  |  .   .  .  .  :   .  .  .  .   |  .  .  .   . 240 sec
+calculate_schedule: -> not okay, reverting
 next task is <null>
 
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 testing with the following tasks: quick_modest task(100) crafting task(44) 
-queueing task 'crafting task' with duration 43s and max_granted 4s
-queueing task 'quick_modest task' with duration 0s and max_granted 4s
-	quick_modest task skips crafting task which now has granted 0s of max 4s
-desired schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
--> okay :)
-desired schedule:
-<=====================> 0 quick_modest task 47
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
- <====================> 2 quick_modest task 49
-                        <================ 52 crafting task 172 ================>
-|   .    .   .    .    :   .    .    .   .    |   .    .    .   .    :    .   . 170 sec
--> okay :)
+scheduler.detail: queueing task 'crafting task' with duration 43s and max_granted 4s
+scheduler.detail: queueing task 'quick_modest task' with duration 0s and max_granted 4s
+scheduler.detail: 	quick_modest task skips crafting task which now has granted 0s of max 4s
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: -> okay :)
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <=====================> 0 quick_modest task 47
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:  <====================> 2 quick_modest task 49
+calculate_schedule.schedule_dump:                         <================ 52 crafting task 172 ================>
+calculate_schedule.schedule_dump: |   .    .   .    .    :   .    .    .   .    |   .    .    .   .    :    .   . 170 sec
+calculate_schedule: -> okay :)
 next task is quick_modest task
 
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 testing with the following tasks: far important task(1) 
-queueing task 'far important task' with duration 0s and max_granted 0s
-desired schedule:
-        <======================= 0 far important task 4 =======================>
-|                .                 .                 .                 . 4 sec
-actual schedule:
-                                             28 far important task 32 <========>
-| . .  . .  : .  . .  . |  . .  . .  : .  . .  . |  . . .  . :  . .  . .  | .  . 32 sec
--> okay :)
+scheduler.detail: queueing task 'far important task' with duration 0s and max_granted 0s
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump:         <======================= 0 far important task 4 =======================>
+calculate_schedule.schedule_dump: |                .                 .                 .                 . 4 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:                                              28 far important task 32 <========>
+calculate_schedule.schedule_dump: | . .  . .  : .  . .  . |  . .  . .  : .  . .  . |  . . .  . :  . .  . .  | .  . 32 sec
+calculate_schedule: -> okay :)
 next task is far important task
 
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 testing with the following tasks: crafting task(44) far nice task(100) 
-queueing task 'crafting task' with duration 43s and max_granted 4s
-queueing task 'far nice task' with duration 0s and max_granted 4s
-	far nice task skips crafting task which now has granted 0s of max 4s
-desired schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
--> okay :)
-desired schedule:
-<> 0 far nice task 4
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
-actual schedule:
-             <> 28 far nice task 32
-                     <================= 43 crafting task 163 ==================>
-|   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
--> okay :)
+scheduler.detail: queueing task 'crafting task' with duration 43s and max_granted 4s
+scheduler.detail: queueing task 'far nice task' with duration 0s and max_granted 4s
+scheduler.detail: 	far nice task skips crafting task which now has granted 0s of max 4s
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: -> okay :)
+calculate_schedule: desired schedule:
+calculate_schedule.schedule_dump: <> 0 far nice task 4
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: actual schedule:
+calculate_schedule.schedule_dump:              <> 28 far nice task 32
+calculate_schedule.schedule_dump:                      <================= 43 crafting task 163 ==================>
+calculate_schedule.schedule_dump: |   .    .    .    .    :    .    .    .    .    |   .    .    .    .    :    . 160 sec
+calculate_schedule: -> okay :)
 next task is far nice task
 
 --------------------------------------------------------------------------------

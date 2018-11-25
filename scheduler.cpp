@@ -35,6 +35,8 @@
 #include <limits>
 #include <optional>
 
+#include "logging.hpp"
+
 #include <experimental/array> // for make_array
 using std::experimental::make_array;
 
@@ -89,6 +91,7 @@ void Task::actions_changed()
 
 void Scheduler::cleanup_item_claims()
 {
+	Logger log("detail");
 	std::unordered_set<owner_t> owners;
 	for (const auto& task : pending_tasks)
 		owners.insert(task.second->owner_id);
@@ -98,7 +101,7 @@ void Scheduler::cleanup_item_claims()
 		{
 			if (owners.find(iter->owner) == owners.end()) // this claim is stale. remove it!
 			{
-				cout << "removing stale claim for " << owner_names.get(iter->owner) << endl;
+				log << "removing stale claim for " << owner_names.get(iter->owner) << endl;
 				iter = tagged_amount.claims.erase(iter);
 			}
 			else
@@ -144,7 +147,8 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 
 void Scheduler::recalculate()
 {
-	cout << "Scheduler::recalculate()" << endl;
+	Logger log("scheduler");
+	log << "Scheduler::recalculate()" << endl;
 
 	for (auto& [_,task] : pending_tasks)
 		task->update_actions_from_goals(game, player_idx);
@@ -284,10 +288,11 @@ void Scheduler::add_task(shared_ptr<Task> task)
 
 void Scheduler::remove_task(shared_ptr<Task> task)
 {
+	Logger log("scheduler");
 	if (auto iter = find_task(task); iter != pending_tasks.end())
 		pending_tasks.erase(iter);
 	else
-		cout << "WARNING: tried to remove a nonexistent task!" << endl;
+		log << "WARNING: tried to remove a nonexistent task!" << endl;
 }
 
 
@@ -333,29 +338,30 @@ void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const 
 
 void Task::dump() const
 {
-	cout << (is_dependent ? "dependent " : "") << "Task '" << name << "', prio = " << priority()
+	Logger log("task_dump");
+	log << (is_dependent ? "dependent " : "") << "Task '" << name << "', prio = " << priority()
 		<< ", start = (" << start_location.str() << ") ±" << start_radius << ", end = (" << end_location.str() << ")" << endl;
 
-	cout << "\tRequired items: ";
+	log << "\tRequired items: ";
 	for (const auto& [item,amount] : required_items)
-		cout << amount << "x " << item->name << ", ";
-	cout << "\b\b \b" << endl;
+		log << amount << "x " << item->name << ", ";
+	log << "\b\b \b" << endl;
 
-	cout << "\tCrafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
+	log << "\tCrafting list: " << (crafting_list.recipes.empty() ? "empty" : "") << endl;
 
 	for (const auto& [amount,entry] : compact_sequence(crafting_list.recipes))
 	{
-		cout << "\t\t";
+		log << "\t\t";
 		switch (entry.status)
 		{
-			case CraftingList::PENDING: cout << "  [pending]"; break;
-			case CraftingList::CURRENT: cout << "> [current]"; break;
-			case CraftingList::FINISHED: cout <<" [finished]"; break;
-			default: cout << "      [???]"; 
+			case CraftingList::PENDING: log << "  [pending]"; break;
+			case CraftingList::CURRENT: log << "> [current]"; break;
+			case CraftingList::FINISHED: log <<" [finished]"; break;
+			default: log << "      [???]"; 
 		}
-		cout << " " << entry.recipe->name << " (" << amount << "x)" << endl;
+		log << " " << entry.recipe->name << " (" << amount << "x)" << endl;
 	}
-	cout << endl;
+	log << endl;
 }
 
 map<const ItemPrototype*, signed int> Task::items_balance() const
@@ -418,6 +424,7 @@ bool Task::check_inventory(Inventory inventory) const
 // balancing between "high priority first" and "quick crafts may go first"
 vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 {
+	Logger log("detail");
 	struct WaitingQueueItem
 	{
 		shared_ptr<Task> task;
@@ -451,7 +458,7 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 			task->crafting_list.time_remaining()
 		});
 
-		cout << "queueing task '" << task->name << "' with duration " << sec(queue.back().own_duration) << "s and max_granted " << sec(queue.back().max_granted) << "s" << endl;
+		log << "queueing task '" << task->name << "' with duration " << sec(queue.back().own_duration) << "s and max_granted " << sec(queue.back().max_granted) << "s" << endl;
 		
 		// jump the queue
 		for (size_t i = queue.size(); i --> 1;)
@@ -462,14 +469,14 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 			{
 				// we may skip that one
 				pred.time_granted += curr.own_duration;
-				cout << "\t" << curr.task->name << " skips " << pred.task->name << " which now has granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s" << endl;
+				log << "\t" << curr.task->name << " skips " << pred.task->name << " which now has granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s" << endl;
 				std::swap(curr,pred);
 				continue;
 			}
 			else
 			{
 				// nope
-				cout << "\t" << curr.task->name << " may not skip " << pred.task->name << " which has already granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s. we have requested " << sec(curr.own_duration) << "s more" << endl;
+				log << "\t" << curr.task->name << " may not skip " << pred.task->name << " which has already granted " << sec(pred.time_granted) << "s of max " << sec(pred.max_granted) << "s. we have requested " << sec(curr.own_duration) << "s more" << endl;
 				break;
 			}
 		}
@@ -484,6 +491,7 @@ vector<weak_ptr<Task>> Scheduler::calc_crafting_order()
 // updates the crafting order and the tasks' ETAs
 void Scheduler::update_crafting_order(const item_allocation_t& task_inventories)
 {
+	Logger log("scheduler");
 	for (auto task_w : crafting_order)
 		if (auto task = task_w.lock()) // silently ignore expired weak_ptrs
 			task->crafting_eta = nullopt;
@@ -508,6 +516,8 @@ void Scheduler::update_crafting_order(const item_allocation_t& task_inventories)
  */
 deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocation_t& task_inventories, size_t max_n)
 {
+	Logger log("scheduler");
+	Logger log2("detail");
 	deque<owned_recipe_t> result;
 
 	for (auto& task_w : crafting_order)
@@ -518,7 +528,7 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 		if (crafts.almost_finished())
 			continue;
 		
-		cout << "calculate_crafts for " << task->name << ": available_inventory is:" << endl;
+		log << "calculate_crafts for " << task->name << ": available_inventory is:" << endl;
 		available_inventory.dump();
 
 		// iterate over each not-yet-finished craft in the current task's crafting list
@@ -531,24 +541,24 @@ deque<Scheduler::owned_recipe_t> Scheduler::calculate_crafts(const item_allocati
 				case CraftingList::FINISHED:
 					break;
 				case CraftingList::PENDING:
-					cout << "checking whether " << entry.recipe->name << " can be crafted... ";
+					log2 << "checking whether " << entry.recipe->name << " can be crafted... ";
 					if (available_inventory.apply(entry.recipe))
 					{
-						cout << "yes" << endl;
+						log2 << "yes" << endl;
 						result.emplace_back(task, entry.recipe);
 
 						// limit the result's size
 						if (result.size() >= max_n)
 						{
-							cout << "limiting size..." << endl;
+							log2 << "limiting size..." << endl;
 							goto finish;
 						}
 					}
 					else
-						cout << "no" << endl;
+						log2 << "no" << endl;
 					break;
 				case CraftingList::CURRENT:
-					cout << entry.recipe->name << " is currently being crafted... ";
+					log2 << entry.recipe->name << " is currently being crafted... ";
 					available_inventory.apply(entry.recipe, true);
 					result.emplace_back(task, entry.recipe);
 					break;
@@ -563,6 +573,7 @@ finish:
 
 static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns = 80, int n_ticks = 5)
 {
+	Logger log("schedule_dump");
 	if (schedule.empty())
 		return;
 	
@@ -604,7 +615,7 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 		else
 			result = string(begin_column, ' ') + "<" + string(end_column-begin_column-2, '=') + ">\n^ " + label + " ^";
 
-		cout << result << endl;
+		log << result << endl;
 	}
 
 
@@ -627,16 +638,17 @@ static void dump_schedule(const Scheduler::schedule_t& schedule, int n_columns =
 
 		tickval = chrono::duration_cast<chrono::seconds>(i).count();
 		int col = int(n_columns * i.count() / last_offset.count());
-		cout << string(col-lastcol, ' ') << tickchr;
+		log << string(col-lastcol, ' ') << tickchr;
 		lastcol = col+1;
 	}
-	cout << " " << tickval << " sec" << endl;
+	log << " " << tickval << " sec" << endl;
 }
 
 void Scheduler::dump()
 {
-	cout << string(75, '=') << "\n\n";
-	cout << "Scheduler tasks:" << endl;
+	Logger log("scheduler_dump");
+	log << string(75, '=') << "\n\n";
+	log << "Scheduler tasks:" << endl;
 	for (const auto& [prio,task] : pending_tasks)
 	{
 		task->dump();
@@ -645,22 +657,22 @@ void Scheduler::dump()
 			iter != current_item_allocation.end())
 		{
 			const Inventory& inventory = iter->second;
-			cout << "\ttasks inventory:" << endl;
+			log << "\ttasks inventory:" << endl;
 			inventory.dump();
 		}
 		else
 		{
-			cout << "task has no item allocation yet" << endl;
+			log << "task has no item allocation yet" << endl;
 		}
-		cout << endl;
+		log << endl;
 	}
 	
-	cout << "\n" << string(75, '-') << "\n";
+	log << "\n" << string(75, '-') << "\n";
 
 	dump_schedule(current_schedule);
 
 
-	cout << "\n" << string(75, '=') << endl << endl << endl;
+	log << "\n" << string(75, '=') << endl << endl << endl;
 }
 
 
@@ -806,6 +818,7 @@ shared_ptr<Task> Scheduler::get_next_task(const item_allocation_t& task_inventor
 
 Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& task_inventories, Clock::duration eta_threshold)
 {
+	Logger log("calculate_schedule");
 	const Player& player = game->players[player_idx];
 	// FIXME: use proper calculation function
 	ScheduleChecker check_schedule(player.position, [](Pos a, Pos b, float /*radius*/) { return std::chrono::duration_cast<Clock::duration>(std::chrono::milliseconds(200) * (a-b).len()); });
@@ -844,7 +857,7 @@ Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& tas
 
 			if (task == nullptr)
 			{
-				cout << "note: tried to build a collector task for task '" << pending_task->name << "'\n"
+				log << "note: tried to build a collector task for task '" << pending_task->name << "'\n"
 				        "      with a time limit of " << 
 				        chrono::duration_cast<chrono::seconds>(max_duration).count() << " sec "
 				        "but failed" << endl;
@@ -858,21 +871,21 @@ Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& tas
 		Clock::duration eta = task->crafting_list.time_remaining();
 		auto iter = schedule.insert(make_pair( make_pair(eta, task->priority()), task));
 
-		cout << "desired schedule:" << endl;
+		log << "desired schedule:" << endl;
 		dump_schedule(schedule);
-		cout << "actual schedule:" << endl;
+		log << "actual schedule:" << endl;
 		dump_schedule(check_schedule.sanitize(schedule));
 
 		if (!check_schedule(schedule))
 		{
 			// the Task would delay a more important task for too long
 			// => cannot use it
-			cout << "-> not okay, reverting" << endl;
+			log << "-> not okay, reverting" << endl;
 			schedule.erase(iter);
 		}
 		else
 		{
-			cout << "-> okay :)" << endl;
+			log << "-> okay :)" << endl;
 			// the Task can be scheduled in `eta`.
 			if (eta <= eta_threshold) // FIXME magic value
 			{
@@ -933,6 +946,7 @@ std::ostream& operator<<(std::ostream& os, const chrono::duration<Rep,Per>& dur)
  * opportunistic detours are made. But it gets the stuff done.*/
 shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_inventories, const shared_ptr<Task>& original_task, Clock::duration max_duration, float grace)
 {
+	Logger log("build_collector_task");
 	UNUSED(grace); // this is a poor man's implementation
 	auto& world_entities = game->actual_entities;
 
@@ -983,7 +997,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		// we're done.
 		if (walk_duration_approx(last_pos, container.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
 		{
-			cout << "aborting due to duration approximation" << endl;
+			log << "aborting due to duration approximation" << endl;
 			break;
 		}
 
@@ -996,14 +1010,14 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		chest_action->subactions.push_back(make_shared<action::WalkTo>(game, player.id, container.pos, ALLOWED_DISTANCE));
 
 		auto new_missing_items = missing_items;
-		cout << "missing: ";
+		log << "missing: ";
 		bool missing_anything = false;
 		for (ItemStack& stack : new_missing_items)
 		{
 			if (stack.amount == 0)
 				continue;
 
-			cout << stack.proto->name << "(" << stack.amount << "), ";
+			log << stack.proto->name << "(" << stack.amount << "), ";
 			missing_anything = true;
 
 			for (const auto& x : make_iterator_range(data->inventories.item_begin(stack.proto), data->inventories.item_end(stack.proto)))
@@ -1023,17 +1037,17 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				}
 			}
 		}
-		cout << "\b\b " << endl;
+		log << "\b\b " << endl;
 
 		if (!missing_anything)
 		{
-			cout << "we've got everything we need" << endl;
+			log << "we've got everything we need" << endl;
 			break;
 		}
 
 		if (relevant)
 		{
-			cout << "calculating path from " << last_pos.str() << " to " << container.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
+			log << "calculating path from " << last_pos.str() << " to " << container.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
 			// check if this chest is actually close enough
 			auto path = a_star(
 				last_pos, container.pos,
@@ -1042,17 +1056,17 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				walk_distance_in_time(max_duration - time_spent)
 			);
 			
-			cout << "\t->" << path.size() << endl;
+			log << "\t->" << path.size() << endl;
 
 			Clock::duration chest_duration = path_walk_duration(path); // FIXME maybe add a constant?
 			
 			if (time_spent + chest_duration <= max_duration)
 			{
-				cout << "visiting chest at " << container.pos.str() << " for ";
+				log << "visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_action->subactions)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
-						cout << action->item->name << "(" << action->amount << "), ";
-				cout << "\b\b with a cost of " <<
+						log << action->item->name << "(" << action->amount << "), ";
+				log << "\b\b with a cost of " <<
 					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
 					" sec remaining)" << endl;
@@ -1067,11 +1081,11 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 			// else: we can't afford going there. maybe try somewhere else.
 			else
 			{
-				cout << "not visiting chest at " << container.pos.str() << " for ";
+				log << "not visiting chest at " << container.pos.str() << " for ";
 				for (const auto& sg : chest_action->subactions)
 					if (auto action = dynamic_cast<action::TakeFromInventory*>(sg.get()))
-						cout << action->item->name << "(" << action->amount << "), ";
-				cout << "\b\b with a cost of " <<
+						log << action->item->name << "(" << action->amount << "), ";
+				log << "\b\b with a cost of " <<
 					chrono::duration_cast<chrono::seconds>(chest_duration).count() << " sec (" <<
 					chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() << 
 					" sec remaining)" << endl;
@@ -1080,7 +1094,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		// else: chest_action goes out of scope and is deleted
 		else
 		{
-			cout << "not visiting chest at " << container.pos.str() << " (irrelevant)" << endl;
+			log << "not visiting chest at " << container.pos.str() << " (irrelevant)" << endl;
 		}
 	}
 
@@ -1109,20 +1123,20 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 		
 				if (walk_duration_approx(last_pos, mineable.pos) + time_spent - walk_duration_approx(player.position, last_pos) > max_duration)
 				{
-					cout << "aborting due to duration approximation" << endl;
+					log << "aborting due to duration approximation" << endl;
 					break;
 				}
 
 				bool relevant = false;
 				auto new_missing_items = missing_items;
-				cout << "missing: ";
+				log << "missing: ";
 				bool missing_anything = false;
 				for (ItemStack& stack : new_missing_items)
 				{
 					if (stack.amount == 0)
 						continue;
 
-					cout << stack.proto->name << "(" << stack.amount << "), ";
+					log << stack.proto->name << "(" << stack.amount << "), ";
 					missing_anything = true;
 
 					int take_amount = get_or(mineable.proto->mine_results, stack.proto, 0);
@@ -1132,24 +1146,24 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 						relevant = true;
 					}
 				}
-				cout << "\b\b " << endl;
+				log << "\b\b " << endl;
 
 				if (!missing_anything)
 				{
-					cout << "we've got everything we need" << endl;
+					log << "we've got everything we need" << endl;
 					break;
 				}
 				
 				if (!relevant)
 				{
-					cout << "not visiting mineable " << mineable.str() << " for ";
+					log << "not visiting mineable " << mineable.str() << " for ";
 					for (const auto& entry : mineable.proto->mine_results)
-						cout << entry.first->name << "(" << entry.second << "), ";
-					cout << " (irrelevant)" << endl;
+						log << entry.first->name << "(" << entry.second << "), ";
+					log << " (irrelevant)" << endl;
 					continue;
 				}
 
-				cout << "calculating path from " << last_pos.str() << " to " << mineable.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
+				log << "calculating path from " << last_pos.str() << " to " << mineable.pos.str() << " with a length limit of " << walk_distance_in_time(max_duration - time_spent) << endl;
 				// check if this mineable is actually close enough
 				auto path = a_star(
 					last_pos, mineable.pos,
@@ -1158,16 +1172,16 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 					walk_distance_in_time(max_duration - time_spent)
 				);
 
-				cout << "\t->" << path.size() << endl;
+				log << "\t->" << path.size() << endl;
 
 				Clock::duration mineable_duration = path_walk_duration(path) + std::chrono::seconds(3); // FIXME magic number for mining that entity :|
 
 				if (time_spent + mineable_duration <= max_duration)
 				{
-					cout << "visiting mineable " << mineable.str() << " for ";
+					log << "visiting mineable " << mineable.str() << " for ";
 					for (const auto& entry : mineable.proto->mine_results)
-						cout << entry.first->name << "(" << entry.second << "), ";
-					cout << "\b\b with a cost of " <<
+						log << entry.first->name << "(" << entry.second << "), ";
+					log << "\b\b with a cost of " <<
 						chrono::duration_cast<chrono::seconds>(mineable_duration).count() << " sec (" <<
 						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
 						" sec remaining)" << endl;
@@ -1186,10 +1200,10 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 				// else: we can't afford going there. maybe try somewhere else.
 				else
 				{
-					cout << "not visiting mineable " << mineable.str() << " for ";
+					log << "not visiting mineable " << mineable.str() << " for ";
 					for (const auto& entry : mineable.proto->mine_results)
-						cout << entry.first->name << "(" << entry.second << "), ";
-					cout << "\b\b with a cost of " <<
+						log << entry.first->name << "(" << entry.second << "), ";
+					log << "\b\b with a cost of " <<
 						chrono::duration_cast<chrono::seconds>(mineable_duration).count() << " sec (" <<
 						chrono::duration_cast<chrono::seconds>(max_duration-time_spent).count() <<
 						" sec remaining)" << endl;

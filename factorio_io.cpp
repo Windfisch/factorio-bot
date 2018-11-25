@@ -31,6 +31,7 @@
 #include "util.hpp"
 #include "split.hpp"
 #include "safe_cast.hpp"
+#include "logging.hpp"
 
 #define READ_BUFSIZE 1024
 
@@ -120,9 +121,10 @@ void FactorioGame::rcon_connect(string host, int port, string password)
 
 void FactorioGame::rcon_call(string func, string args)
 {
+	Logger log("core");
 	if (!rcon.connected())
 	{
-		cout << "rcon_call(): not connected, ignoring" << endl;
+		log << "rcon_call(): not connected, ignoring" << endl;
 		return;
 	}
 
@@ -141,9 +143,11 @@ void FactorioGame::rcon_call(string func, int action_id, int player_id, string a
 
 void FactorioGame::set_waypoints(int action_id, int player_id, const std::vector<Pos>& waypoints)
 {
+	Logger log("core");
+
 	if (waypoints.size() < 1)
 	{
-		cout << "ignoring zero-size path" << endl;
+		log << "ignoring zero-size path" << endl;
 		return;
 	}
 
@@ -213,18 +217,20 @@ string FactorioGame::remove_line_from_buffer()
 
 string FactorioGame::read_packet()
 {
+	Logger log("core");
+
 	if (line_buffer.find('\n') != string::npos)
 		return remove_line_from_buffer();
 
 	if (!factorio_file.good() || !factorio_file.is_open())
 	{
-		cout << "read_packet: file is not good. trying to open '" << factorio_file_prefix+to_string(factorio_file_id) << ".txt'..." << endl;
+		log << "read_packet: file is not good. trying to open '" << factorio_file_prefix+to_string(factorio_file_id) << ".txt'..." << endl;
 		factorio_file.clear();
 		factorio_file.open(factorio_file_prefix+to_string(factorio_file_id)+".txt");
 
 		if (!factorio_file.good() || !factorio_file.is_open())
 		{
-			cout << "still failed :(" << endl;
+			log << "still failed :(" << endl;
 			return "";
 		}
 	}
@@ -261,6 +267,8 @@ void FactorioGame::resolve_references_to_items()
 
 bool FactorioGame::parse_packet(const string& pkg)
 {
+	Logger log("core");
+
 	if (pkg=="") return false;
 
 	auto colon = pkg.find(':');
@@ -278,7 +286,7 @@ bool FactorioGame::parse_packet(const string& pkg)
 
 	int tick = stoi(tickstr);
 	if (last_tick > tick)
-		cout << "wtf, tick decreased from " << last_tick << " to " << tick << endl;
+		log << "wtf, tick decreased from " << last_tick << " to " << tick << endl;
 	last_tick = tick;
 
 	string type = prelude[1];
@@ -324,6 +332,8 @@ bool FactorioGame::parse_packet(const string& pkg)
 
 void FactorioGame::parse_item_containers(const string& data_str)
 {
+	Logger log("container");
+
 	for (const string& container : split(data_str, ',')) if (!container.empty())
 	{
 		auto [name, ent_x, ent_y, contents] = unpack<string,double,double,string>(container, ' ');
@@ -349,11 +359,11 @@ void FactorioGame::parse_item_containers(const string& data_str)
 				}
 			}
 			else
-				cout << "wtf, got inventory update for " << entity->str() << ", but it has no ContainerData associated" << endl;
+				log << "wtf, got inventory update for " << entity->str() << ", but it has no ContainerData associated" << endl;
 		}
 		else
 		{
-			cout << "WTF, got container update from an entity which we don't know... ignoring it for now" << endl;
+			log << "WTF, got container update from an entity which we don't know... ignoring it for now" << endl;
 		}
 	}
 }
@@ -417,6 +427,8 @@ void FactorioGame::parse_mined_item(const string& data)
 
 void FactorioGame::parse_inventory_changed(const string& data)
 {
+	Logger log("inventory");
+
 	std::set<int> affected_players;
 	for (const string& update : split(data, ' '))
 	{ 
@@ -428,7 +440,7 @@ void FactorioGame::parse_inventory_changed(const string& data)
 		
 		if (size_t(player_id) >= players.size())
 		{
-			cout << "HACK: parse_inventory_changed() on a player that does not exist yet. (this can be because it has just joined and got its inventory pre-filled by the game.)... resizing players." << endl;
+			log << "HACK: parse_inventory_changed() on a player that does not exist yet. (this can be because it has just joined and got its inventory pre-filled by the game.)... resizing players." << endl;
 			players.resize(player_id+1); // FIXME
 		}
 
@@ -454,16 +466,17 @@ void FactorioGame::parse_inventory_changed(const string& data)
 						throw runtime_error("inventory desync detected: game added "+to_string(diff)+"x '"+item+"' with an owning task, but only "+to_string(added)+" could be claimed");
 				}
 				else
-					cout << "WARN: action with the action id " << owning_action_id << " has no owning task, yet it changed the inventory?" << endl;
+					log << "WARN: action with the action id " << owning_action_id << " has no owning task, yet it changed the inventory?" << endl;
 			}
 			else
-				cout << "WARN: could not find action associated with action id " << owning_action_id << endl;
+				log << "WARN: could not find action associated with action id " << owning_action_id << endl;
 		}
 	}
 	
 	for (int player : affected_players)
 	{
-		cout << "parse_inventory_changed(), player #"<<player<<"'s new inventory is " << endl;
+		Logger log2("inventory_dump");
+		log2 << "parse_inventory_changed(), player #"<<player<<"'s new inventory is " << endl;
 		players[player].inventory.dump();
 	}
 }
@@ -497,6 +510,8 @@ void FactorioGame::parse_players(const string& data)
 
 void FactorioGame::parse_action_completed(const string& data)
 {
+	Logger log("core");
+
 	auto [type, action_id] = unpack<string,int>(data,' ');
 
 	if (type != "ok" && type != "fail")
@@ -505,7 +520,7 @@ void FactorioGame::parse_action_completed(const string& data)
 	if (auto action = action::registry.get(action_id))
 		action->finished = true;
 	else
-		cout << "WARN: unknown action finished (id=" << action_id << ")" << endl;
+		log << "WARN: unknown action finished (id=" << action_id << ")" << endl;
 }
 
 void FactorioGame::parse_entity_prototypes(const string& data)
@@ -580,6 +595,8 @@ void FactorioGame::parse_recipes(const string& data)
 
 void FactorioGame::update_resource_field(Resource& entry, Resource::type_t new_type, Pos position, Entity entity)
 {
+	Logger log("resource_fields");
+
 	auto old_type = entry.type;
 
 	if (old_type != Resource::NONE)
@@ -591,7 +608,7 @@ void FactorioGame::update_resource_field(Resource& entry, Resource::type_t new_t
 
 			if (patch->size() == 0)
 			{
-				cout << "patch of type " << Resource::typestr[patch->type] << " has vanished" << endl;
+				log << "patch of type " << Resource::typestr[patch->type] << " has vanished" << endl;
 				// remove patch
 				auto iter = resource_patches.find(patch);
 				assert(iter != resource_patches.end());
@@ -600,7 +617,7 @@ void FactorioGame::update_resource_field(Resource& entry, Resource::type_t new_t
 		}
 		else
 		{
-			cout << "wtf, could not lock resource weak reference" << endl;
+			log << "wtf, could not lock resource weak reference" << endl;
 		}
 	}
 
@@ -659,12 +676,14 @@ void FactorioGame::resource_bookkeeping(const Area& area, WorldMap<Resource>::Vi
 
 void FactorioGame::parse_objects(const Area& area, const string& data)
 {
+	Logger log("objects");
+
 	// clean up pending_entities
 	for (auto it = pending_entities.begin(); it != pending_entities.end(); )
 	{
 		if (it->last_valid_tick < get_tick())
 		{
-			cout << "removing timed out pending entity" << endl;
+			log << "removing timed out pending entity" << endl;
 			it = unordered_erase(pending_entities, it);
 		}
 		else
@@ -676,12 +695,12 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	{
 		// FIXME DEBUG only
 		debug_pending_entities = true;
-		cout << "pending_entities.size() == " << pending_entities.size() << endl;
+		log << "pending_entities.size() == " << pending_entities.size() << endl;
 		for (const auto& pe : pending_entities)
 		{
-			cout << "-> pending entity: " << pe.entity.str() << " (best before " << pe.last_valid_tick << ")" << endl;
+			log << "-> pending entity: " << pe.entity.str() << " (best before " << pe.last_valid_tick << ")" << endl;
 			if (const ContainerData* data = pe.entity.data_or_null<ContainerData>())
-				cout << "  fuel_is_output = " << data->fuel_is_output << endl;
+				log << "  fuel_is_output = " << data->fuel_is_output << endl;
 		}
 	}
 
@@ -721,7 +740,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 		if (!area.contains(ent.pos.to_int_floor()))
 		{
 			// this indicates a bug in the lua mod
-			cout << "FIXME: parse_objects packet contained an object (at "<<ent.pos.str()<<") that does not belong to area (" << area.str() << "). ignoring" << endl;
+			log << "FIXME: parse_objects packet contained an object (at "<<ent.pos.str()<<") that does not belong to area (" << area.str() << "). ignoring" << endl;
 			continue;
 		}
 
@@ -743,7 +762,7 @@ void FactorioGame::parse_objects(const Area& area, const string& data)
 	}
 
 	if (debug_pending_entities)
-		cout << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << (stats.total-stats.reused) << " and deleted " << pending_entities.size() << endl; // DEBUG
+		log << "in parse_objects(" << area.str() << "): reused " << stats.reused << ", had to create " << (stats.total-stats.reused) << " and deleted " << pending_entities.size() << endl; // DEBUG
 	
 	
 	// finally, update the walkmap; because our entities have a certain size, we must update a larger portion
@@ -887,6 +906,7 @@ void FactorioGame::assert_resource_consistency() const // only for debugging pur
 void FactorioGame::parse_resources(const Area& area, const string& data)
 {
 	assert(area.size() == Pos(32,32));
+	Logger log("objects");
 	
 	auto view = resource_map.view(area.left_top - Pos(32,32), area.right_bottom + Pos(32,32), Pos(0,0));
 
@@ -907,14 +927,14 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 		if (!area.contains(pos))
 		{
 			// TODO FIXME
-			cout << "wtf, " << pos.str() << " is not in "<< area.str() << endl;
+			log << "wtf, " << pos.str() << " is not in "<< area.str() << endl;
 			continue;
 		}
 
 		Pos relpos = pos - area.left_top;
 
 		if (chunk[relpos.y][relpos.x].type != Resource::NONE)
-			cout << "wtf, " << pos.str() << " has a conflicting resource entry?! (broken packet?)" << endl;
+			log << "wtf, " << pos.str() << " has a conflicting resource entry?! (broken packet?)" << endl;
 
 		chunk[relpos.y][relpos.x].type = type;
 		chunk[relpos.y][relpos.x].entity = Entity(Pos_f(xx,yy), entity_prototypes.at(type_str).get());
@@ -939,6 +959,8 @@ void FactorioGame::parse_resources(const Area& area, const string& data)
 
 void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const Area& area, int x, int y, int radius)
 {
+	Logger log("floodfill_resources");
+
 	int id = next_free_resource_id++;
 
 	if (view.at(x,y).patch_id != NOT_YET_ASSIGNED)
@@ -950,7 +972,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 	todo.push_back(Pos(x,y));
 	int count = 0;
 	auto resource_type = view.at(x,y).type;
-	//cout << "type = "<<Resource::typestr[resource_type]<< " @"<<Pos(x,y).str()<<endl;
+	log << "type = "<<Resource::typestr[resource_type]<< " @"<<Pos(x,y).str()<<endl;
 
 	view.at(x,y).floodfill_flag = Resource::FLOODFILL_QUEUED;
 
@@ -990,7 +1012,7 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 			}
 	}
 
-	//cout << "count=" << count << ", neighbors=" << neighbors.size() << endl;
+	log << "count=" << count << ", neighbors=" << neighbors.size() << endl;
 	
 
 	shared_ptr<ResourcePatch> resource_patch;
@@ -1005,26 +1027,26 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 		auto largest = std::max_element(neighbors.begin(), neighbors.end(), [](const auto& a, const auto& b) {return a->positions.size() > b->positions.size();});
 		resource_patch = *largest;
 
-		//cout << "extending existing patch of size " << resource_patch->positions.size() << endl;
+		log << "extending existing patch of size " << resource_patch->positions.size() << endl;
 
 		for (const auto& neighbor : neighbors)
 		{
 			if (neighbor != resource_patch)
 			{
-				//cout << "merging" << endl;
+				log << "merging" << endl;
 				neighbor->merge_into(*resource_patch);
 				resource_patches.erase(neighbor);
 				// FIXME??? assert(neighbor.unique()); // now we should hold the last reference, which should go out-of-scope and trigger deletion right in the next line
 			}
 			else
 			{
-				//cout << "not merging ourself" << endl;
+				log << "not merging ourself" << endl;
 			}
 		}
 
 		resource_patch->extend(orepatch);
 
-		//cout << "size now " << resource_patch->positions.size() << endl;
+		log << "size now " << resource_patch->positions.size() << endl;
 	}
 
 	assert(resource_patch);
@@ -1040,5 +1062,5 @@ void FactorioGame::floodfill_resources(WorldMap<Resource>::Viewport& view, const
 		ref.resource_patch = resource_patch;
 	}
 
-	//cout << "we now have " << resource_patches.size() << " patches" << endl;
+	log << "we now have " << resource_patches.size() << " patches" << endl;
 }
