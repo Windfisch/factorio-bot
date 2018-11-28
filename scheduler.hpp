@@ -23,6 +23,7 @@
 #include <deque>
 #include <assert.h>
 #include <map>
+#include <functional>
 #include <optional>
 
 #include "inventory.hpp"
@@ -196,6 +197,8 @@ struct Task
 	void auto_craft_from(std::vector<const ItemPrototype*> basic_items, const FactorioGame* game);
 	
 	void update_actions_from_goals(FactorioGame* game, int player);
+
+	std::function<void(void)> finished_callback;
 
 
 // private:

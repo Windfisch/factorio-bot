@@ -439,6 +439,9 @@ int main(int argc, const char** argv)
 						log << "removing that task from the scheduler..." << endl;
 						scheduler.remove_task(current_task);
 
+						if (current_task->finished_callback)
+							current_task->finished_callback();
+
 						current_task = nullptr;
 						task_execution_state = TaskExecutionState::FINISHED;
 
@@ -595,7 +598,8 @@ int main(int argc, const char** argv)
 	{
 		string name;
 		vector<PlannedEntity> entities;
-		int level = 0;
+		int level = 0; // this is the desired level
+		int actual_level = 0;
 
 		facility_t(string n, const vector<PlannedEntity>& e) : name(n), entities(e), level(0) {}
 	};
@@ -636,10 +640,10 @@ int main(int argc, const char** argv)
 				{
 					facility_t& facility = facilities[key - '1'];
 					facility.level++;
-
-
+					int new_level = facility.level;
 
 					auto task = make_shared<Task>(facility.name + " facility upgrade ("+to_string(facility.level)+")");
+					task->finished_callback = [&facility, new_level](){ facility.actual_level = new_level; };
 					task->priority_ = 0;
 					task->goals.emplace();
 					for (const auto& ent : facility.entities) if (ent.level < facility.level)
