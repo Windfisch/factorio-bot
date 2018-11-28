@@ -706,7 +706,7 @@ int main(int argc, const char** argv)
 						}
 					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
 
-					int n_consumers = /*coal: facilities[0].level*4 + */ facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;
+					int n_consumers = /*coal: facilities[0].actual_level*4 + */ facilities[1].actual_level*3 + facilities[2].actual_level*3 + facilities[3].actual_level*2;
 					int coal_per_furnace = n_coal / n_consumers;
 					log << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
 
@@ -719,7 +719,7 @@ int main(int argc, const char** argv)
 					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
 					{
 						const facility_t& facility = facilities[i];
-						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.level)
+						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
 						{
 							if (ent.proto == miner)
 								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace*2}}, INV_FUEL));
