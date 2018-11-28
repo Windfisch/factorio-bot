@@ -710,7 +710,7 @@ int main(int argc, const char** argv)
 					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
 					const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
 					auto task = make_shared<Task>("coal refill");
-					task->priority_ = 0;
+					task->priority_ = -10;
 					task->goals.emplace();
 					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
 					{
