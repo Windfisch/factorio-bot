@@ -593,17 +593,18 @@ int main(int argc, const char** argv)
 
 	struct facility_t
 	{
+		string name;
 		vector<PlannedEntity> entities;
 		int level = 0;
 
-		facility_t(const vector<PlannedEntity>& e) : entities(e), level(0) {}
+		facility_t(string n, const vector<PlannedEntity>& e) : name(n), entities(e), level(0) {}
 	};
 	
 	std::array<facility_t,4> facilities = {
-		facility_t(plan_early_coal_rig(*start_mines.coal, &factorio)),
-		facility_t(plan_early_smelter_rig(*start_mines.iron, &factorio)),
-		facility_t(plan_early_smelter_rig(*start_mines.copper, &factorio)),
-		facility_t(plan_early_chest_rig(*start_mines.stone, &factorio)) };
+		facility_t("coal", plan_early_coal_rig(*start_mines.coal, &factorio)),
+		facility_t("iron", plan_early_smelter_rig(*start_mines.iron, &factorio)),
+		facility_t("copper", plan_early_smelter_rig(*start_mines.copper, &factorio)),
+		facility_t("stone", plan_early_chest_rig(*start_mines.stone, &factorio)) };
 
 	while (true)
 	{
@@ -635,7 +636,10 @@ int main(int argc, const char** argv)
 				{
 					facility_t& facility = facilities[key - '1'];
 					facility.level++;
-					auto task = make_shared<Task>("facility upgrade");
+
+
+
+					auto task = make_shared<Task>(facility.name + " facility upgrade ("+to_string(facility.level)+")");
 					task->priority_ = 0;
 					task->goals.emplace();
 					for (const auto& ent : facility.entities) if (ent.level < facility.level)
