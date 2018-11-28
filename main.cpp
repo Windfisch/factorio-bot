@@ -702,7 +702,7 @@ int main(int argc, const char** argv)
 						}
 					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
 
-					int n_consumers = facilities[0].level*4 + facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;
+					int n_consumers = /*coal: facilities[0].level*4 + */ facilities[1].level*3 + facilities[2].level*3 + facilities[3].level*2;
 					int coal_per_furnace = n_coal / n_consumers;
 					log << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
 
@@ -712,7 +712,9 @@ int main(int argc, const char** argv)
 					auto task = make_shared<Task>("coal refill");
 					task->priority_ = 0;
 					task->goals.emplace();
-					for (const facility_t& facility : facilities)
+					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
+					{
+						const facility_t& facility = facilities[i];
 						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.level)
 						{
 							if (ent.proto == miner)
@@ -720,6 +722,7 @@ int main(int argc, const char** argv)
 							else if (ent.proto == furnace)
 								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace}}, INV_FUEL));
 						}
+					}
 
 					task->actions_changed();
 					task->update_actions_from_goals(&factorio, player_idx); // HACK
