@@ -88,6 +88,8 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 	Logger log("pathfinding");
 	#endif
 
+	log << "a_star from " << start.str() << " to " << end.str() << " (allowed_distance=" << allowed_distance << ", min_distance=" << min_distance << ", length_limit="<<length_limit<<", size="<<size<<endl;
+
 	if (ceil(min_distance) >= allowed_distance)
 		throw invalid_argument("ceil(min_distance) must be smaller than allowed distance");
 
@@ -106,10 +108,13 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 	view.at(start).openlist_handle = openlist.push(Entry(start,0.));
 	needs_cleanup.push_back(&view.at(start));
 
+	Logger verboselog("verbose");
 	int n_iterations = 0;
 	while (!openlist.empty())
 	{
+		verboselog << "in iteration #" << n_iterations << ": openlist has size " << openlist.size() << flush;
 		auto current = openlist.top();
+		verboselog << ", top is " << current.pos.str() << ", f=" << current.f << endl;
 		openlist.pop();
 		n_iterations++;
 
@@ -144,6 +149,7 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 
 		// expand node
 		
+		verboselog << "\tsuccessors: ";
 		Pos steps[] = {Pos(-1,-1), Pos(0, -1), Pos(1,-1),
 		               Pos(-1, 0),             Pos(1, 0),
 			       Pos(-1, 1), Pos(0,  1), Pos(1, 1)};
@@ -174,9 +180,13 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 
 			if (can_walk)
 			{
+				verboselog << "; " << successor.str() << flush;
+
 				auto& succ = view.at(successor);
 				if (succ.in_closedlist)
 					continue;
+				
+				verboselog << "*" << flush;
 
 				double cost = sqrt(step.x*step.x + step.y*step.y);
 				double new_g = view.at(current.pos).g_val + cost;
@@ -184,9 +194,13 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 				if (succ.openlist_handle != openlist_handle_t() && succ.g_val < new_g) // ignore this successor, when a better way is already known
 					continue;
 
+				verboselog << "!" << flush;
+
 				double f = new_g + heuristic(successor, end.center());
 				succ.predecessor = current.pos;
 				succ.g_val = new_g;
+
+				verboselog << "f="<<f<<",g="<<new_g<<flush;
 				
 				if (succ.openlist_handle != openlist_handle_t())
 				{
@@ -194,11 +208,13 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 				}
 				else
 				{
+					verboselog << "(new)" << flush;
 					succ.openlist_handle = openlist.push(Entry(successor, f));
 					needs_cleanup.push_back(&succ);
 				}
 			}
 		}
+		verboselog << endl;
 	}
 
 a_star_cleanup:
