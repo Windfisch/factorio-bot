@@ -549,41 +549,7 @@ int main(int argc, const char** argv)
 
 	// create some initial tasks
 	{
-		/*auto mytask = make_shared<Task>("mytask");
-		mytask->required_items.push_back({&factorio.get_item_prototype("assembling-machine-1"), 5});
-		mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("copper-plate")}, &factorio);
-		mytask->priority_ = 5;
-		mytask->dump();
-
-		cout << "\n\n" << endl;*/
-
-		auto mytask = make_shared<Task>("wood chopper");
-		mytask->goals.emplace();
-		for (const auto& ent : factorio.actual_entities.around(Pos(0,0)))
-			if (ent.proto->name.substr(0,4) == "tree")
-			{
-				mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-				if (mytask->goals->size() >= 6)
-					break;
-			}
-		mytask->actions_changed();
-		//splayers[player_idx].scheduler.add_task(mytask);
-
-
-		mytask = make_shared<Task>("chest builder");
-		mytask->goals.emplace();
-		for (int i=0; i<10; i++)
-		{
-			mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(Pos_f(0.5+i, -10.5), &factorio.get_entity_prototype("wooden-chest")  )));
-		}
-		mytask->priority_ = -999; // very very important
-		mytask->actions_changed();
-		mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-		mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood")}, &factorio);
-		//splayers[player_idx].scheduler.add_task(mytask);
-
-
-		mytask = make_shared<Task>("axe crafter");
+		auto mytask = make_shared<Task>("axe crafter");
 		mytask->goals.reset();
 		mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
 		mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
@@ -748,40 +714,6 @@ int main(int argc, const char** argv)
 					log << "scheduler.recalculate()" << endl;
 					splayers[player_idx].scheduler.recalculate();
 					break;
-				case 't':
-				{
-					log << "adding an important task" << endl;
-					auto mytask = make_shared<Task>("important chopper");
-					mytask->goals.emplace();
-					mytask->priority_ = -100;
-					for (const auto& ent : factorio.actual_entities.around(Pos(50,50)))
-						if (ent.proto->name.substr(0,4) == "tree")
-						{
-							mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-							if (mytask->goals->size() > 5)
-								break;
-						}
-					mytask->actions_changed();
-					splayers[player_idx].scheduler.add_task(mytask);
-					break;
-				}
-				case 'y':
-				{
-					log << "adding a less important task" << endl;
-					auto mytask = make_shared<Task>("nice chopper");
-					mytask->goals.emplace();
-					mytask->priority_ = 100;
-					for (const auto& ent : factorio.actual_entities.around(Pos(-50,-50)))
-						if (ent.proto->name.substr(0,4) == "tree")
-						{
-							mytask->goals->push_back(make_unique<goal::RemoveEntity>(ent));
-							if (mytask->goals->size() > 5)
-								break;
-						}
-					mytask->actions_changed();
-					splayers[player_idx].scheduler.add_task(mytask);
-					break;
-				}
 				case 's':
 				{
 					splayers[player_idx].scheduler.dump();
@@ -790,62 +722,6 @@ int main(int argc, const char** argv)
 						gui.clear();
 						debug_draw_actions(task->actions.get(), &gui, factorio.players[player_idx].position);
 					}
-					break;
-				}
-				case '7':
-				{
-					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
-
-					auto mytask = make_shared<Task>("iron mine");
-					mytask->goals.emplace();
-					mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(pos, &factorio.get_entity_prototype("burner-mining-drill"))));
-					mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(pos-Pos_f(0,2), &factorio.get_entity_prototype("stone-furnace"))));
-					mytask->actions_changed();
-					mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-					//mytask->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone")}, &factorio);
-					splayers[player_idx].scheduler.add_task(mytask);
-					break;
-				}
-				case '8':
-				{
-					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
-
-					auto mytask = make_shared<Task>("iron mine add wood");
-					mytask->goals.emplace();
-					mytask->goals->push_back(make_unique<goal::InventoryPredicate>(Entity(pos, &factorio.get_entity_prototype("burner-mining-drill")), Inventory{{&factorio.get_item_prototype("raw-wood"), 10}}, INV_FUEL ));
-					mytask->goals->push_back(make_unique<goal::InventoryPredicate>(Entity(pos-Pos_f(0,2), &factorio.get_entity_prototype("stone-furnace")), Inventory{{&factorio.get_item_prototype("raw-wood"), 5}}, INV_FUEL ));
-					mytask->actions_changed();
-					mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-					mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood"), &factorio.get_item_prototype("iron-plate")}, &factorio);
-					splayers[player_idx].scheduler.add_task(mytask);
-					break;
-				}
-				case '9':
-				{
-					Pos pos = start_mines.iron->positions[0] + Pos_f(0.5,0.5);
-
-					auto mytask = make_shared<Task>("iron mine add coal");
-					mytask->goals.emplace();
-					mytask->goals->push_back(make_unique<goal::InventoryPredicate>(Entity(pos, &factorio.get_entity_prototype("burner-mining-drill")), Inventory{{&factorio.get_item_prototype("coal"), 10}}, INV_FUEL ));
-					mytask->goals->push_back(make_unique<goal::InventoryPredicate>(Entity(pos-Pos_f(0,2), &factorio.get_entity_prototype("stone-furnace")), Inventory{{&factorio.get_item_prototype("coal"), 5}}, INV_FUEL ));
-					mytask->actions_changed();
-					mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-					mytask->auto_craft_from({&factorio.get_item_prototype("coal"), &factorio.get_item_prototype("iron-plate")}, &factorio);
-					splayers[player_idx].scheduler.add_task(mytask);
-					break;
-				}
-				case '0':
-				{
-					Pos pos = start_mines.coal->positions[0] + Pos_f(0.5,0.5);
-
-					auto mytask = make_shared<Task>("coal mine");
-					mytask->goals.emplace();
-					mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(pos, &factorio.get_entity_prototype("burner-mining-drill"))));
-					mytask->goals->push_back(make_unique<goal::PlaceEntity>(Entity(pos-Pos_f(0,2), &factorio.get_entity_prototype("wooden-chest"))));
-					mytask->actions_changed();
-					mytask->update_actions_from_goals(&factorio, player_idx); // HACK
-					mytask->auto_craft_from({&factorio.get_item_prototype("raw-wood"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("iron-plate")}, &factorio);
-					splayers[player_idx].scheduler.add_task(mytask);
 					break;
 				}
 			}
