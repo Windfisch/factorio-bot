@@ -834,9 +834,9 @@ Scheduler::schedule_t Scheduler::calculate_schedule(const item_allocation_t& tas
 		{
 			// we need a resource-collecting task right now. (It will be immediately
 			// runnable)
-			assert(schedule.empty() || schedule.begin()->first.second < prio);
+			assert(schedule.empty() || schedule.begin()->first.second <= prio);
 			
-			/* If a task is already scheduled, then it has a higher
+			/* If a task is already scheduled, then it has a higher-or-equal
 			   priority than the currently considered task. In that
 			   case, the resource-collecting task's duration is
 			   limited by that already-scheduled task plus some

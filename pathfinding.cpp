@@ -210,7 +210,7 @@ a_star_cleanup:
 	}
 
 	#ifdef DEBUG_PATHFINDING
-	log << "took " << n_iterations << " iterations or " << (n_iterations / (start-end.center()).len()) << " it/dist" << endl;
+	log << "took " << n_iterations << " iterations or " << (n_iterations / max(1.0, (start-end.center()).len())) << " it/dist" << endl;
 	#endif
 
 	return result;

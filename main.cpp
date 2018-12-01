@@ -707,7 +707,7 @@ int main(int argc, const char** argv)
 					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
 
 					int n_consumers = /*coal: facilities[0].actual_level*4 + */ facilities[1].actual_level*3 + facilities[2].actual_level*3 + facilities[3].actual_level*2;
-					int coal_per_furnace = n_coal / n_consumers;
+					int coal_per_furnace = (n_consumers>0) ? n_coal / n_consumers : 0;
 					log << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
 
 
