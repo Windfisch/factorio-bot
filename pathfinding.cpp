@@ -152,7 +152,7 @@ vector<Pos> a_star_raw(const Pos& start, const Area_f& end, WorldMap<walk_t>& ma
 		verboselog << "\tsuccessors: ";
 		Pos steps[] = {Pos(-1,-1), Pos(0, -1), Pos(1,-1),
 		               Pos(-1, 0),             Pos(1, 0),
-			       Pos(-1, 1), Pos(0,  1), Pos(1, 1)};
+		               Pos(-1, 1), Pos(0,  1), Pos(1, 1)};
 		for (const Pos& step : steps)
 		{
 			Pos successor = current.pos + step;

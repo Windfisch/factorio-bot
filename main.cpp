@@ -700,7 +700,49 @@ int main(int argc, const char** argv)
 
 					break;
 				}
+				
+				case 'c':
+				{
+					Logger log("check_coal");
+
+					bool need_refill = false;
+
+					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
+					const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
+					const ItemPrototype* coal = &factorio.get_item_prototype("coal");
+
+					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
+					{
+						const facility_t& facility = facilities[i];
+						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
+						{
+							if (ent.proto == miner || ent.proto == furnace)
+							{
+								if (Entity* actual_ent = factorio.actual_entities.search_or_null(ent))
+								{
+									int n_coal = actual_ent->data<ContainerData>().inventories.get_or(coal, INV_FUEL, 0);
+									{ Logger log2("verbose"); log2 << "entity " << ent.str() << " has " << n_coal << " left" << endl; }
+									if (n_coal <= 2)
+									{
+										log << "entity " << ent.str() << " needs a coal refill." << endl;
+										need_refill = true;
+									}
+								}
+								else
+								{
+									log << "wtf, entity " << ent.str() << " could not be found on the map" << endl;
+								}
+							}
+						}
+					}
+					if (need_refill)
+						log << "coal refill is needed" << endl;
+					else
+						log << "no coal refill is needed" << endl;
 					
+					break;
+				}
+
 				case 'a':
 					log << "scheduler.update_item_allocation()" << endl;
 					splayers[player_idx].scheduler.update_item_allocation();
