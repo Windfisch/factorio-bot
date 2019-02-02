@@ -547,34 +547,204 @@ int main(int argc, const char** argv)
 	for (size_t i=0; i<=player_idx; i++)
 		splayers.emplace_back(&factorio, i);
 
-	// create some initial tasks
+	struct EarlyStrategy
 	{
-		auto mytask = make_shared<Task>("axe crafter");
-		mytask->goals.reset();
-		mytask->required_items.emplace_back(ItemStack{&factorio.get_item_prototype("iron-axe"), 1});
-		mytask->auto_craft_from( {&factorio.get_item_prototype("iron-plate")}, &factorio );
-		mytask->actions_changed();
-		splayers[player_idx].scheduler.add_task(mytask); // FIXME DEBUG
-	}
+		using tasklist_t = std::vector< std::shared_ptr<Task> >;
 
+		FactorioGame* game;
+		GUI::MapGui* gui;
+		size_t player_idx;
 
-	start_mines_t start_mines = find_start_mines(&factorio, &gui);
+		start_mines_t start_mines;
+		struct facility_t
+		{
+			string name;
+			vector<PlannedEntity> entities;
+			int level = 0; // this is the desired level
+			int actual_level = 0;
 
-	struct facility_t
-	{
-		string name;
-		vector<PlannedEntity> entities;
-		int level = 0; // this is the desired level
-		int actual_level = 0;
-
-		facility_t(string n, const vector<PlannedEntity>& e) : name(n), entities(e), level(0) {}
-	};
+			facility_t(string n, const vector<PlannedEntity>& e) : name(n), entities(e), level(0) {}
+		};
 	
-	std::array<facility_t,4> facilities = {
-		facility_t("coal", plan_early_coal_rig(*start_mines.coal, &factorio)),
-		facility_t("iron", plan_early_smelter_rig(*start_mines.iron, &factorio)),
-		facility_t("copper", plan_early_smelter_rig(*start_mines.copper, &factorio)),
-		facility_t("stone", plan_early_chest_rig(*start_mines.stone, &factorio)) };
+		std::array<facility_t,4> facilities;
+
+		EarlyStrategy(FactorioGame* game_, GUI::MapGui* gui_, size_t player_idx_) :
+			game(game_),
+			gui(gui_),
+			player_idx(player_idx_),
+			start_mines(find_start_mines(game, gui)),
+			facilities {
+				facility_t("coal", plan_early_coal_rig(*start_mines.coal, game)),
+				facility_t("iron", plan_early_smelter_rig(*start_mines.iron, game)),
+				facility_t("copper", plan_early_smelter_rig(*start_mines.copper, game)),
+				facility_t("stone", plan_early_chest_rig(*start_mines.stone, game)) }
+		{
+		}
+		
+		// create some initial tasks
+		tasklist_t initial_tasks()
+		{
+			auto mytask = make_shared<Task>("axe crafter");
+			mytask->goals.reset();
+			mytask->required_items.emplace_back(ItemStack{&game->get_item_prototype("iron-axe"), 1});
+			mytask->auto_craft_from( {&game->get_item_prototype("iron-plate")}, game );
+
+			return {mytask};
+		}
+
+		enum class mine_t { COAL = 0, IRON = 1, COPPER = 2, STONE = 3 };
+
+		tasklist_t add_mine(mine_t mine)
+		{
+			facility_t& facility = facilities[int(mine)];
+			facility.level++;
+
+			auto task = make_shared<Task>(facility.name + " facility upgrade ("+to_string(facility.level)+")");
+			int new_level = facility.level;
+			task->finished_callback = [&facility, new_level](){ facility.actual_level = new_level; };
+			task->priority_ = 0;
+			task->goals.emplace();
+			for (const auto& ent : facility.entities) if (ent.level < facility.level)
+				task->goals->push_back(make_unique<goal::PlaceEntity>(ent));
+
+			// special handling for the first iron drill or coal
+			if ((mine == mine_t::IRON || mine == mine_t::COAL) && facility.level == 1)
+			{
+				if (mine == mine_t::IRON)
+				{
+					// the first iron drill gets 8 + 4 wood
+					const EntityPrototype* miner = &game->get_entity_prototype("burner-mining-drill");
+					const EntityPrototype* furnace = &game->get_entity_prototype("stone-furnace");
+					const int n_wood = 4;
+					for (const auto& ent : facility.entities) if (ent.level < facility.level)
+					{
+						if (ent.proto == miner)
+							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("raw-wood"), n_wood*2}}, INV_FUEL));
+						else if (ent.proto == furnace)
+							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("raw-wood"), n_wood}}, INV_FUEL));
+					}
+				}
+				else if (mine == mine_t::COAL)
+				{
+					// the first coal drill gets 1 wood
+					task->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&game->get_item_prototype("raw-wood"), 1}}, INV_FUEL));
+				}
+			}
+			if (mine == mine_t::COAL && facility.level > 1)
+			{
+				// all subsequent coal drills get 1 coal
+				task->goals->push_back(make_shared<goal::InventoryPredicate>(
+					static_cast<goal::PlaceEntity*>(task->goals->back().get())->entity,
+					Inventory{{&game->get_item_prototype("coal"), 1}}, INV_FUEL
+				));
+			}
+			
+			task->update_actions_from_goals(game, player_idx); // HACK
+
+			// TODO: remove this if/else; instead, the scheduler should decide what to craft
+			// and what to use from the inventory.
+			if (mine == mine_t::IRON && facility.level == 1) // special handling for the first iron drill
+				task->auto_craft_from({&game->get_item_prototype("burner-mining-drill"), &game->get_item_prototype("stone-furnace"), &game->get_item_prototype("raw-wood")}, game);
+			else
+				task->auto_craft_from({&game->get_item_prototype("iron-plate"), &game->get_item_prototype("stone"), &game->get_item_prototype("raw-wood"), &game->get_item_prototype("coal")}, game);
+
+			task->actions_changed();
+			return {task};
+		}
+	
+		tasklist_t do_coal_refill()
+		{
+			Logger log("do_coal_refill");
+			Logger log2("detail");
+
+			const ItemPrototype* coal = &game->get_item_prototype("coal");
+			int n_coal = 0;
+			for (const auto& ent : game->actual_entities.within_range(Area(-200,-200,200,200)))
+				if (const ContainerData* data = ent.data_or_null<ContainerData>())
+				{
+					log2 << "considering " << ent.str() << " with fuel_is_output = " << data->fuel_is_output << endl;
+					for (const auto& [key,val] : data->inventories)
+						if (key.item == coal && (inventory_flags[key.inv].take || (key.inv == INV_FUEL && data->fuel_is_output)))
+							n_coal += val;
+				}
+			n_coal += game->players[player_idx].inventory[coal].unclaimed();
+
+			int n_consumers = /*coal: facilities[0].actual_level*0 + */ facilities[1].actual_level*3 + facilities[2].actual_level*3 + facilities[3].actual_level*2;
+			int coal_per_furnace = (n_consumers>0) ? n_coal / n_consumers : 0;
+			log << "found " << n_coal << " coal ready for use (" << game->players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
+
+
+			const EntityPrototype* miner = &game->get_entity_prototype("burner-mining-drill");
+			const EntityPrototype* furnace = &game->get_entity_prototype("stone-furnace");
+			auto task = make_shared<Task>("coal refill");
+			task->priority_ = -10;
+			task->goals.emplace();
+			for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
+			{
+				const facility_t& facility = facilities[i];
+				for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
+				{
+					if (ent.proto == miner)
+						task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace*2}}, INV_FUEL));
+					else if (ent.proto == furnace)
+						task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace}}, INV_FUEL));
+				}
+			}
+
+			task->update_actions_from_goals(game, player_idx); // HACK
+			if (!task->actions->subactions.empty())
+				task->actions_changed();
+			return {task};
+		}
+
+		bool check_coal_refill_needed()
+		{
+			Logger log("check_coal");
+
+			bool need_refill = false;
+
+			const EntityPrototype* miner = &game->get_entity_prototype("burner-mining-drill");
+			const EntityPrototype* furnace = &game->get_entity_prototype("stone-furnace");
+			const ItemPrototype* coal = &game->get_item_prototype("coal");
+
+			for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
+			{
+				const facility_t& facility = facilities[i];
+				for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
+				{
+					if (ent.proto == miner || ent.proto == furnace)
+					{
+						if (Entity* actual_ent = game->actual_entities.search_or_null(ent))
+						{
+							int n_coal = actual_ent->data<ContainerData>().inventories.get_or(coal, INV_FUEL, 0);
+							{ Logger log2("verbose"); log2 << "entity " << ent.str() << " has " << n_coal << " left" << endl; }
+							if (n_coal <= 2)
+							{
+								log << "entity " << ent.str() << " needs a coal refill." << endl;
+								need_refill = true;
+							}
+						}
+						else
+						{
+							log << "wtf, entity " << ent.str() << " could not be found on the map" << endl;
+						}
+					}
+				}
+			}
+			if (need_refill)
+				log << "coal refill is needed" << endl;
+			else
+				log << "no coal refill is needed" << endl;
+
+			return need_refill;
+		}
+	};
+
+	// TODO: update_actions_from_goals, actions_changed, and update crafting list
+
+	EarlyStrategy early_strategy(&factorio, &gui, player_idx);
+
+	splayers[player_idx].scheduler.add_tasks(early_strategy.initial_tasks());
 
 	while (true)
 	{
@@ -596,152 +766,17 @@ int main(int argc, const char** argv)
 
 		if (int key = gui.key())
 		{
+			using m = EarlyStrategy::mine_t;
 			Logger log("menu");
 			switch(key)
 			{
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				{
-					facility_t& facility = facilities[key - '1'];
-					facility.level++;
-					int new_level = facility.level;
-
-					auto task = make_shared<Task>(facility.name + " facility upgrade ("+to_string(facility.level)+")");
-					task->finished_callback = [&facility, new_level](){ facility.actual_level = new_level; };
-					task->priority_ = 0;
-					task->goals.emplace();
-					for (const auto& ent : facility.entities) if (ent.level < facility.level)
-						task->goals->push_back(make_unique<goal::PlaceEntity>(ent));
-					
-					if ((key=='2' || key=='1') && facility.level == 1) // special handling for the first iron drill or coal
-					{
-						if (key=='2')
-						{
-							// fill with some wood
-							const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
-							const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
-							const int n_wood = 4;
-							for (const auto& ent : facility.entities) if (ent.level < facility.level)
-							{
-								if (ent.proto == miner)
-									task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&factorio.get_item_prototype("raw-wood"), n_wood*2}}, INV_FUEL));
-								else if (ent.proto == furnace)
-									task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&factorio.get_item_prototype("raw-wood"), n_wood}}, INV_FUEL));
-							}
-						}
-						else if (key=='1')
-						{
-							// add one wood
-							task->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&factorio.get_item_prototype("raw-wood"), 1}}, INV_FUEL));
-						}
-					}
-					if (key=='1' && facility.level > 1)
-					{
-						// put one coal in the coal drill
-						task->goals->push_back(make_shared<goal::InventoryPredicate>(
-							static_cast<goal::PlaceEntity*>(task->goals->back().get())->entity,
-							Inventory{{&factorio.get_item_prototype("coal"), 1}}, INV_FUEL
-						));
-					}
-					
-					task->actions_changed();
-					task->update_actions_from_goals(&factorio, player_idx); // HACK
-					if (key=='2' && facility.level == 1) // special handling for the first iron drill
-						task->auto_craft_from({&factorio.get_item_prototype("burner-mining-drill"), &factorio.get_item_prototype("stone-furnace"), &factorio.get_item_prototype("raw-wood")}, &factorio);
-					else
-						task->auto_craft_from({&factorio.get_item_prototype("iron-plate"), &factorio.get_item_prototype("stone"), &factorio.get_item_prototype("raw-wood"), &factorio.get_item_prototype("coal")}, &factorio);
-
-					splayers[player_idx].scheduler.add_task(task);
-					
-					break;
-				}
-				case '5':
-				{
-					Logger log2("detail");
-					const ItemPrototype* coal = &factorio.get_item_prototype("coal");
-					int n_coal = 0;
-					for (const auto& ent : factorio.actual_entities.within_range(Area(-200,-200,200,200)))
-						if (const ContainerData* data = ent.data_or_null<ContainerData>())
-						{
-							log2 << "considering " << ent.str() << " with fuel_is_output = " << data->fuel_is_output << endl;
-							for (const auto& [key,val] : data->inventories)
-								if (key.item == coal && (inventory_flags[key.inv].take || (key.inv == INV_FUEL && data->fuel_is_output)))
-									n_coal += val;
-						}
-					n_coal += factorio.players[player_idx].inventory[coal].unclaimed();
-
-					int n_consumers = /*coal: facilities[0].actual_level*4 + */ facilities[1].actual_level*3 + facilities[2].actual_level*3 + facilities[3].actual_level*2;
-					int coal_per_furnace = (n_consumers>0) ? n_coal / n_consumers : 0;
-					log << "found " << n_coal << " coal ready for use (" << factorio.players[player_idx].inventory[coal].unclaimed() << " in our inventory). we have " << n_consumers << " furnace-equivalent consumers, which get " << coal_per_furnace << " coal each." << endl;
-
-
-					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
-					const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
-					auto task = make_shared<Task>("coal refill");
-					task->priority_ = -10;
-					task->goals.emplace();
-					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
-					{
-						const facility_t& facility = facilities[i];
-						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
-						{
-							if (ent.proto == miner)
-								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace*2}}, INV_FUEL));
-							else if (ent.proto == furnace)
-								task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{coal, coal_per_furnace}}, INV_FUEL));
-						}
-					}
-
-					task->actions_changed();
-					task->update_actions_from_goals(&factorio, player_idx); // HACK
-					splayers[player_idx].scheduler.add_task(task);
-
-					break;
-				}
+				case '1': splayers[player_idx].scheduler.add_tasks(early_strategy.add_mine(m::COAL)); break;
+				case '2': splayers[player_idx].scheduler.add_tasks(early_strategy.add_mine(m::IRON)); break;
+				case '3': splayers[player_idx].scheduler.add_tasks(early_strategy.add_mine(m::COPPER)); break;
+				case '4': splayers[player_idx].scheduler.add_tasks(early_strategy.add_mine(m::STONE)); break;
+				case '5': splayers[player_idx].scheduler.add_tasks(early_strategy.do_coal_refill()); break;
 				
-				case 'c':
-				{
-					Logger log("check_coal");
-
-					bool need_refill = false;
-
-					const EntityPrototype* miner = &factorio.get_entity_prototype("burner-mining-drill");
-					const EntityPrototype* furnace = &factorio.get_entity_prototype("stone-furnace");
-					const ItemPrototype* coal = &factorio.get_item_prototype("coal");
-
-					for (size_t i=1; i<4; i++) // facility[0] is coal which does not need to be refilled
-					{
-						const facility_t& facility = facilities[i];
-						for (const PlannedEntity& ent : facility.entities) if (ent.level < facility.actual_level)
-						{
-							if (ent.proto == miner || ent.proto == furnace)
-							{
-								if (Entity* actual_ent = factorio.actual_entities.search_or_null(ent))
-								{
-									int n_coal = actual_ent->data<ContainerData>().inventories.get_or(coal, INV_FUEL, 0);
-									{ Logger log2("verbose"); log2 << "entity " << ent.str() << " has " << n_coal << " left" << endl; }
-									if (n_coal <= 2)
-									{
-										log << "entity " << ent.str() << " needs a coal refill." << endl;
-										need_refill = true;
-									}
-								}
-								else
-								{
-									log << "wtf, entity " << ent.str() << " could not be found on the map" << endl;
-								}
-							}
-						}
-					}
-					if (need_refill)
-						log << "coal refill is needed" << endl;
-					else
-						log << "no coal refill is needed" << endl;
-					
-					break;
-				}
+				case 'c': early_strategy.check_coal_refill_needed(); break;
 
 				case 'a':
 					log << "scheduler.update_item_allocation()" << endl;

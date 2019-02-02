@@ -178,10 +178,14 @@ struct Task
 	  * (which depends on crafting_list and can be computed through
 	  * the items_balance() member function).
 	  *
+	  * Can and will be recalculated automatically from the goals, if existent.
+	  * When no goals are set (but only actions), then the Task creator is responsible
+	  * for setting required_items accordingly.
+	  *
 	  * \see crafting_list
 	  * \see items_balance
 	  */
-	std::vector<ItemStack> required_items; // can be calculated from goals
+	std::vector<ItemStack> required_items;
 
 	Task(std::string name_) : name(name_), priority_(0), owner_id(intptr_t(this/* FIXME HACK OH MY GOD NO */)), start_radius(3)
 	{
@@ -280,10 +284,11 @@ struct Scheduler
 	  * Note that this does *not* imply recalculate()
 	  */
 	void add_task(std::shared_ptr<Task> task);
+	void add_tasks(std::vector<std::shared_ptr<Task>> tasks) { for (const auto& t : tasks) add_task(t); }
 
 	/** removes a task.
 	  *
-	  * Note that this does *not* imply recalculate()a
+	  * Note that this does *not* imply recalculate()
 	  */
 	void remove_task(std::shared_ptr<Task> task);
 	
