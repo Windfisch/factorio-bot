@@ -199,6 +199,14 @@ struct Task
 	  * \post{ $\forall$ (item,amount) $\in$ items_balance() with amount $>$ 0: item $\in$ basic_items }
 	  */
 	void auto_craft_from(std::vector<const ItemPrototype*> basic_items, const FactorioGame* game);
+
+	/** clears and recomputes the crafting_list such that all required_items
+	  * are crafted from the given basis_items or taken from the available inventory.
+	  * The latter is preferred.
+	  *
+	  * \post{ $\forall$ (item,amount) $\in$ items_balance() with amount $>$ available[item]: item $\in$ basic_items }
+	  */
+	void auto_craft_from(std::vector<const ItemPrototype*> basic_items, Inventory available, const FactorioGame* game);
 	
 	void update_actions_from_goals(FactorioGame* game, int player);
 
@@ -355,6 +363,10 @@ struct Scheduler
 	  * collector task is inserted at the beginning of the schedule.
 	  */
 	void recalculate();
+
+	/** reallocates all items to the task and recalculates their crafting
+	  * lists. TODO more doc */
+	void reallocate_items_and_crafts(std::vector<const ItemPrototype*> permissible_base_items);
 
 	/** updates the item allocation and the crafting list */
 	void update_item_allocation();

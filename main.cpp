@@ -371,6 +371,11 @@ int main(int argc, const char** argv)
 
 		StrategyPlayer(FactorioGame* game, size_t idx) : scheduler(game,idx) {}
 
+		void add_task(const std::shared_ptr<Task>& task)
+		{
+			// TODO FIXME
+		}
+
 		void update_task(FactorioGame* game, Player& player, const std::shared_ptr<Task>& task)
 		{
 			Logger log("strategy");

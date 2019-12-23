@@ -23,6 +23,7 @@
 #include <chrono>
 
 #include "item.h"
+#include "inventory.hpp"
 
 struct Recipe
 {
@@ -45,6 +46,21 @@ struct Recipe
 
 	std::vector<ItemAmount> ingredients;
 	std::vector<ItemAmount> products;
+
+	Inventory get_itemamounts(const std::vector<ItemAmount>& amounts) const
+	{
+		Inventory result;
+		for (const auto& [item, amount] : amounts)
+		{
+			if (amount < 0. || double(size_t(amount)) != amount)
+				throw std::runtime_error("item amounts must be integers");
+			result[item] += size_t(amount);
+		}
+		return result;
+	}
+
+	Inventory get_ingredients() const { return get_itemamounts(ingredients); }
+	Inventory get_products()    const { return get_itemamounts(products); }
 
 	/** returns the balance for the specified item. positive values means
 	  * that the item is produced, negative means consumed. */

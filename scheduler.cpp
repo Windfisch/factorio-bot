@@ -109,6 +109,74 @@ void Scheduler::cleanup_item_claims()
 		}
 }
 
+
+void Scheduler::reallocate_items_and_crafts(std::vector<const ItemPrototype*> permissible_base_items)
+{
+	item_allocation_t task_inventories;
+
+	// each task may use all its claimed items, plus the unclaimed items, if available.
+	// the latter are allocated to the high prio tasks first.
+	const TaggedInventory& inv = game->players[player_idx].inventory;
+	Inventory free_for_all_inventory = Inventory::get_unclaimed(inv);
+	
+	auto current_craft = peek_current_craft();
+	shared_ptr<Task> current_craft_owner = nullptr;
+	if (current_craft)
+	{
+		if (shared_ptr<Task> owner = current_craft->first.lock())
+			current_craft_owner = owner;
+		else
+			free_for_all_inventory += current_craft->second->get_ingredients();
+	}
+
+	for (auto& [prio, task] : pending_tasks)
+	{
+		Inventory task_inv = Inventory::get_claimed_by(inv, task->owner_id);
+
+		if (current_craft && current_craft_owner == task)
+			task_inv += current_craft->second->get_ingredients();
+		
+		Inventory total_inv = task_inv + free_for_all_inventory;
+
+		task->auto_craft_from(permissible_base_items, total_inv, game);
+		
+		for (auto [item_prototype, amount] : task->get_missing_items(task_inv))
+		{
+			size_t avail = min(free_for_all_inventory[item_prototype], amount);
+			free_for_all_inventory[item_prototype] -= avail;
+			task_inv[item_prototype] += avail;
+		}
+
+		task_inventories[task.get()] = move(task_inv);
+	}
+}
+
+/*
+
+TODO:
+	delete all crafts.
+	consider the CURRENT craft as aborted (i.e., ingredients are available again)
+
+	for all tasks (ordered by prio)
+		get the inventory they may manage
+		for all required items:
+			if it's in the avail. inventory: take it from the avail. inventory
+			for the rest: if it's not in the list of crafting barriers:
+				craft it -> remove products from the required items, add the ingredients to there
+			else:
+				move them from the required items to the to-collect items
+		
+		used_from_inventory := old_avail_inventory - now_avail_inventory
+		for all used items:
+			if they exceed the claimed inventory, update the free-for-all inventory
+	
+	if the top craft equals the old CURRENT craft, make it CURRENT.
+dsfdsh123
+
+
+*/
+
+
 // allocate inventory content to the tasks, based on their priority
 Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 {
@@ -122,6 +190,8 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 	// refactoring: remove stuff, then re-place it somewhere else)
 	
 	// if a claim is yet stolen, it must be given back later.
+
+
 	item_allocation_t task_inventories;
 
 	// each task may use all its claimed items, plus the unclaimed items, if available.
@@ -131,6 +201,7 @@ Scheduler::item_allocation_t Scheduler::allocate_items_to_tasks() const
 	for (auto& [prio, task] : pending_tasks)
 	{
 		Inventory task_inv = Inventory::get_claimed_by(inv, task->owner_id);
+		Inventory total_inv = task_inv + free_for_all_inventory;
 
 		for (auto [item_prototype, amount] : task->get_missing_items(task_inv))
 		{
@@ -328,6 +399,61 @@ void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, const 
 		int amount_per_recipe = recipe->balance_for(item_to_craft);
 
 		int n_recipes = (amount_needed + amount_per_recipe - 1) / amount_per_recipe; // round up
+		for (int i=0; i<n_recipes; i++)
+			crafting_list.recipes.push_back({CraftingList::PENDING, recipe});
+	}
+
+	// we need to reverse the list in order to get the dependencies first
+	std::reverse(crafting_list.recipes.begin(), crafting_list.recipes.end());
+}
+
+void Task::auto_craft_from(std::vector<const ItemPrototype*> basic_items, Inventory available, const FactorioGame* game)
+{
+	crafting_list.recipes.clear();
+
+	Inventory needed;
+	for (const ItemStack& stack : required_items)
+		needed[stack.proto] += stack.amount;
+	
+	while (true)
+	{
+		// try to satisfy the `needed` items from the `available` inventory
+		Inventory satisfyable = needed.min(available);
+		available -= satisfyable;
+		needed -= satisfyable;
+
+
+		// try to find a needed item that's not mentioned in basic_items
+		auto iter = std::find_if(needed.rbegin(), needed.rend(),
+			[&basic_items](const auto& val) {
+				return val.second > 0 && find(basic_items.begin(), basic_items.end(), val.first) == basic_items.end();
+			}
+		);
+		
+		// not found one? good, we're done.
+		if (iter == needed.rend())
+			break;
+
+		// found one? we need to add recipes to the crafting_list
+		const ItemPrototype* item_to_craft = iter->first;
+		int amount_needed = iter->second;
+
+		const Recipe* recipe = game->get_recipe_for(item_to_craft);
+		int amount_per_recipe = recipe->balance_for(item_to_craft);
+
+		int n_recipes = (amount_needed + amount_per_recipe - 1) / amount_per_recipe; // round up
+	
+		Inventory ingredients = n_recipes * recipe->get_ingredients();
+		Inventory products = n_recipes * recipe->get_products();
+
+		Inventory needed_products = products.min(needed);
+		Inventory excess_products = products - needed_products;
+
+		needed -= needed_products;
+		available += excess_products;
+
+		needed += ingredients;
+
 		for (int i=0; i<n_recipes; i++)
 			crafting_list.recipes.push_back({CraftingList::PENDING, recipe});
 	}

@@ -152,6 +152,76 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 
 	Inventory(std::initializer_list<value_type> il) : flat_map(il) {}
 
+	Inventory& operator+=(const Inventory& other)
+	{
+		for (const auto& [key,value] : other)
+			(*this)[key] += value;
+		return *this;
+	}
+	Inventory& operator-=(const Inventory& other)
+	{
+		for (const auto& [key,value] : other)
+			(*this)[key] -= value;
+		return *this;
+	}
+	Inventory& operator*=(size_t mult)
+	{
+		for (auto& [key,value] : (*this))
+			value *= mult;
+		return *this;
+	}
+
+	Inventory operator+(const Inventory& other) const
+	{
+		Inventory result = *this;
+		result += other;
+
+		return result;
+	}
+
+	Inventory operator-(const Inventory& other) const
+	{
+		Inventory result = *this;
+		result -= other;
+		return result;
+	}
+
+	Inventory operator*(size_t mult) const
+	{
+		Inventory result = *this;
+		result *= mult;
+		return result;
+	}
+
+	Inventory max(const Inventory& other) const
+	{
+		Inventory result = *this;
+		for (const auto& [key,value] : other)
+			result[key] = std::max(result[key], value);
+		return result;
+	}
+
+	Inventory min(const Inventory& other) const
+	{
+		Inventory result = *this;
+		for (const auto& [key,value] : other)
+		{
+			size_t amount = std::min(value, this->get_or(key, 0));
+			if (amount)
+				result[key] = amount;
+		}
+		return result;
+	}
+
+	size_t get_or(const ItemPrototype* item, size_t default_value) const {
+		auto it = find(item);
+		if (it != end())
+			return it->second;
+		else
+			return default_value;
+	}
+
+
 	/** constructs an inventory from a TaggedInventory, considering only items claimed by the specified owner */
 	static Inventory get_claimed_by(const TaggedInventory& inv, owner_t owner)
 	{
@@ -174,6 +244,8 @@ struct Inventory : public boost::container::flat_map<const ItemPrototype*, size_
 	void dump() const;
 	std::string str() const;
 };
+
+inline Inventory operator*(size_t mult, const Inventory& inv) { return inv * mult; }
 
 struct MultiInventory
 {
