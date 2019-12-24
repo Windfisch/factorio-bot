@@ -589,12 +589,8 @@ int main(int argc, const char** argv)
 		// create some initial tasks
 		tasklist_t initial_tasks()
 		{
-			auto mytask = make_shared<Task>("axe crafter");
-			mytask->goals.reset();
-			mytask->required_items.emplace_back(ItemStack{&game->get_item_prototype("iron-axe"), 1});
-			mytask->auto_craft_from( {&game->get_item_prototype("iron-plate")}, game );
-
-			return {mytask};
+			// FIXME this is unneeded now that the steel-axe item is gone
+			return {};
 		}
 
 		enum class mine_t { COAL = 0, IRON = 1, COPPER = 2, STONE = 3 };

@@ -49,7 +49,6 @@
 
 
 require "util"
-require "math"
 
 local my_client_id = nil
 
@@ -61,8 +60,8 @@ last_tick_in_file = nil -- this is nil inbetween any "tick:"-message and a subse
 last_tick = 0
 
 local todo_next_tick = {}
-local crafting_queue = {} -- array of lists. crafting_queue[player_idx] is a list
-local recent_item_additions   = {} -- recent_item_additions[player_index].{tick,itemlist,recipe?,action_id?}, itemlist = { {"foo",2}, {"bar",17} }
+local crafting_queue = {} -- array of lists. crafting_queue[character_idx] is a list
+local recent_item_additions   = {} -- recent_item_additions[character_index].{tick,itemlist,recipe?,action_id?}, itemlist = { {"foo",2}, {"bar",17} }
 local player_inventories = {} -- array of dicts ("itemname" -> amount)
 
 function inventory_type_name(invtype, enttype)
@@ -82,18 +81,15 @@ function inventory_type_name(invtype, enttype)
 	}
 
 	local player = {
-		[defines.inventory.player_quickbar] = "player_quickbar",
-		[defines.inventory.player_main] = "player_main",
-		[defines.inventory.player_guns] = "player_guns",
-		[defines.inventory.player_ammo] = "player_ammo",
-		[defines.inventory.player_armor] = "player_armor",
-		[defines.inventory.player_tools] = "player_tools",
-		[defines.inventory.player_vehicle] = "player_vehicle",
-		[defines.inventory.player_trash] = "player_trash"
+		[defines.inventory.character_main] = "character_main",
+		[defines.inventory.character_guns] = "character_guns",
+		[defines.inventory.character_ammo] = "character_ammo",
+		[defines.inventory.character_armor] = "character_armor",
+		[defines.inventory.character_vehicle] = "character_vehicle",
+		[defines.inventory.character_trash] = "character_trash"
 	}
 
 	local god = {
-		[defines.inventory.god_quickbar] = "god_quickbar",
 		[defines.inventory.god_main] = "god_main"
 	}
 
@@ -1074,7 +1070,7 @@ end
 
 function player_total_inventory(player_id)
 	local i = defines.inventory
-	local is = { i.player_quickbar, i.player_main, i.player_tools, i.player_guns, i.player_ammo, i.player_armor } -- TODO: maybe more?
+	local is = { i.character_main, i.character_guns, i.character_ammo, i.character_armor } -- TODO: maybe more?
 	return sum_inventory(game.players[player_id], is)
 end
 
@@ -1172,8 +1168,6 @@ script.on_event(defines.events.on_robot_mined_entity, on_some_entity_deleted) --
 script.on_event(defines.events.on_resource_depleted, on_some_entity_deleted) --entity
 
 script.on_event(defines.events.on_player_main_inventory_changed, on_inventory_changed)
-script.on_event(defines.events.on_player_quickbar_inventory_changed, on_inventory_changed)
-script.on_event(defines.events.on_player_tool_inventory_changed, on_inventory_changed)
 script.on_event(defines.events.on_player_gun_inventory_changed, on_inventory_changed)
 script.on_event(defines.events.on_player_ammo_inventory_changed, on_inventory_changed)
 script.on_event(defines.events.on_player_armor_inventory_changed, on_inventory_changed)
