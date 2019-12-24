@@ -620,15 +620,15 @@ int main(int argc, const char** argv)
 					for (const auto& ent : facility.entities) if (ent.level < facility.level)
 					{
 						if (ent.proto == miner)
-							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("raw-wood"), n_wood*2}}, INV_FUEL));
+							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("wood"), n_wood*2}}, INV_FUEL));
 						else if (ent.proto == furnace)
-							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("raw-wood"), n_wood}}, INV_FUEL));
+							task->goals->push_back(make_unique<goal::InventoryPredicate>(ent, Inventory{{&game->get_item_prototype("wood"), n_wood}}, INV_FUEL));
 					}
 				}
 				else if (mine == mine_t::COAL)
 				{
 					// the first coal drill gets 1 wood
-					task->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&game->get_item_prototype("raw-wood"), 1}}, INV_FUEL));
+					task->goals->push_back(make_unique<goal::InventoryPredicate>(facility.entities.front(), Inventory{{&game->get_item_prototype("wood"), 1}}, INV_FUEL));
 				}
 			}
 			if (mine == mine_t::COAL && facility.level > 1)
@@ -645,9 +645,9 @@ int main(int argc, const char** argv)
 			// TODO: remove this if/else; instead, the scheduler should decide what to craft
 			// and what to use from the inventory.
 			if (mine == mine_t::IRON && facility.level == 1) // special handling for the first iron drill
-				task->auto_craft_from({&game->get_item_prototype("burner-mining-drill"), &game->get_item_prototype("stone-furnace"), &game->get_item_prototype("raw-wood")}, game);
+				task->auto_craft_from({&game->get_item_prototype("burner-mining-drill"), &game->get_item_prototype("stone-furnace"), &game->get_item_prototype("wood")}, game);
 			else
-				task->auto_craft_from({&game->get_item_prototype("iron-plate"), &game->get_item_prototype("stone"), &game->get_item_prototype("raw-wood"), &game->get_item_prototype("coal")}, game);
+				task->auto_craft_from({&game->get_item_prototype("iron-plate"), &game->get_item_prototype("stone"), &game->get_item_prototype("wood"), &game->get_item_prototype("coal")}, game);
 
 			task->actions_changed();
 			return {task};

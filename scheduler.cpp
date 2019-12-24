@@ -1227,7 +1227,7 @@ shared_ptr<Task> Scheduler::build_collector_task(const item_allocation_t& task_i
 
 	// special handling for wood, which can be easily mined by chopping some trees
 	auto mineable_entitytypes = make_array("tree", "simple-entity");
-	auto mineable_itemtypes = make_array("raw-wood", "coal", "stone"); // avoid doing the expensive search on items that cannot be found there anyway.
+	auto mineable_itemtypes = make_array("wood", "coal", "stone"); // avoid doing the expensive search on items that cannot be found there anyway.
 
 	bool do_search_mineable_entities = false;
 	for (const string& itemtype : mineable_itemtypes)

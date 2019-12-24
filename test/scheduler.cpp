@@ -306,7 +306,7 @@ int main()
 
 
 	FactorioGame game("dummy");
-	game.parse_packet("0 item_prototypes: raw-wood item nil 100 4000000 0 0$coal item nil 50 8000000 0 0$stone item nil 50 0 0 0");
+	game.parse_packet("0 item_prototypes: wood item nil 100 4000000 0 0$coal item nil 50 8000000 0 0$stone item nil 50 0 0 0");
 
 
 	pathfinding::walk_t walkable;
